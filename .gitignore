@@ -12,3 +12,4 @@ venv/
 .env
 *.log
 datamarts/
+benchmarks/results/
