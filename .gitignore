@@ -12,4 +12,7 @@ venv/
 .env
 *.log
 datamarts/
+inverted_index.json
 benchmarks/results/
+sample_data/bodies/*.txt
+sample_data/headers/*.txt
