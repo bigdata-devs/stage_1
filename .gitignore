@@ -4,8 +4,6 @@ __pycache__/
 
 scripts/sample_data/
 
-scripts/benchmarks/results/
-
 .env
 venv/
 .venv/
