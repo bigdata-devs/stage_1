@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+
+scripts/sample_data/
+
+scripts/benchmarks/results/
+
+.env
+venv/
+.venv/
