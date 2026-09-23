@@ -10,6 +10,7 @@ logging.basicConfig(level=logging.INFO)
 RESULTS_DIR = Path(__file__).parent / "results"
 RESULTS_FILE = RESULTS_DIR / "benchmarks.csv"
 
+
 def measure_time(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -18,7 +19,7 @@ def measure_time(func):
         elapsed_time = time.perf_counter() - start_time
 
         logging.info(f"[{func.__name__}] executed in {elapsed_time:.4f} seconds")
-        save_result(func.__name__, elapsed_time)
+        wrapper.last_elapsed = elapsed_time
 
         return result
     return wrapper
@@ -33,3 +34,14 @@ def save_result(func_name, elapsed):
         if not file_exists:
             writer.writerow(["function_name", "elapsed_seconds", "timestamp"])
         writer.writerow([func_name, f"{elapsed:.6f}", datetime.now().isoformat()])
+
+
+def benchmark(func):
+    measured_func = measure_time(func)
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        result = measured_func(*args, **kwargs)
+        save_result(func.__name__, measured_func.last_elapsed)
+        return result
+    return wrapper
