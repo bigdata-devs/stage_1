@@ -113,6 +113,42 @@ def save_result(func_name, elapsed, memory_mb, cpu_percent):
         writer.writerow([func_name, f"{elapsed:.6f}", f"{memory_mb:.4f}", f"{cpu_percent:.2f}", datetime.now().isoformat()])
 
 
+def save_disk_usage(stats):
+    disk_usage_file = RESULTS_DIR / "disk_usage.csv"
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    file_exists = disk_usage_file.exists()
+
+    with open(disk_usage_file, "a", newline="") as results_file:
+        writer = csv.writer(results_file)
+        if not file_exists:
+            writer.writerow(["path", "size_mb", "file_count", "dir_count", "timestamp"])
+        writer.writerow([
+            stats["path"],
+            f"{stats['size_mb']:.4f}",
+            stats["file_count"],
+            stats["dir_count"],
+            datetime.now().isoformat(),
+        ])
+
+
+def save_throughput(test_name, item_count, elapsed_seconds, items_per_second):
+    throughput_file = RESULTS_DIR / "throughput.csv"
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    file_exists = throughput_file.exists()
+
+    with open(throughput_file, "a", newline="") as results_file:
+        writer = csv.writer(results_file)
+        if not file_exists:
+            writer.writerow(["test_name", "item_count", "elapsed_seconds", "items_per_second", "timestamp"])
+        writer.writerow([
+            test_name,
+            item_count,
+            f"{elapsed_seconds:.6f}",
+            f"{items_per_second:.4f}",
+            datetime.now().isoformat(),
+        ])
+
+
 def benchmark(func):
     measured_time_func = measure_time(func)
     measured_memory_func = measure_memory(measured_time_func)
