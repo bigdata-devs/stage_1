@@ -89,6 +89,19 @@ def measure_disk_usage(path):
     }
 
 
+def calculate_throughput(item_count, elapsed_seconds):
+    if elapsed_seconds <= 0:
+        raise ValueError("Elapsed seconds must be greater than zero")
+    if item_count < 0:
+        raise ValueError("Item count cannot be negative")
+
+    items_per_second = item_count / elapsed_seconds
+
+    logging.info(f"[throughput] {item_count} items in {elapsed_seconds:.4f}s = {items_per_second:.4f} items/s")
+
+    return round(items_per_second, 4)
+
+
 def save_result(func_name, elapsed, memory_mb, cpu_percent):
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     file_exists = RESULTS_FILE.exists()
