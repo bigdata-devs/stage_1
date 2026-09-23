@@ -5,8 +5,9 @@ from datetime import datetime
 # Marcadores para separar la cabecera y el cuerpo del libro
 START_MARKER = "*** START OF THE PROJECT GUTENBERG EBOOK"
 END_MARKER = "*** END OF THE PROJECT GUTENBERG EBOOK"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
-def download_time_based(book_id: int, base_path: str = "datalake"):
+def download_time_based(book_id: int, base_path: str = str(PROJECT_ROOT / "datalake")):
     """
     Descarga un libro y lo guarda usando una jerarquía basada en el tiempo:
     datalake/YYYYMMDD/HH/<BOOK_ID>_body.txt
