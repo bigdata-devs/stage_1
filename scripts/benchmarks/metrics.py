@@ -60,6 +60,35 @@ def measure_cpu_usage(func):
     return wrapper
 
 
+def measure_disk_usage(path):
+    root = Path(path)
+
+    if not root.exists():
+        raise FileNotFoundError(f"Path does not exist: {path}")
+
+    total_bytes = 0
+    file_count = 0
+    dir_count = 0
+
+    for item in root.rglob("*"):
+        if item.is_file():
+            total_bytes += item.stat().st_size
+            file_count += 1
+        elif item.is_dir():
+            dir_count += 1
+
+    total_mb = total_bytes / BYTES_PER_MB
+
+    logging.info(f"[{root.name}] {total_mb:.4f} MB, {file_count} files, {dir_count} directories")
+
+    return {
+        "path": str(root),
+        "size_mb": round(total_mb, 4),
+        "file_count": file_count,
+        "dir_count": dir_count,
+    }
+
+
 def save_result(func_name, elapsed, memory_mb, cpu_percent):
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     file_exists = RESULTS_FILE.exists()
