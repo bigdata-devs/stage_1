@@ -1,15 +1,11 @@
 import json
 from pathlib import Path
 
+from inverted_index.postings import build_postings
+
 
 def build_index(books: dict[int, list[str]]) -> dict[str, list[int]]:
-    index: dict[str, set[int]] = {}
-    for book_id, tokens in books.items():
-        for token in tokens:
-            if token not in index:
-                index[token] = set()
-            index[token].add(book_id)
-    return {term: sorted(ids) for term, ids in index.items()}
+    return build_postings(books)
 
 
 def save_index(index: dict, output_path: Path) -> None:

@@ -1,14 +1,11 @@
 from collections import defaultdict
 from pathlib import Path
 
+from inverted_index.postings import build_postings
+
 
 def build_index(books: dict[int, list[str]], output_path: Path) -> None:
-    output_path.mkdir(parents=True, exist_ok=True)
-    postings: dict[str, set[int]] = defaultdict(set)
-    for book_id, tokens in books.items():
-        for token in tokens:
-            postings[token].add(book_id)
-    _write_all_terms(postings, output_path)
+    save_index(build_postings(books), output_path)
 
 
 def save_index(index: dict[str, list[int]], output_path: Path) -> None:
