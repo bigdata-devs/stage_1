@@ -1,0 +1,16 @@
+# Ignorar el contenido de las carpetas de datos, pero mantener la carpeta en Git
+datalake/*
+!datalake/.keep
+
+datamarts/*
+!datamarts/.keep
+
+# Ignorar archivos de estado de la Capa de Control (opcional, pero recomendado para que no haya conflictos entre vosotros)
+control/*.txt
+
+# Ignorar archivos temporales y compilados de Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
