@@ -1,1 +1,1 @@
-from .metrics import measure_time, save_result, benchmark
+from .metrics import measure_time, measure_memory, save_result, benchmark
