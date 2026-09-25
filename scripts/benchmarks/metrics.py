@@ -6,8 +6,6 @@ from functools import wraps
 
 from .storage import save_result
 
-logging.basicConfig(level=logging.INFO)
-
 BYTES_PER_MB = 1024 * 1024
 
 
