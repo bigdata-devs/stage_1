@@ -149,6 +149,25 @@ def save_throughput(test_name, item_count, elapsed_seconds, items_per_second):
         ])
 
 
+def save_scalability(test_name, batch_size, elapsed, memory_mb, cpu_percent):
+    scalability_file = RESULTS_DIR / "scalability.csv"
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    file_exists = scalability_file.exists()
+
+    with open(scalability_file, "a", newline="") as results_file:
+        writer = csv.writer(results_file)
+        if not file_exists:
+            writer.writerow(["test_name", "batch_size", "elapsed_seconds", "memory_mb", "cpu_percent", "timestamp"])
+        writer.writerow([
+            test_name,
+            batch_size,
+            f"{elapsed:.6f}",
+            f"{memory_mb:.4f}",
+            f"{cpu_percent:.2f}",
+            datetime.now().isoformat(),
+        ])
+
+
 def benchmark(func):
     measured_time_func = measure_time(func)
     measured_memory_func = measure_memory(measured_time_func)

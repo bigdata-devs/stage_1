@@ -7,5 +7,6 @@ from .metrics import (
     save_result,
     save_disk_usage,
     save_throughput,
+    save_scalability,
     benchmark,
 )
