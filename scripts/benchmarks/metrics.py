@@ -9,7 +9,6 @@ from datetime import datetime
 logging.basicConfig(level=logging.INFO)
 
 RESULTS_DIR = Path(__file__).parent / "results"
-RESULTS_FILE = RESULTS_DIR / "benchmarks.csv"
 
 BYTES_PER_MB = 1024 * 1024
 
@@ -102,103 +101,79 @@ def calculate_throughput(item_count, elapsed_seconds):
     return round(items_per_second, 4)
 
 
-def save_result(stats):
+def append_timestamped_row(filename, header, row):
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    file_exists = RESULTS_FILE.exists()
+    file_path = RESULTS_DIR / filename
+    file_exists = file_path.exists()
 
-    with open(RESULTS_FILE, "a", newline="") as results_file:
-        writer = csv.writer(results_file)
+    with open(file_path, "a", newline="") as csv_file:
+        writer = csv.writer(csv_file)
         if not file_exists:
-            writer.writerow(["function_name", "elapsed_seconds", "memory_mb", "cpu_percent", "timestamp"])
-        writer.writerow([
-            stats["function_name"],
-            f"{stats['elapsed_seconds']:.6f}",
-            f"{stats['memory_mb']:.4f}",
-            f"{stats['cpu_percent']:.2f}",
-            datetime.now().isoformat(),
-        ])
+            writer.writerow([*header, "timestamp"])
+        writer.writerow([*row, datetime.now().isoformat()])
+
+
+def save_result(stats):
+    append_timestamped_row("benchmarks.csv", [
+        "function_name", "elapsed_seconds", "memory_mb", "cpu_percent",
+    ], [
+        stats["function_name"],
+        f"{stats['elapsed_seconds']:.6f}",
+        f"{stats['memory_mb']:.4f}",
+        f"{stats['cpu_percent']:.2f}",
+    ])
 
 
 def save_disk_usage(stats):
-    disk_usage_file = RESULTS_DIR / "disk_usage.csv"
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    file_exists = disk_usage_file.exists()
-
-    with open(disk_usage_file, "a", newline="") as results_file:
-        writer = csv.writer(results_file)
-        if not file_exists:
-            writer.writerow(["path", "size_mb", "file_count", "dir_count", "timestamp"])
-        writer.writerow([
-            stats["path"],
-            f"{stats['size_mb']:.4f}",
-            stats["file_count"],
-            stats["dir_count"],
-            datetime.now().isoformat(),
-        ])
+    append_timestamped_row("disk_usage.csv", [
+        "path", "size_mb", "file_count", "dir_count",
+    ], [
+        stats["path"],
+        f"{stats['size_mb']:.4f}",
+        stats["file_count"],
+        stats["dir_count"],
+    ])
 
 
 def save_throughput(stats):
-    throughput_file = RESULTS_DIR / "throughput.csv"
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    file_exists = throughput_file.exists()
-
-    with open(throughput_file, "a", newline="") as results_file:
-        writer = csv.writer(results_file)
-        if not file_exists:
-            writer.writerow(["test_name", "item_count", "elapsed_seconds", "items_per_second", "timestamp"])
-        writer.writerow([
-            stats["test_name"],
-            stats["item_count"],
-            f"{stats['elapsed_seconds']:.6f}",
-            f"{stats['items_per_second']:.4f}",
-            datetime.now().isoformat(),
-        ])
+    append_timestamped_row("throughput.csv", [
+        "test_name", "item_count", "elapsed_seconds", "items_per_second",
+    ], [
+        stats["test_name"],
+        stats["item_count"],
+        f"{stats['elapsed_seconds']:.6f}",
+        f"{stats['items_per_second']:.4f}",
+    ])
 
 
 def save_scalability(stats):
-    scalability_file = RESULTS_DIR / "scalability.csv"
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    file_exists = scalability_file.exists()
-
-    with open(scalability_file, "a", newline="") as results_file:
-        writer = csv.writer(results_file)
-        if not file_exists:
-            writer.writerow(["test_name", "batch_size", "elapsed_seconds", "memory_mb", "cpu_percent", "timestamp"])
-        writer.writerow([
-            stats["test_name"],
-            stats["batch_size"],
-            f"{stats['elapsed_seconds']:.6f}",
-            f"{stats['memory_mb']:.4f}",
-            f"{stats['cpu_percent']:.2f}",
-            datetime.now().isoformat(),
-        ])
+    append_timestamped_row("scalability.csv", [
+        "test_name", "batch_size", "elapsed_seconds", "memory_mb", "cpu_percent",
+    ], [
+        stats["test_name"],
+        stats["batch_size"],
+        f"{stats['elapsed_seconds']:.6f}",
+        f"{stats['memory_mb']:.4f}",
+        f"{stats['cpu_percent']:.2f}",
+    ])
 
 
 def save_recovery(stats):
-    recovery_file = RESULTS_DIR / "recovery.csv"
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    file_exists = recovery_file.exists()
-
-    with open(recovery_file, "a", newline="") as results_file:
-        writer = csv.writer(results_file)
-        if not file_exists:
-            writer.writerow([
-                "test_name", "total_books", "processed_before_interruption",
-                "processed_after_resume", "duplicated", "lost",
-                "detection_time", "processing_time", "elapsed_seconds", "timestamp",
-            ])
-        writer.writerow([
-            stats["test_name"],
-            stats["total_books"],
-            stats["processed_before_interruption"],
-            stats["processed_after_resume"],
-            stats["duplicated"],
-            stats["lost"],
-            f"{stats['detection_time']:.6f}",
-            f"{stats['processing_time']:.6f}",
-            f"{stats['elapsed_seconds']:.6f}",
-            datetime.now().isoformat(),
-        ])
+    append_timestamped_row("recovery.csv", [
+        "test_name", "total_books", "processed_before_interruption",
+        "processed_after_resume", "duplicated", "lost",
+        "detection_time", "processing_time", "elapsed_seconds",
+    ], [
+        stats["test_name"],
+        stats["total_books"],
+        stats["processed_before_interruption"],
+        stats["processed_after_resume"],
+        stats["duplicated"],
+        stats["lost"],
+        f"{stats['detection_time']:.6f}",
+        f"{stats['processing_time']:.6f}",
+        f"{stats['elapsed_seconds']:.6f}",
+    ])
 
 
 def benchmark(func):
