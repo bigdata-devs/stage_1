@@ -4,10 +4,12 @@ from .metrics import (
     measure_cpu_usage,
     measure_disk_usage,
     calculate_throughput,
+    benchmark,
+)
+from .storage import (
     save_result,
     save_disk_usage,
     save_throughput,
     save_scalability,
     save_recovery,
-    benchmark,
 )
