@@ -20,27 +20,28 @@ def mock_indexing(batch_size):
     return inverted_index
 
 
+def measure_batch(batch_size):
+    time_func = measure_time(mock_indexing)
+    memory_func = measure_memory(time_func)
+    cpu_func = measure_cpu_usage(memory_func)
+
+    cpu_func(batch_size)
+
+    return {
+        "test_name": TEST_NAME,
+        "batch_size": batch_size,
+        "elapsed_seconds": time_func.last_elapsed,
+        "memory_mb": memory_func.last_memory_mb,
+        "cpu_percent": cpu_func.last_cpu_percent,
+    }
+
+
 def run_scalability_test():
     for batch_size in BATCH_SIZES:
         logging.info(f"--- Running test with batch_size={batch_size} ---")
 
-        time_func = measure_time(mock_indexing)
-        memory_func = measure_memory(time_func)
-        cpu_func = measure_cpu_usage(memory_func)
-
-        result = cpu_func(batch_size)
-
-        elapsed = time_func.last_elapsed
-        memory_mb = memory_func.last_memory_mb
-        cpu_percent = cpu_func.last_cpu_percent
-
-        save_scalability({
-            "test_name": TEST_NAME,
-            "batch_size": batch_size,
-            "elapsed_seconds": elapsed,
-            "memory_mb": memory_mb,
-            "cpu_percent": cpu_percent,
-        })
+        stats = measure_batch(batch_size)
+        save_scalability(stats)
 
     logging.info(f"Scalability test '{TEST_NAME}' completed. Results saved to scalability.csv")
 
