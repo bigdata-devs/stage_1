@@ -2,11 +2,12 @@ from pathlib import Path
 from download_sample_data import download_sample_dataset
 
 SAMPLE_BOOK_IDS = [1342, 11, 84, 174]
+REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
+SAMPLE_DATA_PATH = REPOSITORY_ROOT / "sample_data"
 
 
 def main():
-    output_path = Path("sample_data")
-    successful, failed = download_sample_dataset(SAMPLE_BOOK_IDS, output_path)
+    successful, failed = download_sample_dataset(SAMPLE_BOOK_IDS, SAMPLE_DATA_PATH)
     print(f"\nResults: {len(successful)} succeeded, {len(failed)} failed")
 
 

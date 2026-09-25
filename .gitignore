@@ -2,8 +2,6 @@ __pycache__/
 *.pyc
 *.pyo
 
-scripts/sample_data/
-
 .env
 venv/
 .venv/
