@@ -168,6 +168,33 @@ def save_scalability(test_name, batch_size, elapsed, memory_mb, cpu_percent):
         ])
 
 
+def save_recovery(test_name, total_books, processed_before, processed_after, duplicated, lost, detection_time, processing_time, elapsed):
+    recovery_file = RESULTS_DIR / "recovery.csv"
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    file_exists = recovery_file.exists()
+
+    with open(recovery_file, "a", newline="") as results_file:
+        writer = csv.writer(results_file)
+        if not file_exists:
+            writer.writerow([
+                "test_name", "total_books", "processed_before_interruption",
+                "processed_after_resume", "duplicated", "lost",
+                "detection_time", "processing_time", "elapsed_seconds", "timestamp",
+            ])
+        writer.writerow([
+            test_name,
+            total_books,
+            processed_before,
+            processed_after,
+            duplicated,
+            lost,
+            f"{detection_time:.6f}",
+            f"{processing_time:.6f}",
+            f"{elapsed:.6f}",
+            datetime.now().isoformat(),
+        ])
+
+
 def benchmark(func):
     measured_time_func = measure_time(func)
     measured_memory_func = measure_memory(measured_time_func)
