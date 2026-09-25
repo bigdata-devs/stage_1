@@ -54,12 +54,7 @@ def verify_no_losses(first_phase, second_phase):
     return lost
 
 
-def run_recovery_test():
-    start_time = time.perf_counter()
-
-    first_phase = run_first_phase()
-    logging.info("--- Simulated interruption ---")
-
+def resume_pipeline(first_phase):
     detection_start = time.perf_counter()
     pending = detect_pending_books(first_phase)
     detection_time = time.perf_counter() - detection_start
@@ -68,12 +63,24 @@ def run_recovery_test():
     second_phase = process_pending_books(pending)
     processing_time = time.perf_counter() - processing_start
 
-    elapsed = time.perf_counter() - start_time
+    return detection_time, processing_time, second_phase
 
+
+def verify_integrity(first_phase, second_phase):
     duplicated = verify_no_duplicates(first_phase, second_phase)
     lost = verify_no_losses(first_phase, second_phase)
+    return duplicated, lost
 
-    save_recovery({
+
+def simulate_recovery_scenario():
+    start_time = time.perf_counter()
+    first_phase = run_first_phase()
+    logging.info("--- Simulated interruption ---")
+
+    detection_time, processing_time, second_phase = resume_pipeline(first_phase)
+    elapsed = time.perf_counter() - start_time
+    duplicated, lost = verify_integrity(first_phase, second_phase)
+    return {
         "test_name": TEST_NAME,
         "total_books": TOTAL_BOOKS,
         "processed_before_interruption": len(first_phase),
@@ -83,13 +90,21 @@ def run_recovery_test():
         "detection_time": detection_time,
         "processing_time": processing_time,
         "elapsed_seconds": elapsed,
-    })
+    }
 
-    success = duplicated == 0 and lost == 0
+
+def report_verdict(stats):
+    success = stats["duplicated"] == 0 and stats["lost"] == 0
     status = "PASSED" if success else "FAILED"
-    logging.info(f"Recovery test: {status} (duplicated={duplicated}, lost={lost})")
-    logging.info(f"Detection time: {detection_time:.6f}s, Processing time: {processing_time:.6f}s")
+    logging.info(f"Recovery test: {status} (duplicated={stats['duplicated']}, lost={stats['lost']})")
+    logging.info(f"Detection time: {stats['detection_time']:.6f}s, Processing time: {stats['processing_time']:.6f}s")
     return success
+
+
+def run_recovery_test():
+    stats = simulate_recovery_scenario()
+    save_recovery(stats)
+    return report_verdict(stats)
 
 
 if __name__ == "__main__":
