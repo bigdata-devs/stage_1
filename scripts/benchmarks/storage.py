@@ -4,19 +4,6 @@ from datetime import datetime
 
 RESULTS_DIR = Path(__file__).parent / "results"
 
-
-def append_timestamped_row(filename, header, row):
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    file_path = RESULTS_DIR / filename
-    file_exists = file_path.exists()
-
-    with open(file_path, "a", newline="") as csv_file:
-        writer = csv.writer(csv_file)
-        if not file_exists:
-            writer.writerow([*header, "timestamp"])
-        writer.writerow([*row, datetime.now().isoformat()])
-
-
 def save_result(stats):
     append_timestamped_row("benchmarks.csv", [
         "function_name", "elapsed_seconds", "memory_mb", "cpu_percent",
@@ -26,7 +13,6 @@ def save_result(stats):
         f"{stats['memory_mb']:.4f}",
         f"{stats['cpu_percent']:.2f}",
     ])
-
 
 def save_disk_usage(stats):
     append_timestamped_row("disk_usage.csv", [
@@ -38,7 +24,6 @@ def save_disk_usage(stats):
         stats["dir_count"],
     ])
 
-
 def save_throughput(stats):
     append_timestamped_row("throughput.csv", [
         "test_name", "item_count", "elapsed_seconds", "items_per_second",
@@ -48,7 +33,6 @@ def save_throughput(stats):
         f"{stats['elapsed_seconds']:.6f}",
         f"{stats['items_per_second']:.4f}",
     ])
-
 
 def save_scalability(stats):
     append_timestamped_row("scalability.csv", [
@@ -60,7 +44,6 @@ def save_scalability(stats):
         f"{stats['memory_mb']:.4f}",
         f"{stats['cpu_percent']:.2f}",
     ])
-
 
 def save_recovery(stats):
     append_timestamped_row("recovery.csv", [
@@ -78,3 +61,13 @@ def save_recovery(stats):
         f"{stats['processing_time']:.6f}",
         f"{stats['elapsed_seconds']:.6f}",
     ])
+
+def append_timestamped_row(filename, header, row):
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    file_path = RESULTS_DIR / filename
+    file_exists = file_path.exists()
+    with open(file_path, "a", newline="") as csv_file:
+        writer = csv.writer(csv_file)
+        if not file_exists:
+            writer.writerow([*header, "timestamp"])
+        writer.writerow([*row, datetime.now().isoformat()])
