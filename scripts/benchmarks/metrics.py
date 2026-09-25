@@ -102,7 +102,7 @@ def calculate_throughput(item_count, elapsed_seconds):
     return round(items_per_second, 4)
 
 
-def save_result(func_name, elapsed, memory_mb, cpu_percent):
+def save_result(stats):
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     file_exists = RESULTS_FILE.exists()
 
@@ -110,7 +110,13 @@ def save_result(func_name, elapsed, memory_mb, cpu_percent):
         writer = csv.writer(results_file)
         if not file_exists:
             writer.writerow(["function_name", "elapsed_seconds", "memory_mb", "cpu_percent", "timestamp"])
-        writer.writerow([func_name, f"{elapsed:.6f}", f"{memory_mb:.4f}", f"{cpu_percent:.2f}", datetime.now().isoformat()])
+        writer.writerow([
+            stats["function_name"],
+            f"{stats['elapsed_seconds']:.6f}",
+            f"{stats['memory_mb']:.4f}",
+            f"{stats['cpu_percent']:.2f}",
+            datetime.now().isoformat(),
+        ])
 
 
 def save_disk_usage(stats):
@@ -131,7 +137,7 @@ def save_disk_usage(stats):
         ])
 
 
-def save_throughput(test_name, item_count, elapsed_seconds, items_per_second):
+def save_throughput(stats):
     throughput_file = RESULTS_DIR / "throughput.csv"
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     file_exists = throughput_file.exists()
@@ -141,15 +147,15 @@ def save_throughput(test_name, item_count, elapsed_seconds, items_per_second):
         if not file_exists:
             writer.writerow(["test_name", "item_count", "elapsed_seconds", "items_per_second", "timestamp"])
         writer.writerow([
-            test_name,
-            item_count,
-            f"{elapsed_seconds:.6f}",
-            f"{items_per_second:.4f}",
+            stats["test_name"],
+            stats["item_count"],
+            f"{stats['elapsed_seconds']:.6f}",
+            f"{stats['items_per_second']:.4f}",
             datetime.now().isoformat(),
         ])
 
 
-def save_scalability(test_name, batch_size, elapsed, memory_mb, cpu_percent):
+def save_scalability(stats):
     scalability_file = RESULTS_DIR / "scalability.csv"
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     file_exists = scalability_file.exists()
@@ -159,16 +165,16 @@ def save_scalability(test_name, batch_size, elapsed, memory_mb, cpu_percent):
         if not file_exists:
             writer.writerow(["test_name", "batch_size", "elapsed_seconds", "memory_mb", "cpu_percent", "timestamp"])
         writer.writerow([
-            test_name,
-            batch_size,
-            f"{elapsed:.6f}",
-            f"{memory_mb:.4f}",
-            f"{cpu_percent:.2f}",
+            stats["test_name"],
+            stats["batch_size"],
+            f"{stats['elapsed_seconds']:.6f}",
+            f"{stats['memory_mb']:.4f}",
+            f"{stats['cpu_percent']:.2f}",
             datetime.now().isoformat(),
         ])
 
 
-def save_recovery(test_name, total_books, processed_before, processed_after, duplicated, lost, detection_time, processing_time, elapsed):
+def save_recovery(stats):
     recovery_file = RESULTS_DIR / "recovery.csv"
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     file_exists = recovery_file.exists()
@@ -182,15 +188,15 @@ def save_recovery(test_name, total_books, processed_before, processed_after, dup
                 "detection_time", "processing_time", "elapsed_seconds", "timestamp",
             ])
         writer.writerow([
-            test_name,
-            total_books,
-            processed_before,
-            processed_after,
-            duplicated,
-            lost,
-            f"{detection_time:.6f}",
-            f"{processing_time:.6f}",
-            f"{elapsed:.6f}",
+            stats["test_name"],
+            stats["total_books"],
+            stats["processed_before_interruption"],
+            stats["processed_after_resume"],
+            stats["duplicated"],
+            stats["lost"],
+            f"{stats['detection_time']:.6f}",
+            f"{stats['processing_time']:.6f}",
+            f"{stats['elapsed_seconds']:.6f}",
             datetime.now().isoformat(),
         ])
 
@@ -203,11 +209,11 @@ def benchmark(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         result = measured_cpu_func(*args, **kwargs)
-        save_result(
-            func.__name__,
-            measured_time_func.last_elapsed,
-            measured_memory_func.last_memory_mb,
-            measured_cpu_func.last_cpu_percent,
-        )
+        save_result({
+            "function_name": func.__name__,
+            "elapsed_seconds": measured_time_func.last_elapsed,
+            "memory_mb": measured_memory_func.last_memory_mb,
+            "cpu_percent": measured_cpu_func.last_cpu_percent,
+        })
         return result
     return wrapper

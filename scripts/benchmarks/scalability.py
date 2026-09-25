@@ -34,7 +34,13 @@ def run_scalability_test():
         memory_mb = memory_func.last_memory_mb
         cpu_percent = cpu_func.last_cpu_percent
 
-        save_scalability(TEST_NAME, batch_size, elapsed, memory_mb, cpu_percent)
+        save_scalability({
+            "test_name": TEST_NAME,
+            "batch_size": batch_size,
+            "elapsed_seconds": elapsed,
+            "memory_mb": memory_mb,
+            "cpu_percent": cpu_percent,
+        })
 
     logging.info(f"Scalability test '{TEST_NAME}' completed. Results saved to scalability.csv")
 

@@ -73,17 +73,17 @@ def run_recovery_test():
     duplicated = verify_no_duplicates(first_phase, second_phase)
     lost = verify_no_losses(first_phase, second_phase)
 
-    save_recovery(
-        TEST_NAME,
-        TOTAL_BOOKS,
-        len(first_phase),
-        len(second_phase),
-        duplicated,
-        lost,
-        detection_time,
-        processing_time,
-        elapsed,
-    )
+    save_recovery({
+        "test_name": TEST_NAME,
+        "total_books": TOTAL_BOOKS,
+        "processed_before_interruption": len(first_phase),
+        "processed_after_resume": len(second_phase),
+        "duplicated": duplicated,
+        "lost": lost,
+        "detection_time": detection_time,
+        "processing_time": processing_time,
+        "elapsed_seconds": elapsed,
+    })
 
     success = duplicated == 0 and lost == 0
     status = "PASSED" if success else "FAILED"
