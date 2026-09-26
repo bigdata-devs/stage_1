@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
+sys.path.insert(0, str(Path(__file__).parent.parent / "src" / "python"))
 
 from build_inverted_index import discover_book_ids, read_book_body
 from shared.text_processor import process_text

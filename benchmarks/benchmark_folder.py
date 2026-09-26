@@ -2,7 +2,7 @@ import shutil
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
+sys.path.insert(0, str(Path(__file__).parent.parent / "src" / "python"))
 
 from shared.text_processor import process_text
 from inverted_index.folder_index import build_index, save_index, load_index, query_index
