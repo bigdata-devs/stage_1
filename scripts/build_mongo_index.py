@@ -4,6 +4,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src" / "python"))
 
+from shared.body_files import discover_book_ids, read_book_body
 from shared.text_processor import process_text
 from inverted_index.mongo_index import build_index, get_collection, save_index
 
@@ -15,19 +16,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 BODIES_DIR = Path(__file__).parent.parent / "sample_data" / "bodies"
-
-
-def read_book_body(book_id: int, bodies_dir: Path) -> str:
-    body_path = bodies_dir / f"{book_id}_body.txt"
-    return body_path.read_text(encoding="utf-8")
-
-
-def discover_book_ids(bodies_dir: Path) -> list[int]:
-    book_ids = []
-    for body_file in bodies_dir.glob("*_body.txt"):
-        raw_id = body_file.stem.replace("_body", "")
-        book_ids.append(int(raw_id))
-    return sorted(book_ids)
 
 
 def main() -> None:
