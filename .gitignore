@@ -35,3 +35,6 @@ sample_data/headers/*.txt
 
 # Legacy index output at repository root
 inverted_index.json
+
+# Compiled ports
+out/
