@@ -4,7 +4,7 @@ from unittest import mock
 from src.control.book_id import InvalidBookIdError
 from src.control.control_file import ControlFile
 from src.control.state_manager import StateManager
-from tests.helpers import TemporaryDirectoryTestCase, render_ids
+from tests.test_control.helpers import TemporaryDirectoryTestCase, render_ids
 
 
 class StateManagerLoadTest(TemporaryDirectoryTestCase):

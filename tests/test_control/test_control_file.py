@@ -1,7 +1,7 @@
 import unittest
 
 from src.control.control_file import ControlFile
-from tests.helpers import TemporaryDirectoryTestCase, render_ids
+from tests.test_control.helpers import TemporaryDirectoryTestCase, render_ids
 
 
 class ControlFileReadTest(TemporaryDirectoryTestCase):

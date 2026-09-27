@@ -4,7 +4,7 @@ from unittest import mock
 from src.control.control_file import ControlFile
 from src.control.pipeline_controller import PipelineController
 from src.control.state_manager import StateManager
-from tests.helpers import TemporaryDirectoryTestCase, render_ids
+from tests.test_control.helpers import TemporaryDirectoryTestCase, render_ids
 
 
 def fail_on_odd_ids(book_id: str) -> bool:
