@@ -15,6 +15,9 @@ ENV/
 *.swp
 *~
 
+# Test caches
+.pytest_cache/
+
 # Runtime pipeline state (recreated automatically by StateManager)
 /control/
 
