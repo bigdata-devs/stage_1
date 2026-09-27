@@ -1,0 +1,7 @@
+function_name,elapsed_seconds,memory_mb,cpu_percent,timestamp
+incremental_time_based,0.001858,0.0000,0.00,2026-09-27T13:20:33.450909
+incremental_book_based,0.001322,0.0000,535.20,2026-09-27T13:20:36.428263
+incremental_batch_based,0.001200,0.0156,0.00,2026-09-27T13:20:39.259381
+update_json_index,0.821130,3.2617,101.00,2026-09-27T13:21:00.589496
+update_folder_index,0.152468,0.0000,97.90,2026-09-27T13:21:37.855681
+insert_sqlite,0.643953,0.0156,14.00,2026-09-27T13:21:40.345545

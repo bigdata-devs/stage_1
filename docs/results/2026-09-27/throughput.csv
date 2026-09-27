@@ -1,0 +1,6 @@
+test_name,item_count,elapsed_seconds,items_per_second,timestamp
+write_throughput_time_based,100,2.772424,36.0695,2026-09-27T13:20:33.396616
+write_throughput_book_based,100,2.830369,35.3311,2026-09-27T13:20:36.403214
+write_throughput_batch_based,100,2.716436,36.8129,2026-09-27T13:20:39.234638
+download_write_throughput,10,6.986531,1.4313,2026-09-27T13:20:46.323897
+insert_throughput_sqlite,100,0.643953,155.2909,2026-09-27T13:21:40.335472
