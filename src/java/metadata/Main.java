@@ -23,17 +23,17 @@ public class Main {
 
         MetadataStorage currentDb;
 
-        //String sqliteDbPath = "data/metadata.db";
-        //currentDb = new SqliteStorage(sqliteDbPath, "books_metadata");
+        String sqliteDbPath = "data/metadata.db";
+        currentDb = new SqliteStorage(sqliteDbPath, "books_metadata");
 
         //String pgUrl = "jdbc:postgresql://localhost:5432/bigdata_project";
         //String pgUser = "postgres";
         //String pgPassword = " ";
         //currentDb = new PostgresStorage(pgUrl, pgUser, pgPassword, "books_metadata");
 
-        String mongoConnString = "mongodb://localhost:27017";
-        String mongoDbName = "bigdata_project";
-        currentDb = new MongoStorage(mongoConnString, mongoDbName, "books_metadata");
+        //String mongoConnString = "mongodb://localhost:27017";
+        //String mongoDbName = "bigdata_project";
+        //currentDb = new MongoStorage(mongoConnString, mongoDbName, "books_metadata");
 
         System.out.println("Starting processing using: " + currentDb.getClass().getSimpleName());
         
