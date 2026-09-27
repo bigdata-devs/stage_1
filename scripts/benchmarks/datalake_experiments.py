@@ -5,7 +5,7 @@ import time
 import requests
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent / "src" / "python"))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "src" / "python"))
 
 from benchmarks import (
     measure_time,
