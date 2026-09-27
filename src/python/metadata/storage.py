@@ -7,8 +7,6 @@ class MetadataStorage(ABC):
     @abstractmethod
     def save(self, metadata: dict):
         pass
-
-# Implementación para SQLite
 class SQLiteStorage(MetadataStorage):
     def __init__(self, db_path="data/metadata.db"):
         self.db_path = db_path
@@ -42,8 +40,6 @@ class SQLiteStorage(MetadataStorage):
                 metadata.get('Capture Date', 'Desconocido')
             ))
             conn.commit()
-
-# Implementación para PostgreSQL
 class PostgresStorage(MetadataStorage):
     def __init__(self, connection_string):
         self.connection_string = connection_string
@@ -82,8 +78,6 @@ class PostgresStorage(MetadataStorage):
                     metadata.get('Capture Date', 'Desconocido')
                 ))
             conn.commit()
-
-# Implementación para MongoDB
 class MongoStorage(MetadataStorage):
     def __init__(self, connection_string, db_name="bigdata_project"):
         self.client = MongoClient(connection_string)
