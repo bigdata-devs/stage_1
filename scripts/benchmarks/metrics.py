@@ -62,6 +62,8 @@ def measure_cpu_usage(func):
 
 def measure_disk_usage(path):
     root = Path(path)
+    if root.is_file():
+        return file_usage(root)
     if not root.exists():
         raise FileNotFoundError(f"Path does not exist: {path}")
     total_bytes, file_count, dir_count = scan_directory(root)
@@ -85,6 +87,16 @@ def scan_directory(root):
         elif item.is_dir():
             dir_count += 1
     return total_bytes, file_count, dir_count
+
+def file_usage(root):
+    size_bytes = root.stat().st_size
+    logging.info(f"[{root.name}] {size_bytes / BYTES_PER_MB:.4f} MB, 1 file, 0 directories")
+    return {
+        "path": str(root),
+        "size_mb": round(size_bytes / BYTES_PER_MB, 4),
+        "file_count": 1,
+        "dir_count": 0,
+    }
 
 def calculate_throughput(item_count, elapsed_seconds):
     if elapsed_seconds <= 0:
