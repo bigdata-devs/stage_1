@@ -10,6 +10,15 @@ class MetadataStorage(ABC):
     @abstractmethod
     def save(self, metadata: dict):
         pass
+
+    @abstractmethod
+    def find_by_author(self, author: str):
+        pass
+
+    @abstractmethod
+    def find_by_book_id(self, book_id: int):
+        pass
+
 class SQLiteStorage(MetadataStorage):
     def __init__(self, db_path="data/metadata.db"):
         self.db_path = db_path
@@ -43,6 +52,20 @@ class SQLiteStorage(MetadataStorage):
                 metadata.get('Capture Date', 'Desconocido')
             ))
             conn.commit()
+
+    def find_by_author(self, author: str):
+        return self._fetch('SELECT * FROM books WHERE author = ?', (author,))
+
+    def find_by_book_id(self, book_id: int):
+        return self._fetch('SELECT * FROM books WHERE book_id = ?', (book_id,))
+
+    def _fetch(self, query, parameters):
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute(query, parameters)
+            return [dict(row) for row in cursor.fetchall()]
+
 class PostgresStorage(MetadataStorage):
     def __init__(self, connection_string):
         if psycopg2 is None:
@@ -89,6 +112,20 @@ class PostgresStorage(MetadataStorage):
                     metadata.get('Capture Date', 'Desconocido')
                 ))
             conn.commit()
+
+    def find_by_author(self, author: str):
+        return self._fetch('SELECT * FROM books WHERE author = %s', (author,))
+
+    def find_by_book_id(self, book_id: int):
+        return self._fetch('SELECT * FROM books WHERE book_id = %s', (book_id,))
+
+    def _fetch(self, query, parameters):
+        with self._connect() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(query, parameters)
+                columns = [description[0] for description in cursor.description]
+                return [dict(zip(columns, row)) for row in cursor.fetchall()]
+
 class MongoStorage(MetadataStorage):
     def __init__(self, connection_string, db_name="bigdata_project"):
         self.client = MongoClient(connection_string)
@@ -101,3 +138,12 @@ class MongoStorage(MetadataStorage):
             {"$set": metadata},
             upsert=True
         )
+
+    def find_by_author(self, author: str):
+        return self._find({"Author": author})
+
+    def find_by_book_id(self, book_id: int):
+        return self._find({"book_id": book_id})
+
+    def _find(self, filters):
+        return list(self.collection.find(filters, {"_id": 0}))
