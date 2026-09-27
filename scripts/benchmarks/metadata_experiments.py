@@ -10,9 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "src" / "
 
 from benchmarks import (
     BYTES_PER_MB,
-    measure_time,
-    measure_memory,
-    measure_cpu_usage,
+    measure_operation,
     calculate_throughput,
     calculate_statistics,
     save_throughput,
@@ -110,21 +108,18 @@ def measure_storage_overhead(storage, name):
     })
 
 def measure_insert_throughput(storage, metadata_rows, name):
-    time_func = measure_time(lambda: save_all(storage, metadata_rows))
-    memory_func = measure_memory(time_func)
-    cpu_func = measure_cpu_usage(memory_func)
-    cpu_func()
+    measurement = measure_operation(lambda: save_all(storage, metadata_rows))
     save_throughput({
         "test_name": f"insert_throughput_{name}",
         "item_count": len(metadata_rows),
-        "elapsed_seconds": time_func.last_elapsed,
-        "items_per_second": calculate_throughput(len(metadata_rows), time_func.last_elapsed),
+        "elapsed_seconds": measurement.elapsed_seconds,
+        "items_per_second": calculate_throughput(len(metadata_rows), measurement.elapsed_seconds),
     })
     save_result({
         "function_name": f"insert_{name}",
-        "elapsed_seconds": time_func.last_elapsed,
-        "memory_mb": memory_func.last_memory_mb,
-        "cpu_percent": cpu_func.last_cpu_percent,
+        "elapsed_seconds": measurement.elapsed_seconds,
+        "memory_mb": measurement.memory_mb,
+        "cpu_percent": measurement.cpu_percent,
     })
 
 def measure_queries(storage, name, metadata_rows):
@@ -150,16 +145,13 @@ def measure_query_performance(test_name, query):
 def measure_insert_scalability(storage, template, name):
     for batch_size in SCALABILITY_BATCH_SIZES:
         rows = synthetic_metadata_rows(batch_size, template)
-        time_func = measure_time(lambda: save_all(storage, rows))
-        memory_func = measure_memory(time_func)
-        cpu_func = measure_cpu_usage(memory_func)
-        cpu_func()
+        measurement = measure_operation(lambda: save_all(storage, rows))
         save_scalability({
             "test_name": f"insert_{name}",
             "batch_size": batch_size,
-            "elapsed_seconds": time_func.last_elapsed,
-            "memory_mb": memory_func.last_memory_mb,
-            "cpu_percent": cpu_func.last_cpu_percent,
+            "elapsed_seconds": measurement.elapsed_seconds,
+            "memory_mb": measurement.memory_mb,
+            "cpu_percent": measurement.cpu_percent,
         })
 
 def synthetic_metadata_rows(count, template):

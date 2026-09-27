@@ -1,5 +1,5 @@
 import logging
-from benchmarks import measure_time, measure_memory, measure_cpu_usage, save_scalability
+from benchmarks import measure_operation, save_scalability
 
 logging.basicConfig(level=logging.INFO)
 
@@ -14,16 +14,13 @@ def run_scalability_test():
     logging.info(f"Scalability test '{TEST_NAME}' completed. Results saved to scalability.csv")
 
 def measure_batch(batch_size):
-    time_func = measure_time(mock_indexing)
-    memory_func = measure_memory(time_func)
-    cpu_func = measure_cpu_usage(memory_func)
-    cpu_func(batch_size)
+    measurement = measure_operation(lambda: mock_indexing(batch_size))
     return {
         "test_name": TEST_NAME,
         "batch_size": batch_size,
-        "elapsed_seconds": time_func.last_elapsed,
-        "memory_mb": memory_func.last_memory_mb,
-        "cpu_percent": cpu_func.last_cpu_percent,
+        "elapsed_seconds": measurement.elapsed_seconds,
+        "memory_mb": measurement.memory_mb,
+        "cpu_percent": measurement.cpu_percent,
     }
 
 def mock_indexing(batch_size):

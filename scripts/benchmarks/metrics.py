@@ -4,8 +4,27 @@ import statistics
 import psutil
 from pathlib import Path
 from functools import wraps
+from typing import NamedTuple
 
 BYTES_PER_MB = 1024 * 1024
+
+class Measurement(NamedTuple):
+    result: object
+    elapsed_seconds: float
+    memory_mb: float
+    cpu_percent: float
+
+def measure_operation(operation):
+    time_func = measure_time(operation)
+    memory_func = measure_memory(time_func)
+    cpu_func = measure_cpu_usage(memory_func)
+    result = cpu_func()
+    return Measurement(
+        result,
+        time_func.last_elapsed,
+        memory_func.last_memory_mb,
+        cpu_func.last_cpu_percent,
+    )
 
 def measure_time(func):
     @wraps(func)

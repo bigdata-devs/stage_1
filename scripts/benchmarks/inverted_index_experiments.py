@@ -9,9 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "src" / "
 
 from benchmarks import (
     BYTES_PER_MB,
-    measure_time,
-    measure_memory,
-    measure_cpu_usage,
+    measure_operation,
     measure_disk_usage,
     calculate_statistics,
     save_scalability,
@@ -61,16 +59,13 @@ def run_structure_experiments(structure, books, terms):
 
 def measure_build(structure, books, batch_size):
     subset = dict(list(books.items())[:batch_size])
-    time_func = measure_time(structure.build_and_save)
-    memory_func = measure_memory(time_func)
-    cpu_func = measure_cpu_usage(memory_func)
-    cpu_func(subset)
+    measurement = measure_operation(lambda: structure.build_and_save(subset))
     save_scalability({
         "test_name": f"build_{structure.name}",
         "batch_size": batch_size,
-        "elapsed_seconds": time_func.last_elapsed,
-        "memory_mb": memory_func.last_memory_mb,
-        "cpu_percent": cpu_func.last_cpu_percent,
+        "elapsed_seconds": measurement.elapsed_seconds,
+        "memory_mb": measurement.memory_mb,
+        "cpu_percent": measurement.cpu_percent,
     })
 
 def measure_query_performance(structure, terms):
@@ -86,15 +81,12 @@ def measure_query_performance(structure, terms):
 def measure_update(structure, books):
     new_book_id = max(books) + 1
     tokens = next(iter(books.values()))
-    time_func = measure_time(lambda: structure.add_book(new_book_id, tokens))
-    memory_func = measure_memory(time_func)
-    cpu_func = measure_cpu_usage(memory_func)
-    cpu_func()
+    measurement = measure_operation(lambda: structure.add_book(new_book_id, tokens))
     save_result({
         "function_name": f"update_{structure.name}",
-        "elapsed_seconds": time_func.last_elapsed,
-        "memory_mb": memory_func.last_memory_mb,
-        "cpu_percent": cpu_func.last_cpu_percent,
+        "elapsed_seconds": measurement.elapsed_seconds,
+        "memory_mb": measurement.memory_mb,
+        "cpu_percent": measurement.cpu_percent,
     })
 
 def measure_storage_overhead(structure):

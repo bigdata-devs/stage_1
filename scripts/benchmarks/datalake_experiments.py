@@ -8,9 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "src" / "python"))
 
 from benchmarks import (
-    measure_time,
-    measure_memory,
-    measure_cpu_usage,
+    measure_operation,
     measure_disk_usage,
     calculate_throughput,
     calculate_statistics,
@@ -54,13 +52,12 @@ def run_layout_experiments(layout, book_ids):
 
 def measure_write_throughput(layout, book_ids):
     reset_structure_directory(layout)
-    time_func = measure_time(lambda: populate_structure(layout, book_ids))
-    time_func()
+    measurement = measure_operation(lambda: populate_structure(layout, book_ids))
     save_throughput({
         "test_name": f"write_throughput_{layout.name}",
         "item_count": len(book_ids),
-        "elapsed_seconds": time_func.last_elapsed,
-        "items_per_second": calculate_throughput(len(book_ids), time_func.last_elapsed),
+        "elapsed_seconds": measurement.elapsed_seconds,
+        "items_per_second": calculate_throughput(len(book_ids), measurement.elapsed_seconds),
     })
 
 def measure_lookup(layout, book_ids):
@@ -77,15 +74,12 @@ def measure_lookup(layout, book_ids):
 def measure_incremental(layout, book_ids):
     base = structure_base(layout)
     known = set(book_ids[: len(book_ids) // 2])
-    time_func = measure_time(lambda: detect_pending(layout, base, known))
-    memory_func = measure_memory(time_func)
-    cpu_func = measure_cpu_usage(memory_func)
-    cpu_func()
+    measurement = measure_operation(lambda: detect_pending(layout, base, known))
     save_result({
         "function_name": f"incremental_{layout.name}",
-        "elapsed_seconds": time_func.last_elapsed,
-        "memory_mb": memory_func.last_memory_mb,
-        "cpu_percent": cpu_func.last_cpu_percent,
+        "elapsed_seconds": measurement.elapsed_seconds,
+        "memory_mb": measurement.memory_mb,
+        "cpu_percent": measurement.cpu_percent,
     })
 
 def measure_storage_overhead(layout):
@@ -101,13 +95,13 @@ def measure_download_throughput(book_ids):
     probe_directory = BENCHMARK_DATA_DIRECTORY / "download_probe"
     if probe_directory.exists():
         shutil.rmtree(probe_directory)
-    time_func = measure_time(lambda: download_probe_books(probe_ids, probe_directory))
-    stored = time_func()
+    measurement = measure_operation(lambda: download_probe_books(probe_ids, probe_directory))
+    stored = measurement.result
     save_throughput({
         "test_name": "download_write_throughput",
         "item_count": stored,
-        "elapsed_seconds": time_func.last_elapsed,
-        "items_per_second": calculate_throughput(stored, time_func.last_elapsed),
+        "elapsed_seconds": measurement.elapsed_seconds,
+        "items_per_second": calculate_throughput(stored, measurement.elapsed_seconds),
     })
 
 def resume_after_interruption(layout, book_ids):
