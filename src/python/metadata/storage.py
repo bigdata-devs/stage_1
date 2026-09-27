@@ -174,7 +174,7 @@ class MongoStorage(MetadataStorage):
         return list(self.collection.find(filters, {"_id": 0}))
 
     def storage_location(self):
-        base_uri = self.connection_string.split("?")[0]
+        base_uri = self.connection_string.split("?")[0].rstrip("/")
         return f"{base_uri}/{self.db.name}.{self.collection.name}"
 
     def storage_size_bytes(self):
