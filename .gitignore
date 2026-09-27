@@ -42,3 +42,10 @@ inverted_index.json
 .idea/
 .DS_Store
 Thumbs.db
+
+# Benchmark results
+src/utils/benchmarks/results/
+
+# Multi-language build outputs
+multilang_ports/**/target/
+multilang_ports/**/*.o
