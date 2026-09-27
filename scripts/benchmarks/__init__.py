@@ -13,4 +13,5 @@ from .storage import (
     save_throughput,
     save_scalability,
     save_recovery,
+    save_statistics,
 )

@@ -62,6 +62,18 @@ def save_recovery(stats):
         f"{stats['elapsed_seconds']:.6f}",
     ])
 
+def save_statistics(stats):
+    append_timestamped_row("statistics.csv", [
+        "test_name", "iterations", "mean_seconds", "stdev_seconds", "min_seconds", "max_seconds",
+    ], [
+        stats["test_name"],
+        stats["iterations"],
+        f"{stats['mean_seconds']:.6f}",
+        f"{stats['stdev_seconds']:.6f}",
+        f"{stats['min_seconds']:.6f}",
+        f"{stats['max_seconds']:.6f}",
+    ])
+
 def append_timestamped_row(filename, header, row):
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     file_path = RESULTS_DIR / filename
