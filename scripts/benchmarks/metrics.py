@@ -32,7 +32,7 @@ def measure_time(func):
         start_time = time.perf_counter()
         result = func(*args, **kwargs)
         elapsed_time = time.perf_counter() - start_time
-        logging.info(f"[{func.__name__}] executed in {elapsed_time:.4f} seconds")
+        logging.info("[%s] executed in %.4f seconds", func.__name__, elapsed_time)
         wrapper.last_elapsed = elapsed_time
         return result
     return wrapper
@@ -45,7 +45,7 @@ def measure_memory(func):
         result = func(*args, **kwargs)
         memory_after = process.memory_info().rss
         consumed_mb = max(memory_after - memory_before, 0) / BYTES_PER_MB
-        logging.info(f"[{func.__name__}] consumed {consumed_mb:.4f} MB of RAM")
+        logging.info("[%s] consumed %.4f MB of RAM", func.__name__, consumed_mb)
         wrapper.last_memory_mb = consumed_mb
         return result
     return wrapper
@@ -57,7 +57,7 @@ def measure_cpu_usage(func):
         process.cpu_percent()
         result = func(*args, **kwargs)
         cpu_percent = process.cpu_percent()
-        logging.info(f"[{func.__name__}] used {cpu_percent:.2f}% CPU")
+        logging.info("[%s] used %.2f%% CPU", func.__name__, cpu_percent)
         wrapper.last_cpu_percent = cpu_percent
         return result
     return wrapper
@@ -70,7 +70,7 @@ def measure_disk_usage(path):
         raise FileNotFoundError(f"Path does not exist: {path}")
     total_bytes, file_count, dir_count = scan_directory(root)
     total_mb = total_bytes / BYTES_PER_MB
-    logging.info(f"[{root.name}] {total_mb:.4f} MB, {file_count} files, {dir_count} directories")
+    logging.info("[%s] %.4f MB, %d files, %d directories", root.name, total_mb, file_count, dir_count)
     return {
         "path": str(root),
         "size_mb": round(total_mb, 4),
@@ -92,7 +92,7 @@ def scan_directory(root):
 
 def file_usage(root):
     size_bytes = root.stat().st_size
-    logging.info(f"[{root.name}] {size_bytes / BYTES_PER_MB:.4f} MB, 1 file, 0 directories")
+    logging.info("[%s] %.4f MB, 1 file, 0 directories", root.name, size_bytes / BYTES_PER_MB)
     return {
         "path": str(root),
         "size_mb": round(size_bytes / BYTES_PER_MB, 4),
@@ -106,7 +106,7 @@ def calculate_throughput(item_count, elapsed_seconds):
     if item_count < 0:
         raise ValueError("Item count cannot be negative")
     items_per_second = item_count / elapsed_seconds
-    logging.info(f"[throughput] {item_count} items in {elapsed_seconds:.4f}s = {items_per_second:.4f} items/s")
+    logging.info("[throughput] %d items in %.4fs = %.4f items/s", item_count, elapsed_seconds, items_per_second)
     return round(items_per_second, 4)
 
 def calculate_statistics(durations):

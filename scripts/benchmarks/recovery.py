@@ -35,8 +35,8 @@ def simulate_recovery_scenario():
 def report_verdict(stats):
     success = stats["duplicated"] == 0 and stats["lost"] == 0
     status = "PASSED" if success else "FAILED"
-    logging.info(f"Recovery test: {status} (duplicated={stats['duplicated']}, lost={stats['lost']})")
-    logging.info(f"Detection time: {stats['detection_time']:.6f}s, Processing time: {stats['processing_time']:.6f}s")
+    logging.info("Recovery test: %s (duplicated=%d, lost=%d)", status, stats["duplicated"], stats["lost"])
+    logging.info("Detection time: %.6fs, Processing time: %.6fs", stats["detection_time"], stats["processing_time"])
     return success
 
 def resume_pipeline(first_phase):
@@ -58,7 +58,7 @@ def run_first_phase():
     for book_id in range(1, INTERRUPT_AT + 1):
         process_book(book_id)
         processed.add(book_id)
-    logging.info(f"Phase 1: processed {len(processed)} books before interruption")
+    logging.info("Phase 1: processed %d books before interruption", len(processed))
     return processed
 
 def detect_pending_books(already_processed):
@@ -66,7 +66,7 @@ def detect_pending_books(already_processed):
     for book_id in range(1, TOTAL_BOOKS + 1):
         if book_id not in already_processed:
             pending.add(book_id)
-    logging.info(f"Detection: found {len(pending)} pending books")
+    logging.info("Detection: found %d pending books", len(pending))
     return pending
 
 def process_pending_books(pending):
@@ -74,19 +74,19 @@ def process_pending_books(pending):
     for book_id in pending:
         process_book(book_id)
         processed_after.add(book_id)
-    logging.info(f"Phase 2: processed {len(processed_after)} books after resume")
+    logging.info("Phase 2: processed %d books after resume", len(processed_after))
     return processed_after
 
 def verify_no_duplicates(first_phase, second_phase):
     duplicated = len(first_phase & second_phase)
-    logging.info(f"Verification: {duplicated} duplicated books")
+    logging.info("Verification: %d duplicated books", duplicated)
     return duplicated
 
 def verify_no_losses(first_phase, second_phase):
     all_processed = first_phase | second_phase
     expected = set(range(1, TOTAL_BOOKS + 1))
     lost = len(expected - all_processed)
-    logging.info(f"Verification: {lost} lost books")
+    logging.info("Verification: %d lost books", lost)
     return lost
 
 def process_book(book_id):

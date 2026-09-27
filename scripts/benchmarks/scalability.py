@@ -8,10 +8,10 @@ TEST_NAME = "mock_indexing"
 
 def run_scalability_test():
     for batch_size in BATCH_SIZES:
-        logging.info(f"--- Running test with batch_size={batch_size} ---")
+        logging.info("--- Running test with batch_size=%d ---", batch_size)
         stats = measure_batch(batch_size)
         save_scalability(stats)
-    logging.info(f"Scalability test '{TEST_NAME}' completed. Results saved to scalability.csv")
+    logging.info("Scalability test '%s' completed. Results saved to scalability.csv", TEST_NAME)
 
 def measure_batch(batch_size):
     measurement = measure_operation(lambda: mock_indexing(batch_size))
