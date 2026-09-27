@@ -21,13 +21,13 @@ from benchmarks import (
     save_disk_usage,
 )
 from benchmarks import data_source
-from benchmarks.storage import RESULTS_DIR
+from benchmarks.artifacts import ARTIFACT_ROOT
 from benchmarks.datalake_layouts import TimeBasedLayout, BookBasedLayout, BatchBasedLayout
 from ingestion.datalake_engine import download_time_based
 
 logging.basicConfig(level=logging.INFO)
 
-BENCHMARK_DATA_DIRECTORY = RESULTS_DIR / "datalake"
+BENCHMARK_DATA_DIRECTORY = ARTIFACT_ROOT / "datalake"
 DOWNLOAD_PROBE_COUNT = 10
 LAYOUTS = [TimeBasedLayout(), BookBasedLayout(), BatchBasedLayout()]
 

@@ -39,7 +39,3 @@ out/
 # Experiment book source: local cache ignored, manifest tracked
 data_source/*
 !data_source/manifest.json
-
-# Benchmark experiment data directories
-scripts/benchmarks/results/datalake/
-scripts/benchmarks/results/index/
