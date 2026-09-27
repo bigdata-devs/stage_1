@@ -9,10 +9,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "src" / "
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "src" / "python"))
 
 from benchmarks import (
+    BYTES_PER_MB,
     measure_time,
     measure_memory,
     measure_cpu_usage,
-    measure_disk_usage,
     calculate_throughput,
     calculate_statistics,
     save_throughput,
@@ -35,6 +35,7 @@ POSTGRES_CONNECTION_STRING = "host=/var/run/postgresql dbname=bigdata"
 QUERY_ITERATIONS = 100
 SCALABILITY_BATCH_SIZES = [10, 100, 1000, 10000]
 SYNTHETIC_BOOK_ID_BASE = 900000
+STORAGE_FILE_COUNTS = {"sqlite": 1, "postgres": 0, "mongo": 0}
 
 def run():
     reset_database()
@@ -48,7 +49,6 @@ def run():
     ]
     for name, creator in creators:
         skipped.extend(run_backend_experiments(name, creator, metadata_rows))
-    save_local_storage_usage(skipped)
     return skipped
 
 def run_backend_experiments(name, creator, metadata_rows):
@@ -59,10 +59,6 @@ def run_backend_experiments(name, creator, metadata_rows):
         return [name]
     run_storage_experiments(storage, name, metadata_rows)
     return []
-
-def save_local_storage_usage(skipped):
-    if "sqlite" not in skipped:
-        save_disk_usage(measure_disk_usage(DATABASE_PATH))
 
 def reset_database():
     shutil.rmtree(METADATA_DIRECTORY, ignore_errors=True)
@@ -103,6 +99,15 @@ def run_storage_experiments(storage, name, metadata_rows):
     measure_insert_throughput(storage, metadata_rows, name)
     measure_queries(storage, name, metadata_rows)
     measure_insert_scalability(storage, metadata_rows[0], name)
+    measure_storage_overhead(storage, name)
+
+def measure_storage_overhead(storage, name):
+    save_disk_usage({
+        "path": storage.storage_location(),
+        "size_mb": round(storage.storage_size_bytes() / BYTES_PER_MB, 4),
+        "file_count": STORAGE_FILE_COUNTS[name],
+        "dir_count": 0,
+    })
 
 def measure_insert_throughput(storage, metadata_rows, name):
     time_func = measure_time(lambda: save_all(storage, metadata_rows))

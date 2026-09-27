@@ -1,4 +1,5 @@
 from .metrics import (
+    BYTES_PER_MB,
     measure_time,
     measure_memory,
     measure_cpu_usage,

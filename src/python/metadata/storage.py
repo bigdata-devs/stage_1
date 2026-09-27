@@ -1,4 +1,5 @@
 import sqlite3
+from pathlib import Path
 from pymongo import MongoClient
 from abc import ABC, abstractmethod
 try:
@@ -17,6 +18,14 @@ class MetadataStorage(ABC):
 
     @abstractmethod
     def find_by_book_id(self, book_id: int):
+        pass
+
+    @abstractmethod
+    def storage_location(self):
+        pass
+
+    @abstractmethod
+    def storage_size_bytes(self):
         pass
 
 class SQLiteStorage(MetadataStorage):
@@ -65,6 +74,12 @@ class SQLiteStorage(MetadataStorage):
             cursor = conn.cursor()
             cursor.execute(query, parameters)
             return [dict(row) for row in cursor.fetchall()]
+
+    def storage_location(self):
+        return self.db_path
+
+    def storage_size_bytes(self):
+        return Path(self.db_path).stat().st_size
 
 class PostgresStorage(MetadataStorage):
     def __init__(self, connection_string):
@@ -126,8 +141,18 @@ class PostgresStorage(MetadataStorage):
                 columns = [description[0] for description in cursor.description]
                 return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
+    def storage_location(self):
+        return self.connection_string
+
+    def storage_size_bytes(self):
+        with self._connect() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT pg_total_relation_size('books')")
+                return cursor.fetchone()[0]
+
 class MongoStorage(MetadataStorage):
     def __init__(self, connection_string, db_name="bigdata_project"):
+        self.connection_string = connection_string
         self.client = MongoClient(connection_string)
         self.db = self.client[db_name]
         self.collection = self.db['books']
@@ -147,3 +172,11 @@ class MongoStorage(MetadataStorage):
 
     def _find(self, filters):
         return list(self.collection.find(filters, {"_id": 0}))
+
+    def storage_location(self):
+        base_uri = self.connection_string.split("?")[0]
+        return f"{base_uri}/{self.db.name}.{self.collection.name}"
+
+    def storage_size_bytes(self):
+        stats = self.collection.database.command("collStats", self.collection.name)
+        return stats["storageSize"]

@@ -8,6 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "src" / "python"))
 
 from benchmarks import (
+    BYTES_PER_MB,
     measure_time,
     measure_memory,
     measure_cpu_usage,
@@ -97,12 +98,7 @@ def measure_update(structure, books):
     })
 
 def measure_storage_overhead(structure):
-    try:
-        output_path = structure.output_path()
-    except StorageLocationError as error:
-        logging.info("SKIP disk usage for %s: %s", structure.name, error)
-        return
-    save_disk_usage(measure_disk_usage(output_path))
+    save_disk_usage(structure.storage_usage())
 
 def select_query_terms(terms):
     generator = random.Random(RANDOM_SEED)
@@ -130,9 +126,6 @@ def create_mongo_structure():
         raise ConnectionError("MongoDB server is not available")
     return MongoIndexStructure(mongo_index)
 
-class StorageLocationError(Exception):
-    pass
-
 class JsonIndexStructure:
     name = "json_index"
 
@@ -158,8 +151,8 @@ class JsonIndexStructure:
             postings.sort()
         json_index.save_index(index, JSON_INDEX_PATH)
 
-    def output_path(self):
-        return JSON_INDEX_PATH
+    def storage_usage(self):
+        return measure_disk_usage(JSON_INDEX_PATH)
 
 class FolderIndexStructure:
     name = "folder_index"
@@ -181,8 +174,8 @@ class FolderIndexStructure:
         for term in set(tokens):
             append_to_term_file(term, book_id)
 
-    def output_path(self):
-        return FOLDER_INDEX_PATH
+    def storage_usage(self):
+        return measure_disk_usage(FOLDER_INDEX_PATH)
 
 class MongoIndexStructure:
     name = "mongo_index"
@@ -206,8 +199,15 @@ class MongoIndexStructure:
     def add_book(self, book_id, tokens):
         self.backend.update_book(book_id, tokens, self.collection)
 
-    def output_path(self):
-        raise StorageLocationError("data is stored on the server, not on the local filesystem")
+    def storage_usage(self):
+        stats = self.collection.database.command("collStats", self.collection.name)
+        host, port = self.collection.database.client.address
+        return {
+            "path": f"mongodb://{host}:{port}/{self.collection.database.name}.{self.collection.name}",
+            "size_mb": round(stats["storageSize"] / BYTES_PER_MB, 4),
+            "file_count": 0,
+            "dir_count": 0,
+        }
 
 def append_to_term_file(term, book_id):
     existing_ids = folder_index.query_index(term, FOLDER_INDEX_PATH)
