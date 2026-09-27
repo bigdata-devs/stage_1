@@ -31,7 +31,7 @@ logging.basicConfig(level=logging.INFO)
 METADATA_DIRECTORY = ARTIFACT_ROOT / "metadata"
 DATABASE_PATH = METADATA_DIRECTORY / "metadata.db"
 MONGO_CONNECTION_STRING = "mongodb://localhost:27017/?serverSelectionTimeoutMS=1000"
-POSTGRES_CONNECTION_STRING = "postgresql://localhost:5432/bigdata"
+POSTGRES_CONNECTION_STRING = "host=/var/run/postgresql dbname=bigdata"
 QUERY_ITERATIONS = 100
 SCALABILITY_BATCH_SIZES = [10, 100, 1000, 10000]
 SYNTHETIC_BOOK_ID_BASE = 900000
