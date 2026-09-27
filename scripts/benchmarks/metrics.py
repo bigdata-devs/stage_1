@@ -4,25 +4,8 @@ import statistics
 import psutil
 from pathlib import Path
 from functools import wraps
-from .storage import save_result
 
 BYTES_PER_MB = 1024 * 1024
-
-def benchmark(func):
-    measured_time_func = measure_time(func)
-    measured_memory_func = measure_memory(measured_time_func)
-    measured_cpu_func = measure_cpu_usage(measured_memory_func)
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        result = measured_cpu_func(*args, **kwargs)
-        save_result({
-            "function_name": func.__name__,
-            "elapsed_seconds": measured_time_func.last_elapsed,
-            "memory_mb": measured_memory_func.last_memory_mb,
-            "cpu_percent": measured_cpu_func.last_cpu_percent,
-        })
-        return result
-    return wrapper
 
 def measure_time(func):
     @wraps(func)

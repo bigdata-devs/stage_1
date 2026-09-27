@@ -6,7 +6,6 @@ from .metrics import (
     measure_disk_usage,
     calculate_throughput,
     calculate_statistics,
-    benchmark,
 )
 from .storage import (
     save_result,
