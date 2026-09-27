@@ -4,6 +4,7 @@ from .metrics import (
     measure_cpu_usage,
     measure_disk_usage,
     calculate_throughput,
+    calculate_statistics,
     benchmark,
 )
 from .storage import (

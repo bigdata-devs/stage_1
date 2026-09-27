@@ -1,5 +1,6 @@
 import time
 import logging
+import statistics
 import psutil
 from pathlib import Path
 from functools import wraps
@@ -93,3 +94,15 @@ def calculate_throughput(item_count, elapsed_seconds):
     items_per_second = item_count / elapsed_seconds
     logging.info(f"[throughput] {item_count} items in {elapsed_seconds:.4f}s = {items_per_second:.4f} items/s")
     return round(items_per_second, 4)
+
+def calculate_statistics(durations):
+    count = len(durations)
+    if count == 0:
+        raise ValueError("Durations must not be empty")
+    return {
+        "iterations": count,
+        "mean_seconds": statistics.mean(durations),
+        "stdev_seconds": statistics.stdev(durations) if count > 1 else 0.0,
+        "min_seconds": min(durations),
+        "max_seconds": max(durations),
+    }
