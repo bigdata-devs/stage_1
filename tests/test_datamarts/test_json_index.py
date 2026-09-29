@@ -1,6 +1,6 @@
 import json
 
-from src.datamarts.inverted_index.json_index import build_index, save_index, load_index
+from src.datamarts.inverted_index.json_index import add_book, build_index, save_index, load_index
 
 
 class TestBuildIndex:
@@ -57,3 +57,28 @@ class TestSaveAndLoadIndex:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
         assert data == index
+
+
+class TestAddBook:
+    def test_creates_index_file_for_first_book(self, tmp_path):
+        path = tmp_path / "index.json"
+
+        add_book(7, ["cat", "dog", "cat"], path)
+
+        assert load_index(path) == {"cat": [7], "dog": [7]}
+
+    def test_merges_postings_in_sorted_order(self, tmp_path):
+        path = tmp_path / "index.json"
+        save_index({"cat": [9], "owl": [9]}, path)
+
+        add_book(3, ["cat", "dog"], path)
+
+        assert load_index(path) == {"cat": [3, 9], "owl": [9], "dog": [3]}
+
+    def test_adding_same_book_twice_is_harmless(self, tmp_path):
+        path = tmp_path / "index.json"
+
+        add_book(3, ["cat"], path)
+        add_book(3, ["cat"], path)
+
+        assert load_index(path) == {"cat": [3]}
