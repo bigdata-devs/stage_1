@@ -5,21 +5,13 @@ from typing import Callable, Optional, Set
 
 from src.control.candidate_pool import DownloadCandidatePool, NoDownloadCandidatesError
 from src.control.state_manager import StateManager
+from src.datalake.errors import BookUnavailableError, TransientDownloadError
 
 logger = logging.getLogger(__name__)
 
 TOTAL_BOOKS = 70000
 
 BookCallback = Callable[[str], bool]
-
-
-class BookUnavailableError(Exception):
-    """Raised by a downloader when a book can never be downloaded.
-
-    Typical causes are an ID that does not exist on Project Gutenberg or a
-    text without the START/END markers. The controller records these IDs in
-    the failed control file so no later run requests them again.
-    """
 
 
 class CallbackOutcome(Enum):
@@ -156,6 +148,8 @@ class PipelineController:
             callback_result = callback(book_id)
         except BookUnavailableError as unavailable_error:
             return _report_unavailable_book(callback_name, book_id, unavailable_error)
+        except TransientDownloadError as transient_error:
+            return _report_transient_failure(callback_name, book_id, transient_error)
         except Exception:
             _log_callback_exception(callback_name, book_id)
             return CallbackOutcome.FAILED
@@ -167,6 +161,13 @@ def _report_unavailable_book(callback_name: str, book_id: str, unavailable_error
     logger.warning("[CONTROL] Book is unavailable and will not be retried callback=%s book_id=%s reason=%s",
                    callback_name, book_id, unavailable_error)
     return CallbackOutcome.BOOK_UNAVAILABLE
+
+
+def _report_transient_failure(callback_name: str, book_id: str, transient_error: TransientDownloadError) -> CallbackOutcome:
+    """Logs a temporary failure (no traceback needed) and returns the matching outcome."""
+    logger.warning("[CONTROL] Temporary failure; book will be retried on a later run callback=%s book_id=%s reason=%s",
+                   callback_name, book_id, transient_error)
+    return CallbackOutcome.FAILED
 
 
 def _log_callback_exception(callback_name: str, book_id: str) -> None:

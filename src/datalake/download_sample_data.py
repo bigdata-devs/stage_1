@@ -1,50 +1,58 @@
-import requests
+"""Downloads the small sample dataset used by the tests and by quick evaluations.
 
+Books are written to ``sample_data/bodies/<id>_body.txt`` and
+``sample_data/headers/<id>_header.txt``. Usage: python -m src.datalake.download_sample_data
+"""
+
+import logging
+from pathlib import Path
+
+from src.datalake.book_fetcher import GutenbergBook, fetch_and_split
+from src.datalake.datalake_engine import body_file_name, header_file_name, write_text_file
+from src.datalake.errors import BookUnavailableError, TransientDownloadError
 from src.utils.paths import PROJECT_ROOT
 
-START_MARKER = "*** START OF THE PROJECT GUTENBERG EBOOK"
-END_MARKER = "*** END OF THE PROJECT GUTENBERG EBOOK"
+logger = logging.getLogger(__name__)
+
 SAMPLE_BOOK_IDS = [1342, 11, 84, 174]
 SAMPLE_DATA_PATH = PROJECT_ROOT / "sample_data"
 
-def download_sample_dataset(book_ids, output_path):
-    successful = []
-    failed = []
+
+def download_sample_dataset(book_ids: list[int], output_path: Path) -> tuple[list[int], list[int]]:
+    """Downloads every book and returns the IDs that succeeded and those that failed."""
+    successful: list[int] = []
+    failed: list[int] = []
     for book_id in book_ids:
-        try:
-            header, body = fetch_book_content(book_id)
-            save_book_content(book_id, header, body, output_path)
+        if _download_sample_book(book_id, output_path):
             successful.append(book_id)
-            print(f"[OK] Book {book_id} downloaded successfully")
-        except Exception as e:
+        else:
             failed.append(book_id)
-            print(f"[FAIL] Book {book_id}: {e}")
     return successful, failed
 
-def fetch_book_content(book_id):
-    url = f"https://www.gutenberg.org/cache/epub/{book_id}/pg{book_id}.txt"
-    response = requests.get(url)
-    response.raise_for_status()
-    text = response.text
-    if START_MARKER not in text or END_MARKER not in text:
-        raise ValueError(f"Book {book_id} missing expected markers")
-    header, body_and_footer = text.split(START_MARKER, 1)
-    body, footer = body_and_footer.split(END_MARKER, 1)
-    return header.strip(), body.strip()
 
-def save_book_content(book_id, header, body, output_path):
-    bodies_dir = output_path / "bodies"
-    headers_dir = output_path / "headers"
-    bodies_dir.mkdir(parents=True, exist_ok=True)
-    headers_dir.mkdir(parents=True, exist_ok=True)
-    body_path = bodies_dir / f"{book_id}_body.txt"
-    header_path = headers_dir / f"{book_id}_header.txt"
-    body_path.write_text(body, encoding="utf-8")
-    header_path.write_text(header, encoding="utf-8")
+def save_book_content(book: GutenbergBook, output_path: Path) -> None:
+    """Writes the header and body of a fetched book into the sample dataset folders."""
+    write_text_file(output_path / "headers" / header_file_name(book.book_id), book.header)
+    write_text_file(output_path / "bodies" / body_file_name(book.book_id), book.body)
 
-def main():
+
+def _download_sample_book(book_id: int, output_path: Path) -> bool:
+    """Downloads and saves one sample book, logging instead of raising when it fails."""
+    try:
+        save_book_content(fetch_and_split(book_id), output_path)
+    except (BookUnavailableError, TransientDownloadError) as download_error:
+        logger.error("[FAIL] Book %d: %s", book_id, download_error)
+        return False
+    logger.info("[OK] Book %d downloaded successfully", book_id)
+    return True
+
+
+def main() -> None:
+    """Downloads the sample dataset into ``sample_data/``."""
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
     successful, failed = download_sample_dataset(SAMPLE_BOOK_IDS, SAMPLE_DATA_PATH)
-    print(f"\nResults: {len(successful)} succeeded, {len(failed)} failed")
+    logger.info("Results: %d succeeded, %d failed", len(successful), len(failed))
+
 
 if __name__ == "__main__":
     main()

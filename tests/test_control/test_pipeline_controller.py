@@ -4,6 +4,7 @@ from unittest import mock
 from src.control.control_file import ControlFile
 from src.control.pipeline_controller import BookUnavailableError, PipelineController
 from src.control.state_manager import StateManager
+from src.datalake.errors import TransientDownloadError
 from tests.test_control.helpers import TemporaryDirectoryTestCase, render_ids
 
 
@@ -121,6 +122,15 @@ class PipelineControllerUnavailableBookTest(TemporaryDirectoryTestCase):
         with self.assertLogs("src.control.pipeline_controller", level="ERROR"):
             controller.run_loop(steps=8)
         self.assertEqual(self.state_manager.get_failed_books(), set())
+
+    def test_transient_download_error_is_logged_and_not_recorded(self) -> None:
+        downloader = mock.Mock(side_effect=TransientDownloadError("HTTP 503"))
+        controller = PipelineController(self.state_manager, downloader_fn=downloader, max_book_id=3)
+        with self.assertLogs("src.control.pipeline_controller", level="WARNING") as captured_logs:
+            controller.run_loop(steps=3)
+        self.assertEqual(self.state_manager.get_failed_books(), set())
+        self.assertEqual(self.state_manager.get_downloaded_books(), set())
+        self.assertIn("retried on a later run", captured_logs.output[0])
 
     def test_unavailable_error_from_indexer_is_a_plain_failure(self) -> None:
         self.state_manager.mark_as_downloaded("5")

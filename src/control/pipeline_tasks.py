@@ -13,7 +13,6 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
-from src.control.pipeline_controller import BookUnavailableError
 from src.datalake.datalake_engine import download_time_based
 from src.datamarts.inverted_index import json_index
 from src.datamarts.metadata.book_processor import extract_metadata
@@ -40,11 +39,10 @@ class DatalakeDownloadTask:
         Raises:
             BookUnavailableError: If the book does not exist on Project Gutenberg
                 or its text lacks the START/END markers.
-            requests.RequestException: On network errors, which the control
-                layer treats as transient.
+            TransientDownloadError: On timeouts, network or server errors,
+                which the control layer retries on a later run.
         """
-        if not download_time_based(int(book_id), str(self.datalake_dir)):
-            raise BookUnavailableError(f"Book {book_id} was not found or lacks the Project Gutenberg markers.")
+        download_time_based(int(book_id), self.datalake_dir)
         return True
 
 

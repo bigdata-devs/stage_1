@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest import mock
 
 from src.control import pipeline_tasks
-from src.control.pipeline_controller import BookUnavailableError
+from src.datalake.errors import BookUnavailableError, TransientDownloadError
 from src.control.pipeline_tasks import BookIndexingTask, DatalakeDownloadTask, find_latest_book_file
 from src.datamarts.metadata.storage import SQLiteStorage
 from tests.test_control.helpers import TemporaryDirectoryTestCase
@@ -27,12 +27,14 @@ class DatalakeDownloadTaskTest(TemporaryDirectoryTestCase):
     def test_downloads_into_the_given_datalake(self) -> None:
         with mock.patch.object(pipeline_tasks, "download_time_based", return_value=True) as download:
             self.assertTrue(DatalakeDownloadTask(self.work_dir).run("42"))
-        download.assert_called_once_with(42, str(self.work_dir))
+        download.assert_called_once_with(42, self.work_dir)
 
-    def test_missing_or_unsplittable_book_is_reported_as_unavailable(self) -> None:
-        with mock.patch.object(pipeline_tasks, "download_time_based", return_value=False):
-            with self.assertRaises(BookUnavailableError):
-                DatalakeDownloadTask(self.work_dir).run("42")
+    def test_download_errors_reach_the_controller(self) -> None:
+        for download_error in [BookUnavailableError("missing"), TransientDownloadError("timeout")]:
+            with self.subTest(error=type(download_error).__name__):
+                with mock.patch.object(pipeline_tasks, "download_time_based", side_effect=download_error):
+                    with self.assertRaises(type(download_error)):
+                        DatalakeDownloadTask(self.work_dir).run("42")
 
 
 class FindLatestBookFileTest(TemporaryDirectoryTestCase):
