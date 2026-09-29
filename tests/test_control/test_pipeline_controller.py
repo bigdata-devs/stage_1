@@ -2,7 +2,7 @@ import unittest
 from unittest import mock
 
 from src.control.control_file import ControlFile
-from src.control.pipeline_controller import PipelineController
+from src.control.pipeline_controller import BookUnavailableError, PipelineController
 from src.control.state_manager import StateManager
 from tests.test_control.helpers import TemporaryDirectoryTestCase, render_ids
 
@@ -11,6 +11,13 @@ def fail_on_odd_ids(book_id: str) -> bool:
     """Downloader stub that raises for odd book IDs."""
     if int(book_id) % 2:
         raise RuntimeError(f"Simulated download failure for {book_id}")
+    return True
+
+
+def reject_multiples_of_three(book_id: str) -> bool:
+    """Downloader stub for which every multiple of three does not exist on Project Gutenberg."""
+    if int(book_id) % 3 == 0:
+        raise BookUnavailableError(f"Book {book_id} does not exist")
     return True
 
 
@@ -81,6 +88,48 @@ class PipelineControllerFaultToleranceTest(TemporaryDirectoryTestCase):
         with self.assertRaises(KeyboardInterrupt):
             controller.run_step()
         self.assertEqual(self.state_manager.get_downloaded_books(), set())
+
+
+class PipelineControllerUnavailableBookTest(TemporaryDirectoryTestCase):
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.state_manager = StateManager(self.work_dir)
+
+    def run_catalogue(self, steps: int) -> None:
+        controller = PipelineController(self.state_manager, downloader_fn=reject_multiples_of_three, max_book_id=9)
+        with self.assertLogs("src.control.pipeline_controller", level="WARNING"):
+            controller.run_loop(steps=steps)
+
+    def test_unavailable_books_are_recorded_as_failed(self) -> None:
+        self.run_catalogue(steps=30)
+        self.assertEqual(self.state_manager.get_failed_books(), {"3", "6", "9"})
+        self.assertEqual(self.state_manager.get_downloaded_books(), {"1", "2", "4", "5", "7", "8"})
+        failed_lines = (self.work_dir / "failed_books.txt").read_text(encoding="utf-8").split()
+        self.assertEqual(sorted(failed_lines, key=int), ["3", "6", "9"])
+
+    def test_resumed_run_never_requests_a_failed_book_again(self) -> None:
+        self.run_catalogue(steps=30)
+        downloader = mock.Mock(return_value=True)
+        resumed = PipelineController(StateManager(self.work_dir), downloader_fn=downloader, max_book_id=12)
+        resumed.run_loop(steps=10)
+        requested_ids = {call.args[0] for call in downloader.call_args_list}
+        self.assertEqual(requested_ids, {"10", "11", "12"})
+
+    def test_transient_errors_are_not_recorded_as_failed(self) -> None:
+        controller = PipelineController(self.state_manager, downloader_fn=fail_on_odd_ids, max_book_id=4)
+        with self.assertLogs("src.control.pipeline_controller", level="ERROR"):
+            controller.run_loop(steps=8)
+        self.assertEqual(self.state_manager.get_failed_books(), set())
+
+    def test_unavailable_error_from_indexer_is_a_plain_failure(self) -> None:
+        self.state_manager.mark_as_downloaded("5")
+        indexer = mock.Mock(side_effect=BookUnavailableError("missing"))
+        controller = PipelineController(self.state_manager, indexer_fn=indexer, max_book_id=5)
+        with self.assertLogs("src.control.pipeline_controller", level="WARNING"):
+            self.assertFalse(controller.run_step())
+        self.assertEqual(self.state_manager.get_pending_indexing_books(), {"5"})
+        self.assertEqual(self.state_manager.get_failed_books(), set())
 
 
 class PipelineControllerValidationTest(TemporaryDirectoryTestCase):
