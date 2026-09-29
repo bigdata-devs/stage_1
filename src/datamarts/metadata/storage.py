@@ -1,7 +1,12 @@
 import sqlite3
-import psycopg2
 from pymongo import MongoClient
 from abc import ABC, abstractmethod
+
+def _connect_postgres(connection_string):
+    """Imports the PostgreSQL driver lazily so SQLite users do not need psycopg2 installed."""
+    import psycopg2
+    return psycopg2.connect(connection_string)
+
 
 class MetadataStorage(ABC):
     @abstractmethod
@@ -46,7 +51,7 @@ class PostgresStorage(MetadataStorage):
         self._initialize_db()
 
     def _initialize_db(self):
-        with psycopg2.connect(self.connection_string) as conn:
+        with _connect_postgres(self.connection_string) as conn:
             with conn.cursor() as cursor:
                 cursor.execute('''
                     CREATE TABLE IF NOT EXISTS books (
@@ -60,7 +65,7 @@ class PostgresStorage(MetadataStorage):
             conn.commit()
 
     def save(self, metadata: dict):
-        with psycopg2.connect(self.connection_string) as conn:
+        with _connect_postgres(self.connection_string) as conn:
             with conn.cursor() as cursor:
                 cursor.execute('''
                     INSERT INTO books (book_id, title, author, language, capture_date)
