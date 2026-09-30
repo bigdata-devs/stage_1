@@ -67,3 +67,23 @@ func assertIndex(t *testing.T, index InvertedIndex, expected map[string][]int) {
 		t.Fatalf("expected %v, got %v", expected, actual)
 	}
 }
+
+func TestUniqueTermsKeepsFirstAppearance(t *testing.T) {
+	terms := UniqueTerms([]string{"cat", "dog", "cat", "bird", "dog"})
+	if !reflect.DeepEqual(terms, []string{"cat", "dog", "bird"}) {
+		t.Fatalf("unexpected terms %v", terms)
+	}
+}
+
+func TestAppendSortedUniqueInsertsInOrder(t *testing.T) {
+	postings := AppendSortedUnique([]int{5, 12}, 9)
+	if !reflect.DeepEqual(postings, []int{5, 9, 12}) {
+		t.Fatalf("unexpected postings %v", postings)
+	}
+	if postings := AppendSortedUnique([]int{5, 12}, 5); !reflect.DeepEqual(postings, []int{5, 12}) {
+		t.Fatalf("expected no duplicate, got %v", postings)
+	}
+	if postings := AppendSortedUnique(nil, 7); !reflect.DeepEqual(postings, []int{7}) {
+		t.Fatalf("unexpected postings %v", postings)
+	}
+}

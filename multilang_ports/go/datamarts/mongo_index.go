@@ -119,6 +119,48 @@ func (index *MongoIndex) Query(ctx context.Context, term string) ([]int, error) 
 	return document.Postings, nil
 }
 
+// UpdateBook merges one book into the collection, like add_book(): every
+// term gets an atomic pipeline update that unions the book ID into its
+// postings and sorts them; an unknown term is inserted by the upsert.
+func (index *MongoIndex) UpdateBook(ctx context.Context, bookID int, tokens []string) error {
+	terms := UniqueTerms(tokens)
+	operations := make([]mongo.WriteModel, 0, len(terms))
+	for _, term := range terms {
+		operations = append(operations, mongo.NewUpdateOneModel().
+			SetFilter(bson.D{{Key: "term", Value: term}}).
+			SetUpdate(bookUpdatePipeline(bookID)).
+			SetUpsert(true))
+	}
+	if len(operations) == 0 {
+		return nil
+	}
+	if _, err := index.collection.BulkWrite(ctx, operations, options.BulkWrite().SetOrdered(false)); err != nil {
+		return fmt.Errorf("update book %d: %w", bookID, err)
+	}
+	return nil
+}
+
+// bookUpdatePipeline builds {"$set": {"postings": {"$sortArray": ...}}} with
+// $setUnion/$ifNull, the exact pipeline stored in mongo_index.py.
+func bookUpdatePipeline(bookID int) mongo.Pipeline {
+	union := bson.D{{
+		Key: "$setUnion",
+		Value: bson.A{
+			bson.D{{Key: "$ifNull", Value: bson.A{"$postings", bson.A{}}}},
+			bson.A{int32(bookID)},
+		},
+	}}
+	sorted := bson.D{{
+		Key:   "$sortArray",
+		Value: bson.D{{Key: "input", Value: union}, {Key: "sortBy", Value: 1}},
+	}}
+	setPostings := bson.D{{
+		Key:   "$set",
+		Value: bson.D{{Key: "postings", Value: sorted}},
+	}}
+	return mongo.Pipeline{setPostings}
+}
+
 // StorageStats reads collStats, the MongoDB equivalent of a disk-usage scan.
 func (index *MongoIndex) StorageStats(ctx context.Context) (MongoStorageStats, error) {
 	command := bson.D{{Key: "collStats", Value: index.collection.Name()}}

@@ -51,3 +51,21 @@ func TestLoadJSONRoundTrip(t *testing.T) {
 		t.Fatalf("expected %v, got %v", expected, loaded)
 	}
 }
+
+func TestAddBookJSONCreatesAndMergesSortedPostings(t *testing.T) {
+	outputPath := filepath.Join(t.TempDir(), "inverted_index.json")
+	if err := AddBookJSON(9, []string{"island", "zebra"}, outputPath); err != nil {
+		t.Fatal(err)
+	}
+	if err := AddBookJSON(4, []string{"island", "apple"}, outputPath); err != nil {
+		t.Fatal(err)
+	}
+	postings, err := LoadJSON(outputPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := map[string][]int{"apple": {4}, "island": {4, 9}, "zebra": {9}}
+	if !reflect.DeepEqual(postings, expected) {
+		t.Fatalf("unexpected postings %v", postings)
+	}
+}

@@ -64,12 +64,41 @@ func QueryFolder(term string, indexDir string) ([]int, error) {
 		return []int{}, nil
 	}
 	termFile := filepath.Join(indexDir, termLetter(term), term+termFileExtension)
-	file, err := os.Open(termFile)
+	postings, err := readTermFile(termFile)
 	if errors.Is(err, fs.ErrNotExist) {
 		return []int{}, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("open %s: %w", termFile, err)
+	}
+	return postings, nil
+}
+
+// UpdateFolder merges one book into the folder index, like add_book(): for
+// every term it reads the postings file, adds the book ID in sorted order
+// and rewrites the file.
+func UpdateFolder(bookID int, tokens []string, indexDir string) error {
+	for _, term := range UniqueTerms(tokens) {
+		letterDir := filepath.Join(indexDir, termLetter(term))
+		if err := os.MkdirAll(letterDir, directoryPermissions); err != nil {
+			return fmt.Errorf("create %s: %w", letterDir, err)
+		}
+		termFile := filepath.Join(letterDir, term+termFileExtension)
+		postings, err := readTermFile(termFile)
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return fmt.Errorf("open %s: %w", termFile, err)
+		}
+		if err := writeTermFile(termFile, AppendSortedUnique(postings, bookID)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func readTermFile(path string) ([]int, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
 	}
 	defer file.Close()
 	return readPostingLines(file)

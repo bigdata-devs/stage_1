@@ -120,3 +120,26 @@ func FormatPostings(postings []int) string {
 	}
 	return "[" + strings.Join(formatted, ", ") + "]"
 }
+
+// UniqueTerms returns the distinct terms of a token list, first seen first.
+func UniqueTerms(tokens []string) []string {
+	seen := make(map[string]bool, len(tokens))
+	unique := make([]string, 0, len(tokens))
+	for _, token := range tokens {
+		if !seen[token] {
+			seen[token] = true
+			unique = append(unique, token)
+		}
+	}
+	return unique
+}
+
+// AppendSortedUnique inserts bookID into an ascending postings list unless
+// it is already present.
+func AppendSortedUnique(postings []int, bookID int) []int {
+	position, found := slices.BinarySearch(postings, bookID)
+	if found {
+		return postings
+	}
+	return slices.Insert(postings, position, bookID)
+}

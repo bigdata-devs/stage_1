@@ -49,3 +49,19 @@ func TestQueryFolderReturnsEmptyForUnknownTerm(t *testing.T) {
 		}
 	}
 }
+
+func TestUpdateFolderCreatesAndMergesTermFiles(t *testing.T) {
+	indexDir := t.TempDir()
+	if err := UpdateFolder(12, []string{"island", "ship"}, indexDir); err != nil {
+		t.Fatal(err)
+	}
+	if err := UpdateFolder(5, []string{"island"}, indexDir); err != nil {
+		t.Fatal(err)
+	}
+	if postings, err := QueryFolder("island", indexDir); err != nil || !reflect.DeepEqual(postings, []int{5, 12}) {
+		t.Fatalf("unexpected postings %v (err %v)", postings, err)
+	}
+	if postings, err := QueryFolder("ship", indexDir); err != nil || !reflect.DeepEqual(postings, []int{12}) {
+		t.Fatalf("unexpected postings %v (err %v)", postings, err)
+	}
+}

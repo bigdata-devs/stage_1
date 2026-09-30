@@ -68,3 +68,27 @@ func TestMongoQueryUnknownTermReturnsEmpty(t *testing.T) {
 		t.Fatalf("expected no postings, got %v (err %v)", postings, err)
 	}
 }
+
+func TestMongoUpdateBookAddsPostingsSorted(t *testing.T) {
+	index := connectTestMongo(t)
+	ctx := context.Background()
+	seed := BuildPostings([]TokenizedBook{{ID: 5, Tokens: []string{"adventure", "island"}}})
+	if err := index.Save(ctx, seed); err != nil {
+		t.Fatal(err)
+	}
+	if err := index.UpdateBook(ctx, 12, []string{"adventure", "ship"}); err != nil {
+		t.Fatal(err)
+	}
+	if postings, err := index.Query(ctx, "adventure"); err != nil || !reflect.DeepEqual(postings, []int{5, 12}) {
+		t.Fatalf("unexpected postings %v (err %v)", postings, err)
+	}
+	if postings, err := index.Query(ctx, "ship"); err != nil || !reflect.DeepEqual(postings, []int{12}) {
+		t.Fatalf("unexpected postings %v (err %v)", postings, err)
+	}
+	if err := index.UpdateBook(ctx, 12, []string{"adventure"}); err != nil {
+		t.Fatal(err)
+	}
+	if postings, err := index.Query(ctx, "adventure"); err != nil || !reflect.DeepEqual(postings, []int{5, 12}) {
+		t.Fatalf("expected no duplicate, got %v (err %v)", postings, err)
+	}
+}

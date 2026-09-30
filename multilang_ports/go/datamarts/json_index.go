@@ -3,9 +3,12 @@ package datamarts
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 )
 
@@ -14,6 +17,43 @@ import (
 // terms in first-appearance order, one book ID per line, no trailing newline.
 // Terms only contain [a-z], so no JSON escaping is ever needed.
 func SaveJSON(index InvertedIndex, outputPath string) error {
+	return writeJSONEntries(index.Entries(), outputPath)
+}
+
+// AddBookJSON merges one book into the persisted index file, like add_book():
+// it loads the file, unions the new postings sorted and rewrites the file.
+func AddBookJSON(bookID int, tokens []string, outputPath string) error {
+	postings, err := loadOrCreateJSON(outputPath)
+	if err != nil {
+		return err
+	}
+	for _, term := range UniqueTerms(tokens) {
+		postings[term] = AppendSortedUnique(postings[term], bookID)
+	}
+	terms := make([]string, 0, len(postings))
+	for term := range postings {
+		terms = append(terms, term)
+	}
+	slices.Sort(terms)
+	entries := make([]IndexEntry, 0, len(terms))
+	for _, term := range terms {
+		entries = append(entries, IndexEntry{Term: term, Postings: postings[term]})
+	}
+	return writeJSONEntries(entries, outputPath)
+}
+
+func loadOrCreateJSON(outputPath string) (map[string][]int, error) {
+	postings, err := LoadJSON(outputPath)
+	if err == nil {
+		return postings, nil
+	}
+	if errors.Is(err, fs.ErrNotExist) {
+		return map[string][]int{}, nil
+	}
+	return nil, err
+}
+
+func writeJSONEntries(entries []IndexEntry, outputPath string) error {
 	if err := os.MkdirAll(filepath.Dir(outputPath), directoryPermissions); err != nil {
 		return fmt.Errorf("create index directory: %w", err)
 	}
@@ -23,7 +63,7 @@ func SaveJSON(index InvertedIndex, outputPath string) error {
 	}
 	defer file.Close()
 	writer := bufio.NewWriter(file)
-	writeJSONObject(writer, index.Entries())
+	writeJSONObject(writer, entries)
 	if err := writer.Flush(); err != nil {
 		return fmt.Errorf("write index file: %w", err)
 	}
