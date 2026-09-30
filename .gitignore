@@ -1,16 +1,47 @@
-# Ignorar el contenido de las carpetas de datos, pero mantener la carpeta en Git
+# Data folders: keep the directory in Git, ignore its contents
 datalake/*
 !datalake/.keep
 
 datamarts/*
 !datamarts/.keep
 
-# Ignorar archivos de estado de la Capa de Control (opcional, pero recomendado para que no haya conflictos entre vosotros)
+# Control layer state files
 control/*.txt
 
-# Ignorar archivos temporales y compilados de Python
+# Python caches, virtual environments and packaging
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+.venv/
 venv/
 .env
+ENV/
+
+# Legacy index output at repository root
+inverted_index.json
+
+# Temporary and log files
+*.tmp
+*.log
+*.swp
+*~
+
+# IDE & OS metadata
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Benchmark results
+src/utils/benchmarks/results/
+
+# Multi-language build outputs
+multilang_ports/**/target/
+multilang_ports/**/*.o
