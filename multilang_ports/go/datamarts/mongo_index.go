@@ -74,11 +74,19 @@ func clientOptions(uri string) *options.ClientOptions {
 	return options.Client().ApplyURI(uri).SetServerSelectionTimeout(connectionTimeout)
 }
 
+// Clear removes every term document, the reset phase of the Python suite.
+func (index *MongoIndex) Clear(ctx context.Context) error {
+	if _, err := index.collection.DeleteMany(ctx, bson.D{}); err != nil {
+		return fmt.Errorf("clear collection: %w", err)
+	}
+	return nil
+}
+
 // Save mirrors save_index(): wipe the collection, then one insert_many call
 // with every term document (the driver splits it into wire-level batches).
 func (index *MongoIndex) Save(ctx context.Context, invertedIndex InvertedIndex) error {
-	if _, err := index.collection.DeleteMany(ctx, bson.D{}); err != nil {
-		return fmt.Errorf("clear collection: %w", err)
+	if err := index.Clear(ctx); err != nil {
+		return err
 	}
 	documents := toTermDocuments(invertedIndex)
 	if len(documents) == 0 {
