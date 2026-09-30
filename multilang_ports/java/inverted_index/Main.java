@@ -1,20 +1,12 @@
 package inverted_index;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 public final class Main {
-
-    private static final String BODY_SUFFIX = "_body.txt";
 
     private Main() {
     }
@@ -40,28 +32,9 @@ public final class Main {
     }
 
     private static void buildIndex(Path bodiesDirectory, Path outputPath) throws IOException {
-        Map<Integer, List<String>> books = new LinkedHashMap<>();
-        for (int bookId : discoverBookIds(bodiesDirectory)) {
-            Path bodyPath = bodiesDirectory.resolve(bookId + BODY_SUFFIX);
-            String text = Files.readString(bodyPath, StandardCharsets.UTF_8);
-            books.put(bookId, TextProcessor.processText(text));
-        }
-        Map<String, List<Integer>> index = JsonIndex.buildIndex(books);
+        Map<String, List<Integer>> index = JsonIndex.buildIndex(Corpus.load(bodiesDirectory));
         JsonIndex.saveIndex(index, outputPath);
         System.out.println("Index contains " + index.size() + " unique terms");
-    }
-
-    private static List<Integer> discoverBookIds(Path bodiesDirectory) throws IOException {
-        List<Integer> bookIds = new ArrayList<>();
-        try (Stream<Path> files = Files.list(bodiesDirectory)) {
-            files.map(path -> path.getFileName().toString())
-                .filter(name -> name.endsWith(BODY_SUFFIX))
-                .map(name -> name.substring(0, name.length() - BODY_SUFFIX.length()))
-                .map(Integer::parseInt)
-                .forEach(bookIds::add);
-        }
-        bookIds.sort(Comparator.naturalOrder());
-        return bookIds;
     }
 
     private static void queryTerms(Path indexPath, String[] terms) throws IOException {

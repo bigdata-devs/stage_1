@@ -5,11 +5,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeSet;
 
 public final class JsonIndex {
 
@@ -17,24 +15,29 @@ public final class JsonIndex {
     }
 
     public static LinkedHashMap<String, List<Integer>> buildIndex(Map<Integer, List<String>> books) {
-        LinkedHashMap<String, TreeSet<Integer>> postings = new LinkedHashMap<>();
-        for (Map.Entry<Integer, List<String>> book : books.entrySet()) {
-            for (String token : book.getValue()) {
-                postings.computeIfAbsent(token, key -> new TreeSet<>()).add(book.getKey());
-            }
-        }
-        LinkedHashMap<String, List<Integer>> index = new LinkedHashMap<>();
-        postings.forEach((term, bookIds) -> index.put(term, new ArrayList<>(bookIds)));
-        return index;
+        return Postings.build(books);
     }
 
     public static void saveIndex(Map<String, List<Integer>> index, Path outputPath) throws IOException {
+        if (outputPath.getParent() != null) {
+            Files.createDirectories(outputPath.getParent());
+        }
         Files.writeString(outputPath, serialize(index), StandardCharsets.UTF_8);
     }
 
     public static Map<String, List<Integer>> loadIndex(Path indexPath) throws IOException {
         String json = Files.readString(indexPath, StandardCharsets.UTF_8);
         return new IndexParser(json).parse();
+    }
+
+    public static void addBook(int bookId, List<String> tokens, Path outputPath) throws IOException {
+        Map<String, List<Integer>> index = Files.isRegularFile(outputPath)
+            ? loadIndex(outputPath)
+            : new LinkedHashMap<>();
+        for (String term : Postings.uniqueTerms(tokens)) {
+            index.put(term, Postings.appendSortedUnique(index.getOrDefault(term, List.of()), bookId));
+        }
+        saveIndex(index, outputPath);
     }
 
     private static String serialize(Map<String, List<Integer>> index) {
@@ -76,7 +79,7 @@ public final class JsonIndex {
         }
 
         Map<String, List<Integer>> parse() {
-            Map<String, List<Integer>> index = new HashMap<>();
+            Map<String, List<Integer>> index = new LinkedHashMap<>();
             expect('{');
             skipWhitespace();
             if (peek() == '}') {
