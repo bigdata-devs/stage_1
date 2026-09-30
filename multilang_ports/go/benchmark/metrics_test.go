@@ -80,7 +80,7 @@ func TestMeasureDiskUsageCountsFilesAndSubdirectories(t *testing.T) {
 
 func TestResultsWriterWritesPythonCompatibleCSV(t *testing.T) {
 	writer := ResultsWriter{Dir: t.TempDir()}
-	measurement := Measurement{Name: "index_json_build", Elapsed: 1500 * time.Millisecond, MemoryMB: 1.5, CPUPercent: 99.456}
+	measurement := Measurement{Name: "build_json_index", Elapsed: 1500 * time.Millisecond, MemoryMB: 1.5, CPUPercent: 99.456}
 	if err := writer.SaveMeasurement(measurement); err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +92,7 @@ func TestResultsWriterWritesPythonCompatibleCSV(t *testing.T) {
 	if len(lines) != 3 || lines[0] != "function_name,elapsed_seconds,memory_mb,cpu_percent,timestamp" {
 		t.Fatalf("unexpected CSV:\n%s", content)
 	}
-	if !strings.HasPrefix(lines[1], "index_json_build,1.500000,1.5000,99.46,") {
+	if !strings.HasPrefix(lines[1], "build_json_index,1.500000,1.5000,99.46,") {
 		t.Fatalf("unexpected row %q", lines[1])
 	}
 }

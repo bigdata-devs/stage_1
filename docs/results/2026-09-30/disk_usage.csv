@@ -1,0 +1,10 @@
+path,size_mb,file_count,dir_count,timestamp
+/home/aythami/.cache/stage_1_benchmarks/datalake/time_based,57.3831,200,2,2026-09-30T14:57:35.195228
+/home/aythami/.cache/stage_1_benchmarks/datalake/book_based,57.4017,300,100,2026-09-30T14:57:39.708789
+/home/aythami/.cache/stage_1_benchmarks/datalake/batch_based,57.3831,200,3,2026-09-30T14:57:44.106157
+/home/aythami/.cache/stage_1_benchmarks/index/inverted_index.json,37.7649,1,0,2026-09-30T14:58:21.068219
+/home/aythami/.cache/stage_1_benchmarks/index/inverted_index,19.8749,106479,26,2026-09-30T15:00:08.962606
+mongodb://localhost:27017/search_engine.inverted_index,23.3359,0,0,2026-09-30T15:00:50.899011
+/home/aythami/.cache/stage_1_benchmarks/metadata/metadata.db,2.0000,1,0,2026-09-30T15:04:57.552675
+host=/var/run/postgresql dbname=bigdata,2.3984,0,0,2026-09-30T15:08:56.257989
+mongodb://localhost:27017/bigdata_project.books,0.5273,0,0,2026-09-30T15:12:20.065397

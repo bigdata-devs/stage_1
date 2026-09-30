@@ -43,8 +43,10 @@ go run . bench -h                             # every flag
 go test ./...                                 # unit tests
 ```
 
-Outputs go to `output/` and CSV results are appended to `results/`
-(both git-ignored).
+Datalake and index artifacts go to `~/.cache/stage_1_benchmarks/go`
+(fast filesystem, same policy as the Python suite) and CSV results are
+appended to `results/` (git-ignored). Building the folder index writes one
+file per term, which takes 10+ minutes on a Windows-mounted working copy.
 
 ## Parity with the Python baseline
 
@@ -72,7 +74,17 @@ and CRLF line endings), so they can be merged with the Python results:
   `storageSize + totalIndexSize`, documents as `file_count`).
 - `statistics.csv` — query latency (mean/stdev/min/max) of the shared workload.
 
-Measured operations: `datalake_fetch`, `datalake_store_<layout>`,
-`index_tokenize`, `index_build_postings`, `index_<json|folder|mongo>_build`
-(end-to-end: read + tokenize + build + persist), `index_json_load`,
-`query_<json|folder|mongo>`.
+Measured operations: `download_write_throughput`, `write_throughput_<layout>`,
+`tokenize_books`, `build_postings`, `build_<json|folder|mongo>_index`
+(end-to-end: read + tokenize + build + persist), `load_json_index`,
+`query_<json|folder|mongo>_index` — the same labels as the Python suite.
+
+Defaults: books are discovered in the tracked 100-book corpus
+(`data_source/bodies`) and queries come from the shared workload file
+(`src/utils/benchmarks/queries.txt`, intersection semantics); the default
+`-query-repetitions 5` yields 100 samples per query test, like Python.
+
+Known gaps vs the Python suite: no `scalability.csv` (build batches of
+10/25/50/100/250/500 books) and no `recovery.csv`; each index is built once
+with the full corpus, and the datalake benchmark downloads the corpus on every
+run instead of reading the tracked books.

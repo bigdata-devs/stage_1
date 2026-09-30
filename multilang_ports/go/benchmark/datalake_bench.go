@@ -35,7 +35,7 @@ func (suite Suite) runDatalakeBenchmark() error {
 
 func (suite Suite) fetchBooksMeasured() ([]rawBook, error) {
 	var books []rawBook
-	measurement, err := suite.measure("datalake_fetch", func() error {
+	measurement, err := suite.measure("download_write_throughput", func() error {
 		books = fetchBooks(suite.fetcher(), suite.config.BookIDs)
 		return nil
 	})
@@ -66,7 +66,7 @@ func (suite Suite) benchmarkLayout(layout datalake.Layout, books []rawBook) erro
 	if err := resetDirectory(lake.Root); err != nil {
 		return err
 	}
-	measurement, err := suite.measure("datalake_store_"+layout.Name(), func() error {
+	measurement, err := suite.measure("write_throughput_"+layout.Name(), func() error {
 		return storeBooks(lake, books)
 	})
 	if err != nil {

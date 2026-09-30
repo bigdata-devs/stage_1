@@ -30,7 +30,7 @@ func (suite Suite) runIndexBenchmark() error {
 // so the cost of persisting each structure can be isolated in the report.
 func (suite Suite) measurePipelineStages() (int, error) {
 	var books []datamarts.TokenizedBook
-	tokenizeMeasurement, err := suite.measure("index_tokenize", func() error {
+	tokenizeMeasurement, err := suite.measure("tokenize_books", func() error {
 		var loadErr error
 		books, loadErr = datamarts.LoadTokenizedBooks(suite.config.BodiesDir)
 		return loadErr
@@ -43,7 +43,7 @@ func (suite Suite) measurePipelineStages() (int, error) {
 		return 0, err
 	}
 	var index datamarts.InvertedIndex
-	_, err = suite.measure("index_build_postings", func() error {
+	_, err = suite.measure("build_postings", func() error {
 		index = datamarts.BuildPostings(books)
 		return nil
 	})
@@ -64,7 +64,7 @@ func (suite Suite) buildAndPersist(persist func(datamarts.InvertedIndex) error) 
 
 func (suite Suite) benchmarkJSONIndex(bookCount int) error {
 	indexPath := suite.outputPath("datamarts", "inverted_index.json")
-	measurement, err := suite.measure("index_json_build", suite.buildAndPersist(func(index datamarts.InvertedIndex) error {
+	measurement, err := suite.measure("build_json_index", suite.buildAndPersist(func(index datamarts.InvertedIndex) error {
 		return datamarts.SaveJSON(index, indexPath)
 	}))
 	if err != nil {
@@ -83,21 +83,20 @@ func (suite Suite) benchmarkJSONIndex(bookCount int) error {
 // dominant cost of this structure) and then times in-memory lookups.
 func (suite Suite) benchmarkJSONQueries(indexPath string) error {
 	var loaded map[string][]int
-	if _, err := suite.measure("index_json_load", func() error {
+	if _, err := suite.measure("load_json_index", func() error {
 		var loadErr error
 		loaded, loadErr = datamarts.LoadJSON(indexPath)
 		return loadErr
 	}); err != nil {
 		return err
 	}
-	durations, err := suite.runQueryWorkload(func(term string) error {
-		_ = loaded[term]
-		return nil
+	durations, err := suite.runQueryWorkload(func(term string) ([]int, error) {
+		return loaded[term], nil
 	})
 	if err != nil {
 		return err
 	}
-	return suite.recordQueryStatistics("query_json", durations)
+	return suite.recordQueryStatistics("query_json_index", durations)
 }
 
 func (suite Suite) benchmarkFolderIndex(bookCount int) error {
@@ -105,7 +104,7 @@ func (suite Suite) benchmarkFolderIndex(bookCount int) error {
 	if err := resetDirectory(indexDir); err != nil {
 		return err
 	}
-	measurement, err := suite.measure("index_folder_build", suite.buildAndPersist(func(index datamarts.InvertedIndex) error {
+	measurement, err := suite.measure("build_folder_index", suite.buildAndPersist(func(index datamarts.InvertedIndex) error {
 		return datamarts.SaveFolder(index, indexDir)
 	}))
 	if err != nil {
@@ -117,14 +116,13 @@ func (suite Suite) benchmarkFolderIndex(bookCount int) error {
 	if err := suite.recordDiskUsage(indexDir); err != nil {
 		return err
 	}
-	durations, err := suite.runQueryWorkload(func(term string) error {
-		_, queryErr := datamarts.QueryFolder(term, indexDir)
-		return queryErr
+	durations, err := suite.runQueryWorkload(func(term string) ([]int, error) {
+		return datamarts.QueryFolder(term, indexDir)
 	})
 	if err != nil {
 		return err
 	}
-	return suite.recordQueryStatistics("query_folder", durations)
+	return suite.recordQueryStatistics("query_folder_index", durations)
 }
 
 func (suite Suite) benchmarkMongoIndex(bookCount int) error {
@@ -138,7 +136,7 @@ func (suite Suite) benchmarkMongoIndex(bookCount int) error {
 		return err
 	}
 	defer mongoIndex.Close(ctx)
-	measurement, err := suite.measure("index_mongo_build", suite.buildAndPersist(func(index datamarts.InvertedIndex) error {
+	measurement, err := suite.measure("build_mongo_index", suite.buildAndPersist(func(index datamarts.InvertedIndex) error {
 		return mongoIndex.Save(ctx, index)
 	}))
 	if err != nil {
@@ -150,14 +148,13 @@ func (suite Suite) benchmarkMongoIndex(bookCount int) error {
 	if err := suite.recordMongoStorage(ctx, mongoIndex); err != nil {
 		return err
 	}
-	durations, err := suite.runQueryWorkload(func(term string) error {
-		_, queryErr := mongoIndex.Query(ctx, term)
-		return queryErr
+	durations, err := suite.runQueryWorkload(func(term string) ([]int, error) {
+		return mongoIndex.Query(ctx, term)
 	})
 	if err != nil {
 		return err
 	}
-	return suite.recordQueryStatistics("query_mongo", durations)
+	return suite.recordQueryStatistics("query_mongo_index", durations)
 }
 
 // recordMongoStorage writes a disk_usage.csv row for the collection: size is
@@ -177,14 +174,14 @@ func (suite Suite) recordMongoStorage(ctx context.Context, mongoIndex *datamarts
 	return suite.results.SaveDiskUsage(usage)
 }
 
-// runQueryWorkload times every query term QueryRepetitions times, one at a
-// time, and returns the individual latencies.
-func (suite Suite) runQueryWorkload(query func(term string) error) ([]time.Duration, error) {
-	durations := make([]time.Duration, 0, len(suite.config.QueryTerms)*suite.config.QueryRepetitions)
+// runQueryWorkload times every shared query QueryRepetitions times: a query
+// matches the documents that contain all of its terms.
+func (suite Suite) runQueryWorkload(lookup func(term string) ([]int, error)) ([]time.Duration, error) {
+	durations := make([]time.Duration, 0, len(suite.config.Queries)*suite.config.QueryRepetitions)
 	for repetition := 0; repetition < suite.config.QueryRepetitions; repetition++ {
-		for _, term := range suite.config.QueryTerms {
+		for _, query := range suite.config.Queries {
 			start := time.Now()
-			if err := query(term); err != nil {
+			if _, err := intersectPostings(query, lookup); err != nil {
 				return nil, err
 			}
 			durations = append(durations, time.Since(start))
