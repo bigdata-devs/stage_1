@@ -50,6 +50,41 @@ func TestQueryFolderReturnsEmptyForUnknownTerm(t *testing.T) {
 	}
 }
 
+func TestSaveFolderEscapesWindowsReservedNames(t *testing.T) {
+	indexDir := t.TempDir()
+	index := BuildPostings([]TokenizedBook{{ID: 7, Tokens: []string{"con", "aux", "nul", "prn", "console"}}})
+	if err := SaveFolder(index, indexDir); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"C/con_.txt", "A/aux_.txt", "N/nul_.txt", "P/prn_.txt", "C/console.txt"} {
+		if _, err := os.Stat(filepath.Join(indexDir, filepath.FromSlash(name))); err != nil {
+			t.Fatalf("missing term file %s: %v", name, err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(indexDir, "C", "con.txt")); err == nil {
+		t.Fatal("reserved name con.txt must not be written")
+	}
+	for _, term := range []string{"con", "aux", "nul", "prn", "console"} {
+		if postings, err := QueryFolder(term, indexDir); err != nil || !reflect.DeepEqual(postings, []int{7}) {
+			t.Fatalf("unexpected postings for %q: %v (err %v)", term, postings, err)
+		}
+	}
+}
+
+func TestUpdateFolderEscapesWindowsReservedNames(t *testing.T) {
+	indexDir := t.TempDir()
+	if err := UpdateFolder(3, []string{"aux"}, indexDir); err != nil {
+		t.Fatal(err)
+	}
+	if err := UpdateFolder(1, []string{"aux"}, indexDir); err != nil {
+		t.Fatal(err)
+	}
+	content, err := os.ReadFile(filepath.Join(indexDir, "A", "aux_.txt"))
+	if err != nil || string(content) != "1\n3\n" {
+		t.Fatalf("unexpected escaped term file %q (err %v)", content, err)
+	}
+}
+
 func TestUpdateFolderCreatesAndMergesTermFiles(t *testing.T) {
 	indexDir := t.TempDir()
 	if err := UpdateFolder(12, []string{"island", "ship"}, indexDir); err != nil {

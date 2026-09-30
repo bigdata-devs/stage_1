@@ -5,6 +5,29 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 const FILE_EXTENSION: &str = ".txt";
+const RESERVED_NAME_ESCAPE: &str = "_";
+
+/// Mirrors WINDOWS_RESERVED_NAMES in folder_index.py: Windows refuses these
+/// device names as file names whatever their extension, so their term files
+/// get a trailing underscore ("con" -> "C/con_.txt"). Terms only contain
+/// letters, so the escaped name can never clash with a real term.
+fn is_windows_reserved_name(term: &str) -> bool {
+    let lowered = term.to_ascii_lowercase();
+    if matches!(lowered.as_str(), "con" | "prn" | "aux" | "nul") {
+        return true;
+    }
+    let device_number = lowered
+        .strip_prefix("com")
+        .or_else(|| lowered.strip_prefix("lpt"));
+    matches!(device_number, Some("1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"))
+}
+
+fn term_file_name(term: &str) -> String {
+    if is_windows_reserved_name(term) {
+        return format!("{term}{RESERVED_NAME_ESCAPE}{FILE_EXTENSION}");
+    }
+    format!("{term}{FILE_EXTENSION}")
+}
 
 pub fn save(index: &InvertedIndex, output_dir: &Path) -> io::Result<()> {
     fs::create_dir_all(output_dir)?;
@@ -52,7 +75,7 @@ fn letter(term: &str) -> String {
 }
 
 fn term_file(letter_dir: &Path, term: &str) -> PathBuf {
-    letter_dir.join(format!("{term}{FILE_EXTENSION}"))
+    letter_dir.join(term_file_name(term))
 }
 
 fn read_postings(file: &Path) -> io::Result<Vec<i32>> {
@@ -112,6 +135,43 @@ mod tests {
         assert_eq!(Vec::<i32>::new(), query("alpha", &dir).unwrap());
         assert_eq!(Vec::<i32>::new(), query("", &dir).unwrap());
         fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn save_escapes_windows_reserved_names() {
+        let dir = temp_dir("reserved_save");
+        let mut index = InvertedIndex::new();
+        let terms: Vec<String> = ["con", "aux", "nul", "prn", "console"]
+            .iter()
+            .map(|term| term.to_string())
+            .collect();
+        index.add_book(7, &terms);
+        save(&index, &dir).unwrap();
+        for name in ["C/con_.txt", "A/aux_.txt", "N/nul_.txt", "P/prn_.txt", "C/console.txt"] {
+            assert!(dir.join(name).is_file(), "missing term file {name}");
+        }
+        assert!(!dir.join("C/con.txt").exists());
+        for term in &terms {
+            assert_eq!(vec![7], query(term, &dir).unwrap());
+        }
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn update_escapes_windows_reserved_names() {
+        let dir = temp_dir("reserved_update");
+        update(3, &vec!["aux".to_string()], &dir).unwrap();
+        update(1, &vec!["aux".to_string()], &dir).unwrap();
+        assert_eq!("1\n3\n", fs::read_to_string(dir.join("A/aux_.txt")).unwrap());
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn term_file_name_only_escapes_device_names() {
+        assert_eq!("con_.txt", term_file_name("con"));
+        assert_eq!("lpt9_.txt", term_file_name("lpt9"));
+        assert_eq!("com.txt", term_file_name("com"));
+        assert_eq!("console.txt", term_file_name("console"));
     }
 
     #[test]

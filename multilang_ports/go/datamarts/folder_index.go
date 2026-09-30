@@ -15,7 +15,33 @@ const (
 	directoryPermissions = 0o755
 	filePermissions      = 0o644
 	termFileExtension    = ".txt"
+	reservedNameEscape   = "_"
 )
+
+// windowsReservedNames mirrors WINDOWS_RESERVED_NAMES in folder_index.py:
+// Windows refuses these device names as file names whatever their
+// extension, so their term files get a trailing underscore
+// ("con" -> "C/con_.txt"). Terms only contain letters, so the escaped name
+// can never clash with a real term.
+var windowsReservedNames = reservedNameSet()
+
+func reservedNameSet() map[string]bool {
+	names := map[string]bool{"con": true, "prn": true, "aux": true, "nul": true}
+	for number := 1; number <= 9; number++ {
+		names[fmt.Sprintf("com%d", number)] = true
+		names[fmt.Sprintf("lpt%d", number)] = true
+	}
+	return names
+}
+
+// termFileName returns the file name of a term, escaping Windows-reserved
+// names exactly like term_file_name() in folder_index.py.
+func termFileName(term string) string {
+	if windowsReservedNames[strings.ToLower(term)] {
+		return term + reservedNameEscape + termFileExtension
+	}
+	return term + termFileExtension
+}
 
 // SaveFolder mirrors save_index() in folder_index.py: one "<term>.txt" file
 // per term, grouped in a sub-folder named after the upper-cased first letter
@@ -34,7 +60,7 @@ func SaveFolder(index InvertedIndex, outputDir string) error {
 			}
 			createdLetters[letterDir] = true
 		}
-		if err := writeTermFile(filepath.Join(letterDir, entry.Term+termFileExtension), entry.Postings); err != nil {
+		if err := writeTermFile(filepath.Join(letterDir, termFileName(entry.Term)), entry.Postings); err != nil {
 			return err
 		}
 	}
@@ -63,7 +89,7 @@ func QueryFolder(term string, indexDir string) ([]int, error) {
 	if term == "" {
 		return []int{}, nil
 	}
-	termFile := filepath.Join(indexDir, termLetter(term), term+termFileExtension)
+	termFile := filepath.Join(indexDir, termLetter(term), termFileName(term))
 	postings, err := readTermFile(termFile)
 	if errors.Is(err, fs.ErrNotExist) {
 		return []int{}, nil
@@ -83,7 +109,7 @@ func UpdateFolder(bookID int, tokens []string, indexDir string) error {
 		if err := os.MkdirAll(letterDir, directoryPermissions); err != nil {
 			return fmt.Errorf("create %s: %w", letterDir, err)
 		}
-		termFile := filepath.Join(letterDir, term+termFileExtension)
+		termFile := filepath.Join(letterDir, termFileName(term))
 		postings, err := readTermFile(termFile)
 		if err != nil && !errors.Is(err, fs.ErrNotExist) {
 			return fmt.Errorf("open %s: %w", termFile, err)

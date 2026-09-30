@@ -57,7 +57,7 @@ file per term, which takes 10+ minutes on a Windows-mounted working copy.
 | Datalake files | `<id>_body.txt`, `<id>_header.txt` in `YYYYMMDD/HH/`, `<id>/` or `batch_<lo>_<hi>/` (batch size 1000) |
 | Tokenizer | `re.findall(r"[a-z]+", text.lower())`, then drop stop words, Roman numerals and 1-letter tokens |
 | JSON index | byte-identical to `json.dump(index, f, ensure_ascii=False, indent=2)`, terms in first-appearance order |
-| Folder index | `<LETTER>/<term>.txt`, one book ID per line |
+| Folder index | `<LETTER>/<term>.txt`, one book ID per line; Windows device names (`con`, `aux`, `nul`, `prn`, `com1`-`com9`, `lpt1`-`lpt9`) get a trailing underscore (`C/con_.txt`) |
 | MongoDB | `search_engine.inverted_index`, `{"term", "postings"}` documents, unique index on `term`, delete-all + `insert_many` |
 | Execution | strictly sequential, like the Python version |
 

@@ -1,6 +1,7 @@
 package datamarts;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -38,6 +39,31 @@ class FolderIndexTest {
         assertEquals(List.of(5, 12), FolderIndex.query("adventure", indexDir));
         assertEquals(List.of(), FolderIndex.query("ghost", indexDir));
         assertEquals(List.of(), FolderIndex.query("", indexDir));
+    }
+
+    @Test
+    void saveEscapesWindowsReservedNames() throws IOException {
+        Map<String, List<Integer>> index = new LinkedHashMap<>();
+        for (String term : List.of("con", "aux", "nul", "prn", "console")) {
+            index.put(term, List.of(7));
+        }
+        FolderIndex.save(index, indexDir);
+        assertTrue(Files.isRegularFile(indexDir.resolve("C").resolve("con_.txt")));
+        assertTrue(Files.isRegularFile(indexDir.resolve("A").resolve("aux_.txt")));
+        assertTrue(Files.isRegularFile(indexDir.resolve("N").resolve("nul_.txt")));
+        assertTrue(Files.isRegularFile(indexDir.resolve("P").resolve("prn_.txt")));
+        assertTrue(Files.isRegularFile(indexDir.resolve("C").resolve("console.txt")));
+        assertFalse(Files.exists(indexDir.resolve("C").resolve("con.txt")));
+        for (String term : index.keySet()) {
+            assertEquals(List.of(7), FolderIndex.query(term, indexDir));
+        }
+    }
+
+    @Test
+    void updateEscapesWindowsReservedNames() throws IOException {
+        FolderIndex.update(3, List.of("aux"), indexDir);
+        FolderIndex.update(1, List.of("aux"), indexDir);
+        assertEquals("1\n3\n", Files.readString(indexDir.resolve("A").resolve("aux_.txt")));
     }
 
     @Test

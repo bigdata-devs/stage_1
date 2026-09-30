@@ -56,7 +56,7 @@ appended to `results/` (git-ignored).
 | Datalake files | `<id>_body.txt`, `<id>_header.txt` in `YYYYMMDD/HH/`, `<id>/` or `batch_<lo>_<hi>/` (batch size 1000) |
 | Tokenizer | `[a-z]+` tokens of the lowercased text, then drop stop words, Roman numerals and 1-letter tokens |
 | JSON index | terms in first-appearance order, one entry per term |
-| Folder index | `<LETTER>/<term>.txt`, one book ID per line |
+| Folder index | `<LETTER>/<term>.txt`, one book ID per line; Windows device names (`con`, `aux`, `nul`, `prn`, `com1`-`com9`, `lpt1`-`lpt9`) get a trailing underscore (`C/con_.txt`) |
 | MongoDB | `search_engine.inverted_index`, `{"term", "postings"}` documents, unique index on `term`, unordered bulk upserts |
 | Execution | strictly sequential, like the Python version |
 

@@ -8,12 +8,27 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public final class FolderIndex {
 
     private static final String FILE_EXTENSION = ".txt";
+    private static final String RESERVED_NAME_ESCAPE = "_";
+
+    /**
+     * Mirrors WINDOWS_RESERVED_NAMES in folder_index.py: Windows refuses these device names as file
+     * names whatever their extension, so their term files get a trailing underscore
+     * ("con" -> "C/con_.txt"). Terms only contain letters, so the escaped name never clashes.
+     */
+    static final Set<String> WINDOWS_RESERVED_NAMES = Stream.concat(
+            Stream.of("con", "prn", "aux", "nul"),
+            IntStream.rangeClosed(1, 9).boxed().flatMap(number -> Stream.of("com" + number, "lpt" + number)))
+        .collect(Collectors.toUnmodifiableSet());
 
     private FolderIndex() {
     }
@@ -56,7 +71,14 @@ public final class FolderIndex {
     }
 
     private static Path termFile(Path letterDir, String term) {
-        return letterDir.resolve(term + FILE_EXTENSION);
+        return letterDir.resolve(termFileName(term));
+    }
+
+    static String termFileName(String term) {
+        if (WINDOWS_RESERVED_NAMES.contains(term.toLowerCase(Locale.ROOT))) {
+            return term + RESERVED_NAME_ESCAPE + FILE_EXTENSION;
+        }
+        return term + FILE_EXTENSION;
     }
 
     private static List<Integer> readPostings(Path file) throws IOException {
