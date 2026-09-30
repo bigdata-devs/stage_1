@@ -22,6 +22,18 @@ type ResultsWriter struct {
 	Dir string
 }
 
+// RecoveryReport holds the numbers of one resume-after-interruption run.
+type RecoveryReport struct {
+	TotalBooks      int
+	ProcessedBefore int
+	ProcessedAfter  int
+	Duplicated      int
+	Lost            int
+	DetectionTime   time.Duration
+	ProcessingTime  time.Duration
+	Elapsed         time.Duration
+}
+
 // SaveMeasurement mirrors save_result() -> benchmarks.csv.
 func (writer ResultsWriter) SaveMeasurement(measurement Measurement) error {
 	return writer.appendTimestampedRow("benchmarks.csv",
@@ -73,6 +85,37 @@ func (writer ResultsWriter) SaveStatistics(testName string, stats Statistics) er
 			formatFloat(stats.StdevSeconds, 6),
 			formatFloat(stats.MinSeconds, 6),
 			formatFloat(stats.MaxSeconds, 6),
+		})
+}
+
+// SaveScalability mirrors save_scalability() -> scalability.csv.
+func (writer ResultsWriter) SaveScalability(testName string, batchSize int, measurement Measurement) error {
+	return writer.appendTimestampedRow("scalability.csv",
+		[]string{"test_name", "batch_size", "elapsed_seconds", "memory_mb", "cpu_percent"},
+		[]string{
+			testName,
+			strconv.Itoa(batchSize),
+			formatFloat(measurement.Elapsed.Seconds(), 6),
+			formatFloat(measurement.MemoryMB, 4),
+			formatFloat(measurement.CPUPercent, 2),
+		})
+}
+
+// SaveRecovery mirrors save_recovery() -> recovery.csv.
+func (writer ResultsWriter) SaveRecovery(testName string, report RecoveryReport) error {
+	return writer.appendTimestampedRow("recovery.csv",
+		[]string{"test_name", "total_books", "processed_before_interruption", "processed_after_resume",
+			"duplicated", "lost", "detection_time", "processing_time", "elapsed_seconds"},
+		[]string{
+			testName,
+			strconv.Itoa(report.TotalBooks),
+			strconv.Itoa(report.ProcessedBefore),
+			strconv.Itoa(report.ProcessedAfter),
+			strconv.Itoa(report.Duplicated),
+			strconv.Itoa(report.Lost),
+			formatFloat(report.DetectionTime.Seconds(), 6),
+			formatFloat(report.ProcessingTime.Seconds(), 6),
+			formatFloat(report.Elapsed.Seconds(), 6),
 		})
 }
 
