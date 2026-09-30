@@ -25,8 +25,9 @@ INDEX_OUTPUT_DIRECTORY = ARTIFACT_ROOT / "index"
 JSON_INDEX_PATH = INDEX_OUTPUT_DIRECTORY / "inverted_index.json"
 FOLDER_INDEX_PATH = INDEX_OUTPUT_DIRECTORY / "inverted_index"
 QUERIES_PATH = Path(__file__).with_name("queries.txt")
-BUILD_BATCH_SIZES = (10, 25, 50)
+BUILD_BATCH_SIZES = (10, 25, 50, 250, 500)
 QUERY_SAMPLE_TARGET = 100
+SYNTHETIC_BOOK_ID_BASE = 900000
 
 def run():
     books = load_tokenized_books()
@@ -54,7 +55,7 @@ def run_structure_experiments(structure, books, queries):
     measure_storage_overhead(structure)
 
 def measure_build(structure, books, batch_size):
-    subset = dict(list(books.items())[:batch_size])
+    subset = build_subset(books, batch_size)
     measurement = measure_operation(lambda: structure.build_and_save(subset))
     save_scalability({
         "test_name": f"build_{structure.name}",
@@ -63,6 +64,18 @@ def measure_build(structure, books, batch_size):
         "memory_mb": measurement.memory_mb,
         "cpu_percent": measurement.cpu_percent,
     })
+
+def build_subset(books, batch_size):
+    subset = dict(list(books.items())[:batch_size])
+    subset.update(synthetic_books(books, batch_size - len(subset)))
+    return subset
+
+def synthetic_books(books, count):
+    corpus_tokens = list(books.values())
+    return {
+        SYNTHETIC_BOOK_ID_BASE + offset: corpus_tokens[offset % len(corpus_tokens)]
+        for offset in range(count)
+    }
 
 def measure_query_performance(structure, queries):
     durations = []
@@ -111,9 +124,7 @@ def measure_storage_overhead(structure):
     save_disk_usage(structure.storage_usage())
 
 def batch_sizes(book_count):
-    sizes = {size for size in BUILD_BATCH_SIZES if size <= book_count}
-    sizes.add(book_count)
-    return sorted(sizes)
+    return sorted({*BUILD_BATCH_SIZES, book_count})
 
 def load_tokenized_books():
     bodies_directory = data_source.bodies_directory()
