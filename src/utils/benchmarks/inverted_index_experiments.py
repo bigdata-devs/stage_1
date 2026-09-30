@@ -133,12 +133,7 @@ class JsonIndexStructure:
         return self.loaded.get(term, [])
 
     def add_book(self, book_id, tokens):
-        index = json_index.load_index(JSON_INDEX_PATH)
-        for term in set(tokens):
-            postings = index.setdefault(term, [])
-            postings.append(book_id)
-            postings.sort()
-        json_index.save_index(index, JSON_INDEX_PATH)
+        json_index.add_book(book_id, tokens, JSON_INDEX_PATH)
 
     def storage_usage(self):
         return measure_disk_usage(JSON_INDEX_PATH)
@@ -160,8 +155,7 @@ class FolderIndexStructure:
         return folder_index.query_index(term, FOLDER_INDEX_PATH)
 
     def add_book(self, book_id, tokens):
-        for term in set(tokens):
-            append_to_term_file(term, book_id)
+        folder_index.update_book(book_id, tokens, FOLDER_INDEX_PATH)
 
     def storage_usage(self):
         return measure_disk_usage(FOLDER_INDEX_PATH)
@@ -197,17 +191,6 @@ class MongoIndexStructure:
             "file_count": 0,
             "dir_count": 0,
         }
-
-def append_to_term_file(term, book_id):
-    existing_ids = folder_index.query_index(term, FOLDER_INDEX_PATH)
-    existing_ids.append(book_id)
-    term_file = term_file_path(term)
-    term_file.parent.mkdir(parents=True, exist_ok=True)
-    ordered_ids = sorted(existing_ids)
-    term_file.write_text("\n".join(str(entry) for entry in ordered_ids) + "\n", encoding="utf-8")
-
-def term_file_path(term):
-    return FOLDER_INDEX_PATH / term[0].upper() / f"{term}.txt"
 
 if __name__ == "__main__":
     run()
