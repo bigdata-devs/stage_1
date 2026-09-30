@@ -51,3 +51,5 @@ src/utils/benchmarks/results/
 # Multi-language build outputs
 multilang_ports/**/target/
 multilang_ports/**/*.o
+multilang_ports/go/results/
+multilang_ports/go/output/
