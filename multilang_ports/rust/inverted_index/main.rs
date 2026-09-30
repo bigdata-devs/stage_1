@@ -1,13 +1,10 @@
-mod json_index;
-mod text_processor;
-
-use json_index::{load_index, InvertedIndex};
+use search_engine_bench::inverted_index::json_index::{load_index, InvertedIndex};
+use search_engine_bench::inverted_index::text_processor::process_text;
 use std::env;
 use std::error::Error;
 use std::fs;
 use std::io;
 use std::path::Path;
-use text_processor::process_text;
 
 const BODY_SUFFIX: &str = "_body.txt";
 
