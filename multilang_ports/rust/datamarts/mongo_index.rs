@@ -1,7 +1,7 @@
 use crate::inverted_index::json_index::InvertedIndex;
 use crate::inverted_index::postings::unique_terms;
 use mongodb::bson::{doc, Bson, Document};
-use mongodb::options::{ClientOptions, InsertManyOptions, UpdateOptions};
+use mongodb::options::{ClientOptions, IndexOptions, InsertManyOptions, UpdateOptions};
 use mongodb::sync::{Client, Collection, Database};
 use mongodb::IndexModel;
 use std::error::Error;
@@ -37,7 +37,7 @@ impl MongoIndex {
         let client = Client::with_options(connection_options(uri)?)?;
         let database = client.database(database_name);
         let collection: Collection<Document> = database.collection(collection_name);
-        collection.create_index(IndexModel::builder().keys(doc! { "term": 1 }).build(), None)?;
+        collection.create_index(term_index_model(), None)?;
         Ok(Self {
             database,
             collection,
@@ -112,6 +112,13 @@ fn connection_options(uri: &str) -> MongoResult<ClientOptions> {
     Ok(options)
 }
 
+fn term_index_model() -> IndexModel {
+    IndexModel::builder()
+        .keys(doc! { "term": 1 })
+        .options(IndexOptions::builder().unique(true).build())
+        .build()
+}
+
 fn book_update_pipeline(book_id: i32) -> Document {
     doc! {
         "$set": {
@@ -170,6 +177,11 @@ mod tests {
             eprintln!("MongoDB is not available at {DEFAULT_URI}; skipping");
             return;
         }
+        let client = Client::with_options(connection_options(DEFAULT_URI).unwrap()).unwrap();
+        client
+            .database("stage1_rust_test")
+            .run_command(doc! { "dropDatabase": 1 }, None)
+            .unwrap();
         let index = MongoIndex::connect(DEFAULT_URI, "stage1_rust_test", "inverted_index").unwrap();
         let mut books = InvertedIndex::new();
         books.add_book(11, &vec!["alpha".to_string(), "beta".to_string()]);
