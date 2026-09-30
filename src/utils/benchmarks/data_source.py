@@ -27,7 +27,7 @@ def prepare_books():
     if cached_book_count() >= MIN_BOOK_COUNT:
         write_manifest()
     else:
-        logging.warning("Only %s books cached; experiments will use sample_data instead", cached_book_count())
+        logging.warning("Only %s books cached; benchmarks need %s books", cached_book_count(), TARGET_BOOK_COUNT)
 
 def download_books():
     CACHED_BODIES_DIRECTORY.mkdir(parents=True, exist_ok=True)
@@ -78,7 +78,13 @@ def write_manifest():
     MANIFEST_PATH.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
 def book_ids():
-    return discover_book_ids(bodies_directory())
+    book_ids = discover_book_ids(bodies_directory())
+    if len(book_ids) < TARGET_BOOK_COUNT:
+        raise RuntimeError(
+            f"Experiment corpus has {len(book_ids)} books in {bodies_directory()}, "
+            f"{TARGET_BOOK_COUNT} required; restore data_source/ from git or run prepare_books"
+        )
+    return book_ids
 
 def bodies_directory():
     return CACHED_BODIES_DIRECTORY if using_cached_books() else SAMPLE_BODIES_DIRECTORY
