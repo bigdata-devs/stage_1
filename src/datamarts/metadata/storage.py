@@ -54,6 +54,14 @@ class MetadataStorage(ABC):
     def save(self, metadata: BookMetadata) -> None:
         """Inserts the record, replacing any previous one with the same book ID."""
 
+    @abstractmethod
+    def storage_location(self) -> str:
+        """Returns where the records live: a file path, a connection string or a collection URI."""
+
+    @abstractmethod
+    def storage_size_bytes(self) -> int:
+        """Returns how many bytes the stored records occupy."""
+
 
 class SearchableMetadataStorage(MetadataStorage):
     """A metadata store that also answers the queries the indexing and search modules need."""
@@ -107,6 +115,12 @@ class SQLiteStorage(SearchableMetadataStorage):
 
     def list_books(self) -> list[BookMetadata]:
         return self._select("", ())
+
+    def storage_location(self) -> str:
+        return str(self.db_path)
+
+    def storage_size_bytes(self) -> int:
+        return self.db_path.stat().st_size
 
     def _select(self, condition: str, parameters: tuple) -> list[BookMetadata]:
         """Runs the shared SELECT with an extra condition; rows without file paths are skipped."""
@@ -184,14 +198,33 @@ class PostgresStorage(MetadataStorage):
                                f"ON CONFLICT (book_id) DO UPDATE SET {updates}", _to_row(metadata))
             connection.commit()
 
+    def storage_location(self) -> str:
+        return self.connection_string
+
+    def storage_size_bytes(self) -> int:
+        with _connect_postgres(self.connection_string) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT pg_total_relation_size('books')")
+                return cursor.fetchone()[0]
+
 
 class MongoStorage(MetadataStorage):
     """MongoDB implementation of the metadata schema, used for the optional storage comparison."""
 
     def __init__(self, connection_string: str, db_name: str = "bigdata_project"):
+        self.connection_string = connection_string
         self.client = MongoClient(connection_string)
-        self.collection = self.client[db_name]["books"]
+        self.db = self.client[db_name]
+        self.collection = self.db["books"]
 
     def save(self, metadata: BookMetadata) -> None:
         document = dict(zip(_COLUMNS, _to_row(metadata)))
         self.collection.update_one({"book_id": metadata.book_id}, {"$set": document}, upsert=True)
+
+    def storage_location(self) -> str:
+        base_uri = self.connection_string.split("?")[0].rstrip("/")
+        return f"{base_uri}/{self.db.name}.{self.collection.name}"
+
+    def storage_size_bytes(self) -> int:
+        stats = self.collection.database.command("collStats", self.collection.name)
+        return stats["storageSize"]
