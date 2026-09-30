@@ -1,8 +1,13 @@
+import pytest
+
 from src.datamarts.inverted_index.folder_index import (
     build_index,
     save_index,
     load_index,
     query_index,
+    term_file_name,
+    term_from_file_name,
+    update_book,
 )
 
 
@@ -88,3 +93,41 @@ class TestQueryIndex:
         save_index(index, tmp_path)
         result = query_index("Adventures", tmp_path)
         assert result == [1]
+
+
+class TestWindowsReservedNames:
+    @pytest.mark.parametrize("term", ["con", "prn", "aux", "nul", "com1", "lpt9", "CON"])
+    def test_reserved_names_get_a_suffix(self, term):
+        assert term_file_name(term) == f"{term}_.txt"
+
+    @pytest.mark.parametrize("term", ["cone", "auxiliary", "null", "console"])
+    def test_ordinary_terms_are_unchanged(self, term):
+        assert term_file_name(term) == f"{term}.txt"
+
+    @pytest.mark.parametrize("term", ["con", "aux", "cone", "nul"])
+    def test_file_names_round_trip(self, term):
+        assert term_from_file_name(term_file_name(term)) == term
+
+    def test_reserved_terms_are_saved_loaded_and_queried(self, tmp_path):
+        index = {"con": [1], "aux": [2], "nul": [3], "cone": [4]}
+        save_index(index, tmp_path)
+        assert (tmp_path / "C" / "con_.txt").exists()
+        assert not (tmp_path / "C" / "con.txt").exists()
+        assert load_index(tmp_path) == index
+        assert query_index("nul", tmp_path) == [3]
+
+
+class TestUpdateBook:
+    def test_creates_index_for_first_book(self, tmp_path):
+        update_book(7, ["cat", "dog", "cat"], tmp_path)
+        assert load_index(tmp_path) == {"cat": [7], "dog": [7]}
+
+    def test_merges_into_existing_postings_in_order(self, tmp_path):
+        save_index({"cat": [9], "owl": [9]}, tmp_path)
+        update_book(3, ["cat", "con"], tmp_path)
+        assert load_index(tmp_path) == {"cat": [3, 9], "con": [3], "owl": [9]}
+
+    def test_adding_same_book_twice_is_harmless(self, tmp_path):
+        update_book(3, ["cat"], tmp_path)
+        update_book(3, ["cat"], tmp_path)
+        assert query_index("cat", tmp_path) == [3]
