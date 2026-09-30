@@ -27,7 +27,7 @@ public class Downloader {
                     .GET()
                     .build();
 
-            HttpResponse response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             String text = response.body();
 
             if (response.statusCode() != 200 || !text.contains(START_MARKER)) {
