@@ -1,15 +1,25 @@
 import logging
 import random
+from enum import Enum
 from typing import Callable, Optional, Set
 
 from src.control.candidate_pool import DownloadCandidatePool, NoDownloadCandidatesError
 from src.control.state_manager import StateManager
+from src.datalake.errors import BookUnavailableError, TransientDownloadError
 
 logger = logging.getLogger(__name__)
 
 TOTAL_BOOKS = 70000
 
 BookCallback = Callable[[str], bool]
+
+
+class CallbackOutcome(Enum):
+    """Result of running a downloader or indexer callback for one book."""
+
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    BOOK_UNAVAILABLE = "book_unavailable"
 
 
 class PipelineController:
@@ -21,10 +31,14 @@ class PipelineController:
     book is processed per step.
 
     A callback that raises or returns a falsy value counts as a failure:
-    the error is logged, the control files are left untouched for that
-    book, and the book is not retried again during this controller's
-    lifetime (it will be retried on the next run, since it was never
-    recorded as done).
+    the error is logged, the book is not retried again during this
+    controller's lifetime, and the downloaded/indexed control files are
+    left untouched for it. Such failures are treated as transient (for
+    example a network error), so the book is retried on the next run.
+
+    A downloader that raises ``BookUnavailableError`` reports a permanent
+    failure instead: the ID is recorded in the failed control file and is
+    never drawn again, in this run or any later one.
     """
 
     def __init__(
@@ -83,7 +97,7 @@ class PipelineController:
         """Sends the oldest-numbered pending book to the indexer and updates its state."""
         book_id = min(indexable_books, key=int)
         logger.info("[CONTROL] Scheduling book %s for indexing...", book_id)
-        if not self._invoke_callback(self.indexer_fn, book_id, "indexer"):
+        if self._invoke_callback(self.indexer_fn, book_id, "indexer") is not CallbackOutcome.SUCCEEDED:
             self._failed_indexing_books.add(book_id)
             return False
         self.state_manager.mark_as_indexed(book_id)
@@ -98,38 +112,62 @@ class PipelineController:
             logger.warning("[CONTROL] No download candidates left max_book_id=%d", self.max_book_id)
             return False
         logger.info("[CONTROL] Downloading new book with ID %s...", book_id)
-        if not self._invoke_callback(self.downloader_fn, book_id, "downloader"):
+        download_outcome = self._invoke_callback(self.downloader_fn, book_id, "downloader")
+        if download_outcome is CallbackOutcome.BOOK_UNAVAILABLE:
+            self.state_manager.mark_as_failed(book_id)
+        if download_outcome is not CallbackOutcome.SUCCEEDED:
             return False
         self.state_manager.mark_as_downloaded(book_id)
         logger.info("[CONTROL] Book %s successfully downloaded.", book_id)
         return True
 
     def _draw_new_book_id(self) -> str:
-        """Draws random IDs from the pool until one is not yet downloaded."""
+        """Draws random IDs from the pool until one was neither downloaded nor recorded as failed."""
         candidate_pool = self._get_candidate_pool()
         book_id = candidate_pool.draw()
-        while self.state_manager.is_downloaded(book_id):
+        while self._was_already_tried(book_id):
             book_id = candidate_pool.draw()
         return book_id
+
+    def _was_already_tried(self, book_id: str) -> bool:
+        """Tells whether a book was already downloaded or permanently failed to download."""
+        return self.state_manager.is_downloaded(book_id) or self.state_manager.is_failed(book_id)
 
     def _get_candidate_pool(self) -> DownloadCandidatePool:
         """Builds the pool of untried IDs lazily, on the first download step."""
         if self._candidate_pool is None:
-            self._candidate_pool = DownloadCandidatePool(
-                self.max_book_id, self.state_manager.get_downloaded_books(), self._random
-            )
+            already_tried_ids = self.state_manager.get_downloaded_books() | self.state_manager.get_failed_books()
+            self._candidate_pool = DownloadCandidatePool(self.max_book_id, already_tried_ids, self._random)
         return self._candidate_pool
 
-    def _invoke_callback(self, callback: Optional[BookCallback], book_id: str, callback_name: str) -> bool:
+    def _invoke_callback(self, callback: Optional[BookCallback], book_id: str, callback_name: str) -> CallbackOutcome:
         """Runs a stage callback in isolation; a missing callback counts as success."""
         if callback is None:
-            return True
+            return CallbackOutcome.SUCCEEDED
         try:
             callback_result = callback(book_id)
+        except BookUnavailableError as unavailable_error:
+            return _report_unavailable_book(callback_name, book_id, unavailable_error)
+        except TransientDownloadError as transient_error:
+            return _report_transient_failure(callback_name, book_id, transient_error)
         except Exception:
             _log_callback_exception(callback_name, book_id)
-            return False
-        return _is_successful_result(callback_result, callback_name, book_id)
+            return CallbackOutcome.FAILED
+        return _interpret_callback_result(callback_result, callback_name, book_id)
+
+
+def _report_unavailable_book(callback_name: str, book_id: str, unavailable_error: BookUnavailableError) -> CallbackOutcome:
+    """Logs a book that can never be processed and returns the matching outcome."""
+    logger.warning("[CONTROL] Book is unavailable and will not be retried callback=%s book_id=%s reason=%s",
+                   callback_name, book_id, unavailable_error)
+    return CallbackOutcome.BOOK_UNAVAILABLE
+
+
+def _report_transient_failure(callback_name: str, book_id: str, transient_error: TransientDownloadError) -> CallbackOutcome:
+    """Logs a temporary failure (no traceback needed) and returns the matching outcome."""
+    logger.warning("[CONTROL] Temporary failure; book will be retried on a later run callback=%s book_id=%s reason=%s",
+                   callback_name, book_id, transient_error)
+    return CallbackOutcome.FAILED
 
 
 def _log_callback_exception(callback_name: str, book_id: str) -> None:
@@ -138,13 +176,13 @@ def _log_callback_exception(callback_name: str, book_id: str) -> None:
                      callback_name, book_id)
 
 
-def _is_successful_result(callback_result: object, callback_name: str, book_id: str) -> bool:
+def _interpret_callback_result(callback_result: object, callback_name: str, book_id: str) -> CallbackOutcome:
     """Interprets a callback return value, logging falsy results as failures."""
     if callback_result:
-        return True
+        return CallbackOutcome.SUCCEEDED
     logger.error("[CONTROL] Callback reported failure; state left unchanged callback=%s book_id=%s result=%r",
                  callback_name, book_id, callback_result)
-    return False
+    return CallbackOutcome.FAILED
 
 
 def _require_positive_int(parameter_name: str, value: int) -> None:

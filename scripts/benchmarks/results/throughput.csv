@@ -1,0 +1,8 @@
+test_name,item_count,elapsed_seconds,items_per_second,timestamp
+write_throughput_time_based,100,2.761170,36.2165,2026-09-27T15:08:55.944636
+write_throughput_book_based,100,2.797880,35.7413,2026-09-27T15:08:58.939808
+write_throughput_batch_based,100,2.763856,36.1813,2026-09-27T15:09:01.819072
+download_write_throughput,10,6.711193,1.4900,2026-09-27T15:09:08.640099
+insert_throughput_sqlite,100,0.671749,148.8652,2026-09-27T15:10:15.204077
+insert_throughput_postgres,100,0.779295,128.3211,2026-09-27T15:11:28.580858
+insert_throughput_mongo,100,0.077497,1290.3659,2026-09-27T15:12:48.620750

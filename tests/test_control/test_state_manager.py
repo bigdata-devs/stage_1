@@ -1,13 +1,19 @@
+import inspect
 import unittest
 from unittest import mock
 
 from src.control.book_id import InvalidBookIdError
 from src.control.control_file import ControlFile
 from src.control.state_manager import StateManager
+from src.utils.paths import PROJECT_ROOT
 from tests.test_control.helpers import TemporaryDirectoryTestCase, render_ids
 
 
 class StateManagerLoadTest(TemporaryDirectoryTestCase):
+
+    def test_default_control_directory_is_anchored_to_project_root(self) -> None:
+        default_control_dir = inspect.signature(StateManager).parameters["control_dir"].default
+        self.assertEqual(default_control_dir, PROJECT_ROOT / "control")
 
     def test_creates_control_directory(self) -> None:
         control_dir = self.work_dir / "nested" / "control"
@@ -62,6 +68,28 @@ class StateManagerUpdateTest(TemporaryDirectoryTestCase):
             with self.assertRaises(OSError):
                 self.state_manager.mark_as_downloaded("5")
         self.assertFalse(self.state_manager.is_downloaded("5"))
+
+
+class StateManagerFailedBooksTest(TemporaryDirectoryTestCase):
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.state_manager = StateManager(self.work_dir)
+
+    def test_mark_as_failed_persists_normalized_ids_once(self) -> None:
+        for raw_book_id in ["9", 9, " 009 "]:
+            self.state_manager.mark_as_failed(raw_book_id)
+        self.assertTrue(self.state_manager.is_failed("9"))
+        self.assertEqual((self.work_dir / "failed_books.txt").read_bytes(), render_ids([9]))
+
+    def test_failed_books_are_not_downloaded_or_pending(self) -> None:
+        self.state_manager.mark_as_failed("9")
+        self.assertFalse(self.state_manager.is_downloaded("9"))
+        self.assertEqual(self.state_manager.get_pending_indexing_books(), set())
+
+    def test_new_instance_reloads_failed_books(self) -> None:
+        self.state_manager.mark_as_failed("9")
+        self.assertEqual(StateManager(self.work_dir).get_failed_books(), {"9"})
 
 
 class StateManagerCachingTest(TemporaryDirectoryTestCase):
