@@ -10,20 +10,17 @@ This module adapts the datalake and datamart modules to that contract:
 """
 
 import logging
-from datetime import datetime
 from pathlib import Path
 
-from src.datalake.datalake_engine import download_time_based
+from src.datalake.datalake_engine import download_time_based, find_time_based_book
 from src.datamarts.inverted_index import json_index
-from src.datamarts.metadata.book_processor import extract_metadata
+from src.datamarts.metadata.book_metadata import BookMetadata
+from src.datamarts.metadata.book_processor import build_book_metadata
 from src.datamarts.metadata.storage import MetadataStorage
 from src.utils.text_processor import process_text
 
 logger = logging.getLogger(__name__)
 
-BODY_PART = "body"
-HEADER_PART = "header"
-CAPTURE_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 _ENCODING = "utf-8"
 
 
@@ -60,43 +57,14 @@ class BookIndexingTask:
         Raises:
             FileNotFoundError: If the book is not present in the datalake.
         """
-        book_number = int(book_id)
-        header_path = find_latest_book_file(self.datalake_dir, book_number, HEADER_PART)
-        body_path = find_latest_book_file(self.datalake_dir, book_number, BODY_PART)
-        self._store_metadata(book_number, header_path)
-        self._add_to_inverted_index(book_number, body_path)
+        metadata = build_book_metadata(find_time_based_book(int(book_id), self.datalake_dir))
+        self.metadata_storage.save(metadata)
+        logger.info("[INDEXER] Metadata stored book_id=%d title=%r", metadata.book_id, metadata.title)
+        self._add_to_inverted_index(metadata)
         return True
 
-    def _store_metadata(self, book_number: int, header_path: Path) -> None:
-        """Parses the header file and saves its metadata, stamped with the download time."""
-        metadata = extract_metadata(header_path.read_text(encoding=_ENCODING))
-        metadata["book_id"] = book_number
-        metadata["Capture Date"] = _read_modification_time(header_path)
-        self.metadata_storage.save(metadata)
-        logger.info("[INDEXER] Metadata stored book_id=%d title=%r", book_number, metadata["Title"])
-
-    def _add_to_inverted_index(self, book_number: int, body_path: Path) -> None:
+    def _add_to_inverted_index(self, metadata: BookMetadata) -> None:
         """Tokenizes the body file and merges its terms into the JSON inverted index."""
-        tokens = process_text(body_path.read_text(encoding=_ENCODING))
-        json_index.add_book(book_number, tokens, self.index_path)
-        logger.info("[INDEXER] Inverted index updated book_id=%d tokens=%d", book_number, len(tokens))
-
-
-def find_latest_book_file(datalake_dir: Path, book_id: int, part: str) -> Path:
-    """Returns the newest ``<book_id>_<part>.txt`` stored in the time-based datalake.
-
-    ``YYYYMMDD/HH`` folder names sort chronologically, so the last match is
-    the most recent download.
-
-    Raises:
-        FileNotFoundError: If the datalake holds no such file.
-    """
-    matches = sorted(Path(datalake_dir).glob(f"*/*/{book_id}_{part}.txt"))
-    if not matches:
-        raise FileNotFoundError(f"No {part} file for book {book_id} in datalake {datalake_dir}")
-    return matches[-1]
-
-
-def _read_modification_time(file_path: Path) -> str:
-    """Returns the file modification time, i.e. when the book was downloaded."""
-    return datetime.fromtimestamp(file_path.stat().st_mtime).strftime(CAPTURE_DATE_FORMAT)
+        tokens = process_text(metadata.body_path.read_text(encoding=_ENCODING))
+        json_index.add_book(metadata.book_id, tokens, self.index_path)
+        logger.info("[INDEXER] Inverted index updated book_id=%d tokens=%d", metadata.book_id, len(tokens))

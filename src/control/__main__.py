@@ -17,11 +17,9 @@ from src.control.pipeline_controller import PipelineController
 from src.control.pipeline_tasks import BookIndexingTask, DatalakeDownloadTask
 from src.control.state_manager import StateManager
 from src.datamarts.metadata.storage import SQLiteStorage
-from src.utils.paths import CONTROL_DIR, DATALAKE_DIR, DATAMARTS_DIR
+from src.utils.paths import CONTROL_DIR, DATALAKE_DIR, JSON_INDEX_PATH, METADATA_DB_PATH
 
 DEFAULT_STEPS = 10
-METADATA_DB_PATH = DATAMARTS_DIR / "metadata.db"
-JSON_INDEX_PATH = DATAMARTS_DIR / "inverted_index.json"
 
 
 def parse_arguments(arguments: Optional[List[str]]) -> argparse.Namespace:
@@ -34,9 +32,8 @@ def parse_arguments(arguments: Optional[List[str]]) -> argparse.Namespace:
 
 def build_controller(state_manager: StateManager) -> PipelineController:
     """Wires the real datalake downloader and datamart indexer into the controller."""
-    DATAMARTS_DIR.mkdir(parents=True, exist_ok=True)
     downloader = DatalakeDownloadTask(DATALAKE_DIR)
-    indexer = BookIndexingTask(DATALAKE_DIR, SQLiteStorage(str(METADATA_DB_PATH)), JSON_INDEX_PATH)
+    indexer = BookIndexingTask(DATALAKE_DIR, SQLiteStorage(METADATA_DB_PATH), JSON_INDEX_PATH)
     return PipelineController(state_manager, downloader_fn=downloader.run, indexer_fn=indexer.run)
 
 

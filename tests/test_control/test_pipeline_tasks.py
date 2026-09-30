@@ -6,7 +6,7 @@ from unittest import mock
 
 from src.control import pipeline_tasks
 from src.datalake.errors import BookUnavailableError, TransientDownloadError
-from src.control.pipeline_tasks import BookIndexingTask, DatalakeDownloadTask, find_latest_book_file
+from src.control.pipeline_tasks import BookIndexingTask, DatalakeDownloadTask
 from src.datamarts.metadata.storage import SQLiteStorage
 from tests.test_control.helpers import TemporaryDirectoryTestCase
 
@@ -37,19 +37,6 @@ class DatalakeDownloadTaskTest(TemporaryDirectoryTestCase):
                         DatalakeDownloadTask(self.work_dir).run("42")
 
 
-class FindLatestBookFileTest(TemporaryDirectoryTestCase):
-
-    def test_returns_most_recent_download(self) -> None:
-        store_book(self.work_dir, "20250925/09", 7)
-        store_book(self.work_dir, "20250926/14", 7)
-        latest_body = find_latest_book_file(self.work_dir, 7, "body")
-        self.assertEqual(latest_body, self.work_dir / "20250926" / "14" / "7_body.txt")
-
-    def test_raises_when_book_is_missing(self) -> None:
-        with self.assertRaises(FileNotFoundError):
-            find_latest_book_file(self.work_dir, 7, "body")
-
-
 class BookIndexingTaskTest(TemporaryDirectoryTestCase):
 
     def setUp(self) -> None:
@@ -65,12 +52,13 @@ class BookIndexingTaskTest(TemporaryDirectoryTestCase):
 
     def read_metadata_rows(self) -> list:
         with sqlite3.connect(self.database_path) as connection:
-            return connection.execute("SELECT book_id, title, author, language FROM books").fetchall()
+            return connection.execute("SELECT book_id, title, author, language, body_path FROM books").fetchall()
 
     def test_stores_metadata_and_terms(self) -> None:
         store_book(self.datalake_dir, "20250925/14", 5)
         self.assertTrue(self.indexer.run("5"))
-        self.assertEqual(self.read_metadata_rows(), [(5, "The Island Voyage", "Jane Doe", "English")])
+        body_path = str((self.datalake_dir / "20250925" / "14" / "5_body.txt").resolve())
+        self.assertEqual(self.read_metadata_rows(), [(5, "The Island Voyage", "Jane Doe", "en", body_path)])
         self.assertEqual(self.read_index()["shipwreck"], [5])
         self.assertNotIn("the", self.read_index())
 

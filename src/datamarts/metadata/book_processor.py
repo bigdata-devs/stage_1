@@ -1,87 +1,69 @@
-import requests
-import re
-import os
-from pathlib import Path
+"""Builds the metadata datamart from the headers already stored in the datalake.
+
+Nothing is downloaded here: the header of every book is read from the
+time-based datalake, parsed, normalized and saved together with the paths
+of its header and body files.
+
+Usage: python -m src.datamarts.metadata.book_processor
+"""
+
+import logging
 from datetime import datetime
+from pathlib import Path
 
-from src.datamarts.metadata.storage import SQLiteStorage, PostgresStorage, MongoStorage
+from src.datalake.datalake_engine import StoredBookFiles, find_time_based_book, list_time_based_books
+from src.datamarts.metadata.book_metadata import BookMetadata
+from src.datamarts.metadata.header_parser import extract_metadata
+from src.datamarts.metadata.storage import MetadataStorage, SQLiteStorage
+from src.utils.paths import DATALAKE_DIR
 
-START_MARKER = "*** START OF THE PROJECT GUTENBERG EBOOK"
-END_MARKER = "*** END OF THE PROJECT GUTENBERG EBOOK"
+logger = logging.getLogger(__name__)
 
-def extract_metadata(header_text: str) -> dict:
-    """Extrae Título, Autor e Idioma de la cabecera usando expresiones regulares."""
-    
-    metadata = {
-        "Title": "Unknown",
-        "Author": "Unknown",
-        "Language": "Unknown"
-    }
-    
-    title_match = re.search(r"Title:\s*(.+)", header_text, re.IGNORECASE)
-    author_match = re.search(r"Author:\s*(.+)", header_text, re.IGNORECASE)
-    language_match = re.search(r"Language:\s*(.+)", header_text, re.IGNORECASE)
-    
-    if title_match:
-        metadata["Title"] = title_match.group(1).strip()
-    if author_match:
-        metadata["Author"] = author_match.group(1).strip()
-    if language_match:
-        metadata["Language"] = language_match.group(1).strip()
-        
-    return metadata
+CAPTURE_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+_ENCODING = "utf-8"
 
-def process_book(book_id: int, output_dir: str, db_backend):
-    """Descarga el libro, lo divide en partes y devuelve los metadatos."""
-    output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
-    
-    url = f"https://www.gutenberg.org/cache/epub/{book_id}/pg{book_id}.txt"
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        print(f"Error descargando el libro {book_id}: {e}")
-        return None
-        
-    text = response.text
-    
-    if START_MARKER not in text or END_MARKER not in text:
-        print(f"Marcadores no encontrados en el libro {book_id}.")
-        return None
-        
-    header, body_and_footer = text.split(START_MARKER, 1)
-    body, footer = body_and_footer.split(END_MARKER, 1)
-    
-    body_path = output_path / f"{book_id}_body.txt"
-    header_path = output_path / f"{book_id}_header.txt"
-    
-    with open(body_path, "w", encoding="utf-8") as f:
-        f.write(body.strip())
-    with open(header_path, "w", encoding="utf-8") as f:
-        f.write(header.strip())
-        
-    metadata = extract_metadata(header)
-    metadata['book_id'] = book_id
-    
-    metadata['Capture Date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
-    db_backend.save(metadata)
-    
-    return metadata
+
+def build_book_metadata(book_files: StoredBookFiles) -> BookMetadata:
+    """Reads and parses the header of a stored book; the capture date is when its header was downloaded."""
+    fields = extract_metadata(book_files.header_path.read_text(encoding=_ENCODING))
+    return BookMetadata(
+        book_id=book_files.book_id,
+        title=fields["title"],
+        author=fields["author"],
+        language=fields["language"],
+        capture_date=_read_modification_time(book_files.header_path),
+        header_path=book_files.header_path,
+        body_path=book_files.body_path,
+    )
+
+
+def process_book(book_id: int, storage: MetadataStorage, datalake_dir: Path = DATALAKE_DIR) -> None:
+    """Extracts the metadata of one book from the datalake and saves it.
+
+    Raises:
+        FileNotFoundError: If the book is not in the datalake.
+    """
+    storage.save(build_book_metadata(find_time_based_book(book_id, datalake_dir)))
+
+
+def process_datalake(storage: MetadataStorage, datalake_dir: Path = DATALAKE_DIR) -> None:
+    """Saves (or refreshes) the metadata of every book in the datalake."""
+    stored_books = list_time_based_books(datalake_dir)
+    for book_files in stored_books.values():
+        storage.save(build_book_metadata(book_files))
+    logger.info("[METADATA] Stored metadata of %d books from %s", len(stored_books), datalake_dir)
+
+
+def _read_modification_time(file_path: Path) -> str:
+    """Returns the file modification time formatted as a capture date."""
+    return datetime.fromtimestamp(file_path.stat().st_mtime).strftime(CAPTURE_DATE_FORMAT)
+
+
+def main() -> None:
+    """Rebuilds ``datamarts/metadata.db`` from every header in the datalake."""
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+    process_datalake(SQLiteStorage())
+
 
 if __name__ == "__main__":
-
-    os.makedirs("data", exist_ok=True)
-    
-    OUTPUT_FOLDER = "data/test_datalake"
-    DB_PATH = "data/metadata.db"
-    
-    current_db = SQLiteStorage(DB_PATH)
-    
-    book_metadata = process_book(1342, OUTPUT_FOLDER, current_db)
-    
-    if book_metadata:
-        print("Archivos de texto generados con éxito.")
-        print(f"Metadatos extraídos y guardados a través de {type(current_db).__name__}:")
-        print(book_metadata)
+    main()
