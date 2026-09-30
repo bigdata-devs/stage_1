@@ -1,4 +1,4 @@
-from pymongo import ASCENDING, MongoClient
+from pymongo import ASCENDING, MongoClient, UpdateOne
 from pymongo.collection import Collection
 from pymongo.errors import ServerSelectionTimeoutError
 
@@ -58,17 +58,20 @@ def query_index(term: str, collection: Collection) -> list[int]:
 
 
 def update_book(book_id: int, tokens: list[str], collection: Collection) -> None:
-    for term in set(tokens):
-        collection.update_one(
-            {"term": term},
-            {"$addToSet": {"postings": book_id}},
-            upsert=True,
-        )
-        _sort_postings(term, collection)
+    """Adds one book to every posting list it belongs to with a single unordered bulk write.
+
+    Each term becomes one upserting pipeline update that merges the book ID
+    into the postings and keeps them sorted, so the whole book costs one
+    round trip (split into batches by the driver) instead of two per term.
+    Re-adding a book is harmless.
+    """
+    operations = [_add_book_to_term(term, book_id) for term in sorted(set(tokens))]
+    if operations:
+        collection.bulk_write(operations, ordered=False)
 
 
-def _sort_postings(term: str, collection: Collection) -> None:
-    collection.update_one(
-        {"term": term},
-        [{"$set": {"postings": {"$sortArray": {"input": "$postings", "sortBy": 1}}}}],
-    )
+def _add_book_to_term(term: str, book_id: int) -> UpdateOne:
+    """Builds the upsert that inserts ``book_id`` into the sorted, duplicate-free postings of ``term``."""
+    merged_postings = {"$setUnion": [{"$ifNull": ["$postings", []]}, [book_id]]}
+    sorted_postings = {"$sortArray": {"input": merged_postings, "sortBy": 1}}
+    return UpdateOne({"term": term}, [{"$set": {"postings": sorted_postings}}], upsert=True)
