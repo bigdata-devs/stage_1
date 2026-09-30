@@ -10,7 +10,7 @@ import (
 )
 
 // BodySuffix is the file-name suffix of every book body in the datalake,
-// shared with the Python, Rust, Java and C implementations.
+// shared with the Python, Rust and Java implementations.
 const BodySuffix = "_body.txt"
 
 // HeaderSuffix is the file-name suffix of every book header in the datalake.

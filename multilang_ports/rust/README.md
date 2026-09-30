@@ -2,7 +2,7 @@
 
 Rust implementation of the Stage 1 datalake (Section 3.1) and inverted index
 (Section 4.2). It mirrors the Python baseline in `src/` rule for rule, so its
-outputs can be compared 1:1 with the Python, Go, Java and C versions.
+outputs can be compared 1:1 with the Python, Go and Java versions.
 
 ## Layout
 

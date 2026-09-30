@@ -2,8 +2,8 @@
 //
 // Usage:
 //
-//	go run . build <bodies_dir> <output_json>   # same contract as the Rust/Java/C ports
-//	go run . query <index_json> <term>...       # same contract as the Rust/Java/C ports
+//	go run . build <bodies_dir> <output_json>   # same contract as the Rust/Java ports
+//	go run . query <index_json> <term>...       # same contract as the Rust/Java ports
 //	go run . bench [flags]                      # full datalake + inverted index benchmark
 //
 // Run `go run . bench -h` to list the benchmark flags.

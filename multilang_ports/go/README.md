@@ -2,7 +2,7 @@
 
 Go implementation of the Stage 1 datalake (Section 3.1) and inverted index
 (Section 4.2). It mirrors the Python baseline in `src/` rule for rule, so its
-outputs can be compared 1:1 with the Python, Rust, Java and C versions.
+outputs can be compared 1:1 with the Python, Rust and Java versions.
 
 ## Layout
 
@@ -30,7 +30,7 @@ root. Without it the MongoDB index (and its tests) are skipped, as in Python.
 ## Usage
 
 ```bash
-# Same contract as the Rust/Java/C ports
+# Same contract as the Rust/Java ports
 go run . build ../../sample_data/bodies output/inverted_index.json
 go run . query output/inverted_index.json alice darcy
 

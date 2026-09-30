@@ -112,7 +112,7 @@ func (index InvertedIndex) Postings(term string) []int {
 }
 
 // FormatPostings renders a postings list as "[11, 84, 1342]", the format
-// printed by the Rust, Java and C query commands.
+// printed by the Rust and Java query commands.
 func FormatPostings(postings []int) string {
 	formatted := make([]string, len(postings))
 	for position, bookID := range postings {

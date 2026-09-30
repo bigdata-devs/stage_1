@@ -2,7 +2,7 @@
 
 Java implementation of the Stage 1 datalake (Section 3.1) and inverted index
 (Section 4.2). It mirrors the Python baseline in `src/` rule for rule, so its
-outputs can be compared 1:1 with the Python, Go, Rust and C versions.
+outputs can be compared 1:1 with the Python, Go and Rust versions.
 
 ## Layout
 
@@ -27,7 +27,7 @@ Requires JDK 21+ and Maven 3.9+. MongoDB is optional: start it with
 ```bash
 cd multilang_ports/java
 
-# Same contract as the Rust/Go/C ports
+# Same contract as the Rust/Go ports
 mvn -q compile exec:java -Dexec.mainClass=inverted_index.Main \
     -Dexec.args="build ../../sample_data/bodies output/inverted_index.json"
 mvn -q compile exec:java -Dexec.mainClass=inverted_index.Main \
