@@ -48,12 +48,17 @@ func (suite Suite) measure(name string, operation func() error) (Measurement, er
 	if err != nil {
 		return measurement, fmt.Errorf("%s: %w", name, err)
 	}
+	return measurement, suite.saveMeasurement(measurement)
+}
+
+// saveMeasurement logs one measurement and stores its benchmarks/memstats rows.
+func (suite Suite) saveMeasurement(measurement Measurement) error {
 	log.Printf("[%s] %.4fs | mem %.2f MB | alloc %.2f MB | cpu %.1f%%",
-		name, measurement.Elapsed.Seconds(), measurement.MemoryMB, measurement.TotalAllocMB, measurement.CPUPercent)
+		measurement.Name, measurement.Elapsed.Seconds(), measurement.MemoryMB, measurement.TotalAllocMB, measurement.CPUPercent)
 	if err := suite.results.SaveMeasurement(measurement); err != nil {
-		return measurement, err
+		return err
 	}
-	return measurement, suite.results.SaveMemStats(measurement)
+	return suite.results.SaveMemStats(measurement)
 }
 
 // recordThroughput stores items/second for a measured operation.
@@ -76,13 +81,14 @@ func (suite Suite) recordDiskUsage(path string) error {
 	return suite.results.SaveDiskUsage(usage)
 }
 
-// recordQueryStatistics stores latency statistics for one query workload.
+// recordQueryStatistics stores latency statistics for one workload of
+// queries or lookups.
 func (suite Suite) recordQueryStatistics(testName string, durations []time.Duration) error {
 	stats, err := CalculateStatistics(durations)
 	if err != nil {
 		return err
 	}
-	log.Printf("[%s] %d queries, mean %.3f us, stdev %.3f us", testName, stats.Iterations,
+	log.Printf("[%s] %d samples, mean %.3f us, stdev %.3f us", testName, stats.Iterations,
 		stats.MeanSeconds*microsecondsPerSecond, stats.StdevSeconds*microsecondsPerSecond)
 	return suite.results.SaveStatistics(testName, stats)
 }
@@ -111,4 +117,12 @@ func (suite Suite) fetcher() datalake.Fetcher {
 
 func (suite Suite) connectMongo(ctx context.Context) (*datamarts.MongoIndex, error) {
 	return datamarts.ConnectMongoIndex(ctx, suite.config.MongoURI, suite.config.MongoDatabase, suite.config.MongoCollection)
+}
+
+// firstIDs returns at most count leading IDs of ids, like ids[:count].
+func firstIDs(ids []int, count int) []int {
+	if count > len(ids) {
+		return ids
+	}
+	return ids[:count]
 }

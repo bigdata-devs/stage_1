@@ -3,6 +3,9 @@ package benchmark
 // DefaultBodiesDir is the tracked experiment corpus with 100 Gutenberg books.
 const DefaultBodiesDir = "../../data_source/bodies"
 
+// DefaultHeadersDir holds the header files of the same tracked corpus.
+const DefaultHeadersDir = "../../data_source/headers"
+
 // DefaultQueriesPath is the shared query workload of Section 4.2: every
 // language benchmark reads this file and applies the same semantics.
 const DefaultQueriesPath = "../../src/utils/benchmarks/queries.txt"
@@ -18,6 +21,8 @@ type Config struct {
 	GutenbergURL string
 	// BodiesDir contains the "<id>_body.txt" files that feed the index.
 	BodiesDir string
+	// HeadersDir contains the "<id>_header.txt" files stored in the datalake.
+	HeadersDir string
 	// OutputDir receives the datalakes and the index structures.
 	OutputDir string
 	// ResultsDir receives the CSV result files.

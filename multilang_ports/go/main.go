@@ -92,6 +92,7 @@ func parseBenchmarkFlags(args []string) (benchmark.Config, error) {
 	flags.StringVar(&config.RawBooksDir, "raw-dir", "", "read raw pg<id>.txt files from this folder instead of downloading")
 	flags.StringVar(&config.GutenbergURL, "gutenberg-url", datalake.GutenbergBaseURL, "base URL of the Gutenberg mirror")
 	flags.StringVar(&config.BodiesDir, "bodies", benchmark.DefaultBodiesDir, "folder with <id>_body.txt files to index")
+	flags.StringVar(&config.HeadersDir, "headers", benchmark.DefaultHeadersDir, "folder with <id>_header.txt files stored in the datalake")
 	flags.StringVar(&config.OutputDir, "out", defaultArtifactDir(), "folder for the generated datalakes and indexes")
 	flags.StringVar(&config.ResultsDir, "results", "results", "folder for the CSV benchmark results")
 	flags.StringVar(&config.MongoURI, "mongo-uri", datamarts.DefaultMongoURI, "MongoDB connection URI")
