@@ -17,4 +17,4 @@ public class TimeBased {
         Path outputPath = basePath.resolve(dateStr).resolve(hourStr);
         return Downloader.fetchAndSave(bookId, outputPath);
     }
-}   
+}

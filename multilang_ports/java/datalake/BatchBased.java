@@ -8,10 +8,10 @@ public class BatchBased {
     }
 
     public static boolean download(int bookId, Path basePath, int batchSize) {
-        int rangoInferior = (bookId / batchSize) * batchSize;
-        int rangoSuperior = rangoInferior + batchSize - 1;
+        int lowerBound = (bookId / batchSize) * batchSize;
+        int upperBound = lowerBound + batchSize - 1;
         
-        Path outputPath = basePath.resolve("batch_" + rangoInferior + "_" + rangoSuperior);
+        Path outputPath = basePath.resolve("batch_" + lowerBound + "_" + upperBound);
         return Downloader.fetchAndSave(bookId, outputPath);
     }
 }
