@@ -24,6 +24,6 @@ fn batch_folder_name(book_id: i32) -> String {
 }
 
 pub fn download(book_id: i32) -> bool {
-    let lake = Datalake::new(super::project_root().join("datalake"), BatchBased);
+    let lake = Datalake::new(super::project_root().join("datalake"), &BatchBased);
     lake.download(&GutenbergFetcher::new(), book_id)
 }

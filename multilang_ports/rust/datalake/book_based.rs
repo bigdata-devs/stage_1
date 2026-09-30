@@ -16,6 +16,6 @@ impl Layout for BookBased {
 }
 
 pub fn download(book_id: i32) -> bool {
-    let lake = Datalake::new(super::project_root().join("datalake"), BookBased);
+    let lake = Datalake::new(super::project_root().join("datalake"), &BookBased);
     lake.download(&GutenbergFetcher::new(), book_id)
 }

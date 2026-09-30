@@ -72,6 +72,6 @@ fn collect_newest(
 }
 
 pub fn download(book_id: i32) -> bool {
-    let lake = Datalake::new(super::project_root().join("datalake"), TimeBased);
+    let lake = Datalake::new(super::project_root().join("datalake"), &TimeBased);
     lake.download(&GutenbergFetcher::new(), book_id)
 }

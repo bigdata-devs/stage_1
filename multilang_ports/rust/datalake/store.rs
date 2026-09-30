@@ -5,13 +5,13 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
-pub struct Datalake<L: Layout> {
+pub struct Datalake<'a> {
     root: PathBuf,
-    layout: L,
+    layout: &'a dyn Layout,
 }
 
-impl<L: Layout> Datalake<L> {
-    pub fn new(root: impl Into<PathBuf>, layout: L) -> Self {
+impl<'a> Datalake<'a> {
+    pub fn new(root: impl Into<PathBuf>, layout: &'a dyn Layout) -> Self {
         Self {
             root: root.into(),
             layout,
@@ -115,7 +115,7 @@ mod tests {
     #[test]
     fn store_writes_both_files_into_the_derived_directory() {
         let root = temp_root("store_book");
-        let lake = Datalake::new(&root, BookBased);
+        let lake = Datalake::new(&root, &BookBased);
         let directory = lake.store(84, "header", "body").unwrap();
         assert_eq!(root.join("84"), directory);
         assert_eq!("body", fs::read_to_string(directory.join("84_body.txt")).unwrap());
@@ -126,7 +126,7 @@ mod tests {
     #[test]
     fn batch_based_directory_covers_thousand_book_blocks() {
         let root = temp_root("store_batch");
-        let lake = Datalake::new(&root, BatchBased);
+        let lake = Datalake::new(&root, &BatchBased);
         let directory = lake.store(1500, "header", "body").unwrap();
         assert_eq!(root.join("batch_1000_1999"), directory);
         fs::remove_dir_all(&root).unwrap();
@@ -136,7 +136,7 @@ mod tests {
     fn time_based_store_writes_under_date_and_hour_directories() {
         let root = temp_root("store_time");
         let now = Local::now();
-        let lake = Datalake::new(&root, TimeBased);
+        let lake = Datalake::new(&root, &TimeBased);
         let directory = lake.store(11, "header", "body").unwrap();
         let expected = root
             .join(now.format("%Y%m%d").to_string())
@@ -148,7 +148,7 @@ mod tests {
     #[test]
     fn locate_returns_both_paths_when_the_book_is_stored() {
         let root = temp_root("locate_ok");
-        let lake = Datalake::new(&root, BookBased);
+        let lake = Datalake::new(&root, &BookBased);
         lake.store(84, "header", "body").unwrap();
         let book = lake.locate(84).unwrap();
         assert_eq!(root.join("84/84_body.txt"), book.body_path);
@@ -159,7 +159,7 @@ mod tests {
     #[test]
     fn locate_fails_when_the_book_was_never_stored() {
         let root = temp_root("locate_missing");
-        let lake = Datalake::new(&root, BookBased);
+        let lake = Datalake::new(&root, &BookBased);
         assert!(lake.locate(84).is_err());
         fs::remove_dir_all(&root).unwrap();
     }
@@ -182,7 +182,7 @@ mod tests {
     #[test]
     fn list_book_ids_returns_sorted_numeric_ids_and_skips_incomplete() {
         let root = temp_root("list_ids");
-        let lake = Datalake::new(&root, BookBased);
+        let lake = Datalake::new(&root, &BookBased);
         lake.store(1342, "header", "body").unwrap();
         lake.store(11, "header", "body").unwrap();
         fs::write(root.join("99_body.txt"), "body").unwrap();
@@ -194,7 +194,7 @@ mod tests {
     #[test]
     fn pending_book_ids_excludes_the_known_ones() {
         let root = temp_root("pending");
-        let lake = Datalake::new(&root, BookBased);
+        let lake = Datalake::new(&root, &BookBased);
         lake.store(1, "header", "body").unwrap();
         lake.store(2, "header", "body").unwrap();
         lake.store(3, "header", "body").unwrap();
@@ -207,7 +207,7 @@ mod tests {
         let root = temp_root("download_ok");
         let raw = temp_root("download_raw");
         fs::write(raw.join("pg7.txt"), RAW_BOOK).unwrap();
-        let lake = Datalake::new(&root, BookBased);
+        let lake = Datalake::new(&root, &BookBased);
         assert!(lake.download(&DirectoryFetcher::new(&raw), 7));
         assert_eq!("The body text.", fs::read_to_string(root.join("7/7_body.txt")).unwrap());
         assert!(fs::read_to_string(root.join("7/7_header.txt"))
@@ -222,7 +222,7 @@ mod tests {
         let root = temp_root("download_bad");
         let raw = temp_root("download_bad_raw");
         fs::write(raw.join("pg7.txt"), "no markers here").unwrap();
-        let lake = Datalake::new(&root, BookBased);
+        let lake = Datalake::new(&root, &BookBased);
         assert!(!lake.download(&DirectoryFetcher::new(&raw), 7));
         assert!(!root.join("7/7_body.txt").exists());
         fs::remove_dir_all(&root).unwrap();
