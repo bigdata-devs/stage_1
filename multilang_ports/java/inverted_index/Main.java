@@ -1,3 +1,5 @@
+package inverted_index;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -70,7 +72,7 @@ public final class Main {
     }
 
     private static void printUsage() {
-        System.err.println("Usage: java Main build <bodies_dir> <output_json>");
-        System.err.println("       java Main query <index_json> <term>...");
+        System.err.println("Usage: java inverted_index.Main build <bodies_dir> <output_json>");
+        System.err.println("       java inverted_index.Main query <index_json> <term>...");
     }
 }

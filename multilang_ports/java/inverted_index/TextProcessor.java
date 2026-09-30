@@ -1,3 +1,5 @@
+package inverted_index;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
