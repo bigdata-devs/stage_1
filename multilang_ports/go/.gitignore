@@ -1,6 +1,5 @@
-# Benchmark outputs (datalakes, indexes) and CSV results
+# Benchmark outputs (datalakes, indexes)
 output/
-results/
 
 # Compiled binaries
 search_engine_bench
