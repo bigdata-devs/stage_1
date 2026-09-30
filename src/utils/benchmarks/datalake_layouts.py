@@ -1,87 +1,76 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 
-BATCH_SIZE = 1000
+from src.datalake.book_fetcher import GutenbergBook
+from src.datalake.datalake_engine import (
+    find_batch_based_book,
+    find_book_based_book,
+    find_time_based_book,
+    list_batch_based_books,
+    list_book_based_books,
+    list_time_based_books,
+    store_batch_based,
+    store_book_based,
+    store_time_based,
+)
+from src.utils.benchmarks.data_source import GUTENBERG_URL
 
 class DatalakeLayout(ABC):
     name: str
 
     @abstractmethod
-    def store_book(self, base, book_id, header, body):
+    def store_book(self, datalake_dir, book_id, header, body):
         ...
 
     @abstractmethod
-    def locate_book(self, base, book_id):
+    def locate_book(self, datalake_dir, book_id):
         ...
 
     @abstractmethod
-    def list_book_ids(self, base):
+    def list_book_ids(self, datalake_dir):
         ...
-
-    def write_pair(self, directory, book_id, header, body):
-        directory.mkdir(parents=True, exist_ok=True)
-        (directory / f"{book_id}_header.txt").write_text(header, encoding="utf-8")
-        (directory / f"{book_id}_body.txt").write_text(body, encoding="utf-8")
 
 class TimeBasedLayout(DatalakeLayout):
     name = "time_based"
 
-    def store_book(self, base, book_id, header, body):
-        now = datetime.now()
-        directory = base / now.strftime("%Y%m%d") / now.strftime("%H")
-        self.write_pair(directory, book_id, header, body)
+    def store_book(self, datalake_dir, book_id, header, body):
+        store_time_based(fetched_book(book_id, header, body), datalake_dir)
 
-    def locate_book(self, base, book_id):
-        body_paths = list(base.rglob(f"{book_id}_body.txt"))
-        if body_paths:
-            body_path = body_paths[0]
-            header_path = body_path.with_name(f"{book_id}_header.txt")
-            if header_path.exists():
-                return body_path, header_path
-        raise FileNotFoundError(f"Book {book_id} not found in the time-based hierarchy")
+    def locate_book(self, datalake_dir, book_id):
+        return find_time_based_book(book_id, datalake_dir)
 
-    def list_book_ids(self, base):
-        return discover_bodies(base)
+    def list_book_ids(self, datalake_dir):
+        return sorted(list_time_based_books(datalake_dir))
 
 class BookBasedLayout(DatalakeLayout):
     name = "book_based"
 
-    def store_book(self, base, book_id, header, body):
-        self.write_pair(base / str(book_id), book_id, header, body)
+    def store_book(self, datalake_dir, book_id, header, body):
+        store_book_based(fetched_book(book_id, header, body), datalake_dir)
 
-    def locate_book(self, base, book_id):
-        body_path = base / str(book_id) / f"{book_id}_body.txt"
-        header_path = base / str(book_id) / f"{book_id}_header.txt"
-        if body_path.exists() and header_path.exists():
-            return body_path, header_path
-        raise FileNotFoundError(f"Book {book_id} not found in the book-based hierarchy")
+    def locate_book(self, datalake_dir, book_id):
+        return find_book_based_book(book_id, datalake_dir)
 
-    def list_book_ids(self, base):
-        if base.exists():
-            return sorted(int(entry.name) for entry in base.iterdir() if entry.is_dir() and entry.name.isdigit())
-        return []
+    def list_book_ids(self, datalake_dir):
+        return sorted(list_book_based_books(datalake_dir))
 
 class BatchBasedLayout(DatalakeLayout):
     name = "batch_based"
 
-    def store_book(self, base, book_id, header, body):
-        self.write_pair(base / self.batch_directory_name(book_id), book_id, header, body)
+    def store_book(self, datalake_dir, book_id, header, body):
+        store_batch_based(fetched_book(book_id, header, body), datalake_dir)
 
-    def locate_book(self, base, book_id):
-        directory = base / self.batch_directory_name(book_id)
-        body_path = directory / f"{book_id}_body.txt"
-        header_path = directory / f"{book_id}_header.txt"
-        if body_path.exists() and header_path.exists():
-            return body_path, header_path
-        raise FileNotFoundError(f"Book {book_id} not found in the batch-based hierarchy")
+    def locate_book(self, datalake_dir, book_id):
+        return find_batch_based_book(book_id, datalake_dir)
 
-    def list_book_ids(self, base):
-        return discover_bodies(base)
+    def list_book_ids(self, datalake_dir):
+        return sorted(list_batch_based_books(datalake_dir))
 
-    def batch_directory_name(self, book_id):
-        lower_bound = (book_id // BATCH_SIZE) * BATCH_SIZE
-        return f"batch_{lower_bound}_{lower_bound + BATCH_SIZE - 1}"
-
-def discover_bodies(root):
-    book_ids = {int(path.stem.replace("_body", "")) for path in root.rglob("*_body.txt")}
-    return sorted(book_ids)
+def fetched_book(book_id, header, body):
+    return GutenbergBook(
+        book_id=book_id,
+        header=header,
+        body=body,
+        source_url=GUTENBERG_URL.format(book_id=book_id),
+        downloaded_at=datetime.now(),
+    )

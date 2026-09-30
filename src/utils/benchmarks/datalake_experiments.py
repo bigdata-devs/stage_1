@@ -1,9 +1,9 @@
 import logging
 import shutil
 import time
-import requests
 from pathlib import Path
 
+from src.datalake.errors import BookUnavailableError, TransientDownloadError
 from src.utils.benchmarks import (
     measure_operation,
     measure_disk_usage,
@@ -34,7 +34,7 @@ def run():
         run_layout_experiments(layout, book_ids)
     try:
         measure_download_throughput(book_ids)
-    except requests.RequestException:
+    except (BookUnavailableError, TransientDownloadError):
         logging.warning("SKIP download_write_throughput: network unavailable")
         skipped.append("download_write_throughput")
     return skipped
@@ -128,9 +128,9 @@ def detect_pending(layout, base, known_book_ids):
 def process_pending(layout, base, pending_book_ids):
     resumed = []
     for book_id in pending_book_ids:
-        body_path, header_path = layout.locate_book(base, book_id)
-        body_path.read_text(encoding="utf-8")
-        header_path.read_text(encoding="utf-8")
+        stored = layout.locate_book(base, book_id)
+        stored.body_path.read_text(encoding="utf-8")
+        stored.header_path.read_text(encoding="utf-8")
         resumed.append(book_id)
     return resumed
 
@@ -140,11 +140,9 @@ def verify_resume(book_ids, processed, resumed):
     return duplicated, lost
 
 def download_probe_books(probe_ids, probe_directory):
-    stored = 0
     for book_id in probe_ids:
-        if download_time_based(book_id, str(probe_directory)):
-            stored += 1
-    return stored
+        download_time_based(book_id, probe_directory)
+    return len(probe_ids)
 
 def populate_structure(layout, book_ids):
     for book_id in book_ids:
