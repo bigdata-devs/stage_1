@@ -1,4 +1,4 @@
-package ingestion;
+package datalake;
 
 import java.io.IOException;
 import java.net.URI;

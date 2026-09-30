@@ -1,4 +1,4 @@
-package ingestion;
+package datalake;
 
 import java.nio.file.Path;
 import java.time.LocalDateTime;
