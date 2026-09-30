@@ -1,9 +1,12 @@
 import time
 import shutil
 import logging
-from pathlib import Path
 from collections import Counter
+from dataclasses import replace
 
+from src.datalake.datalake_engine import StoredBookFiles
+from src.datamarts.metadata.book_processor import build_book_metadata
+from src.datamarts.metadata.storage import MongoStorage, PostgresStorage, SearchableMetadataStorage, SQLiteStorage
 from src.utils.benchmarks import (
     BYTES_PER_MB,
     measure_operation,
@@ -17,8 +20,6 @@ from src.utils.benchmarks import (
 )
 from src.utils.benchmarks import data_source
 from src.utils.benchmarks.artifacts import ARTIFACT_ROOT
-from src.datamarts.metadata.header_parser import extract_metadata
-from src.utils.benchmarks.storage import SQLiteStorage, PostgresStorage, MongoStorage
 
 logging.basicConfig(level=logging.INFO)
 
@@ -58,23 +59,25 @@ def reset_database():
     shutil.rmtree(METADATA_DIRECTORY, ignore_errors=True)
 
 def load_book_metadata():
-    headers_directory = data_source.headers_directory()
     metadata_rows = []
     for book_id in data_source.book_ids():
-        header_text = read_header(book_id, headers_directory)
-        metadata_rows.append({"book_id": book_id, **extract_metadata(header_text)})
+        metadata_rows.append(build_book_metadata(stored_book_files(book_id)))
     return metadata_rows
 
-def read_header(book_id, headers_directory):
-    header_path = headers_directory / f"{book_id}_header.txt"
-    return header_path.read_text(encoding="utf-8", errors="replace")
+def stored_book_files(book_id):
+    header_path = data_source.headers_directory() / f"{book_id}_header.txt"
+    body_path = data_source.bodies_directory() / f"{book_id}_body.txt"
+    return StoredBookFiles(book_id, header_path, body_path)
 
 def create_sqlite_storage():
-    METADATA_DIRECTORY.mkdir(parents=True, exist_ok=True)
-    return SQLiteStorage(db_path=str(DATABASE_PATH))
+    return SQLiteStorage(db_path=DATABASE_PATH)
 
 def create_postgres_storage():
-    return PostgresStorage(POSTGRES_CONNECTION_STRING)
+    import psycopg2
+    try:
+        return PostgresStorage(POSTGRES_CONNECTION_STRING)
+    except psycopg2.Error as error:
+        raise ConnectionError("PostgreSQL server is not available") from error
 
 def create_mongo_storage():
     storage = MongoStorage(MONGO_CONNECTION_STRING)
@@ -91,7 +94,8 @@ def probe_mongo_connection(storage):
 def run_storage_experiments(storage, name, metadata_rows):
     logging.info("--- Metadata storage: %s ---", name)
     measure_insert_throughput(storage, metadata_rows, name)
-    measure_queries(storage, name, metadata_rows)
+    if isinstance(storage, SearchableMetadataStorage):
+        measure_queries(storage, name, metadata_rows)
     measure_insert_scalability(storage, metadata_rows[0], name)
     measure_storage_overhead(storage, name)
 
@@ -119,13 +123,17 @@ def measure_insert_throughput(storage, metadata_rows, name):
     })
 
 def measure_queries(storage, name, metadata_rows):
+    first_book = metadata_rows[0]
     author = most_common_author(metadata_rows)
-    first_book_id = metadata_rows[0]["book_id"]
-    measure_query_performance(f"query_author_{name}", lambda: storage.find_by_author(author))
-    measure_query_performance(f"query_id_{name}", lambda: storage.find_by_book_id(first_book_id))
+    measure_query_performance(f"query_author_{name}", lambda: storage.find_books_by_author(author))
+    measure_query_performance(f"query_id_{name}", lambda: storage.find_book_by_id(first_book.book_id))
+    measure_query_performance(f"query_path_{name}", lambda: body_path_by_title(storage, first_book.title))
+
+def body_path_by_title(storage, title):
+    return storage.find_books_by_title(title)[0].body_path
 
 def most_common_author(metadata_rows):
-    author_counts = Counter(row["Author"] for row in metadata_rows)
+    author_counts = Counter(row.author for row in metadata_rows)
     return author_counts.most_common(1)[0][0]
 
 def measure_query_performance(test_name, query):
@@ -151,7 +159,7 @@ def measure_insert_scalability(storage, template, name):
         })
 
 def synthetic_metadata_rows(count, template):
-    return [dict(template, book_id=SYNTHETIC_BOOK_ID_BASE + offset) for offset in range(count)]
+    return [replace(template, book_id=SYNTHETIC_BOOK_ID_BASE + offset) for offset in range(count)]
 
 def save_all(storage, metadata_rows):
     for metadata in metadata_rows:
