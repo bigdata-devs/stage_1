@@ -1,15 +1,11 @@
 package benchmark
 
-// DefaultBookIDs mirrors SAMPLE_BOOK_IDS in download_sample_data.py.
-var DefaultBookIDs = []int{1342, 11, 84, 174}
+// DefaultBodiesDir is the tracked experiment corpus with 100 Gutenberg books.
+const DefaultBodiesDir = "../../data_source/bodies"
 
-// DefaultQueryTerms is the shared query workload (Section 4.2 requires the
-// same workload in every language). It mixes frequent, rare and missing
-// terms; keep it identical to the list used by the other ports.
-var DefaultQueryTerms = []string{
-	"adventure", "island", "shipwreck", "alice", "rabbit", "elizabeth",
-	"darcy", "monster", "creature", "portrait", "dorian", "nonexistentterm",
-}
+// DefaultQueriesPath is the shared query workload of Section 4.2: every
+// language benchmark reads this file and applies the same semantics.
+const DefaultQueriesPath = "../../src/utils/benchmarks/queries.txt"
 
 // Config describes one benchmark run.
 type Config struct {
@@ -31,7 +27,7 @@ type Config struct {
 	MongoDatabase   string
 	MongoCollection string
 
-	QueryTerms       []string
+	Queries          [][]string
 	QueryRepetitions int
 
 	SkipDatalake bool

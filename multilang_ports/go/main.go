@@ -21,6 +21,7 @@ import (
 	"search_engine_bench/benchmark"
 	"search_engine_bench/datalake"
 	"search_engine_bench/datamarts"
+	"search_engine_bench/utils"
 )
 
 const usage = `Usage: search_engine_bench build <bodies_dir> <output_json>
@@ -85,17 +86,17 @@ func runBenchmark(args []string) error {
 func parseBenchmarkFlags(args []string) (benchmark.Config, error) {
 	flags := flag.NewFlagSet("bench", flag.ContinueOnError)
 	config := benchmark.Config{}
-	bookIDs := flags.String("ids", joinInts(benchmark.DefaultBookIDs), "comma-separated Gutenberg book IDs for the datalake")
-	queryTerms := flags.String("queries", strings.Join(benchmark.DefaultQueryTerms, ","), "comma-separated query workload")
+	bookIDs := flags.String("ids", "", "comma-separated Gutenberg book IDs for the datalake (default: discovered from -bodies)")
+	queriesFile := flags.String("queries", benchmark.DefaultQueriesPath, "path to the shared query workload file")
 	flags.StringVar(&config.RawBooksDir, "raw-dir", "", "read raw pg<id>.txt files from this folder instead of downloading")
 	flags.StringVar(&config.GutenbergURL, "gutenberg-url", datalake.GutenbergBaseURL, "base URL of the Gutenberg mirror")
-	flags.StringVar(&config.BodiesDir, "bodies", "../../sample_data/bodies", "folder with <id>_body.txt files to index")
+	flags.StringVar(&config.BodiesDir, "bodies", benchmark.DefaultBodiesDir, "folder with <id>_body.txt files to index")
 	flags.StringVar(&config.OutputDir, "out", "output", "folder for the generated datalakes and indexes")
 	flags.StringVar(&config.ResultsDir, "results", "results", "folder for the CSV benchmark results")
 	flags.StringVar(&config.MongoURI, "mongo-uri", datamarts.DefaultMongoURI, "MongoDB connection URI")
 	flags.StringVar(&config.MongoDatabase, "mongo-db", datamarts.DefaultDatabaseName, "MongoDB database")
 	flags.StringVar(&config.MongoCollection, "mongo-collection", datamarts.DefaultCollectionName, "MongoDB collection")
-	flags.IntVar(&config.QueryRepetitions, "query-repetitions", 100, "times the query workload is repeated")
+	flags.IntVar(&config.QueryRepetitions, "query-repetitions", 5, "times the shared query workload is repeated")
 	flags.BoolVar(&config.SkipDatalake, "skip-datalake", false, "skip the datalake benchmark")
 	flags.BoolVar(&config.SkipIndex, "skip-index", false, "skip the inverted index benchmark")
 	flags.BoolVar(&config.SkipMongo, "skip-mongo", false, "skip the MongoDB index")
@@ -105,10 +106,20 @@ func parseBenchmarkFlags(args []string) (benchmark.Config, error) {
 	if config.QueryRepetitions < 1 {
 		return config, errors.New("-query-repetitions must be at least 1")
 	}
-	config.QueryTerms = splitList(*queryTerms)
-	parsedIDs, err := parseInts(*bookIDs)
-	config.BookIDs = parsedIDs
+	queries, err := benchmark.LoadSharedQueries(*queriesFile)
+	if err != nil {
+		return config, err
+	}
+	config.Queries = queries
+	config.BookIDs, err = bookIDsFrom(*bookIDs, config.BodiesDir)
 	return config, err
+}
+
+func bookIDsFrom(flagValue string, bodiesDir string) ([]int, error) {
+	if flagValue == "" {
+		return utils.DiscoverBookIDs(bodiesDir)
+	}
+	return parseInts(flagValue)
 }
 
 func splitList(commaSeparated string) []string {
@@ -133,10 +144,3 @@ func parseInts(commaSeparated string) ([]int, error) {
 	return values, nil
 }
 
-func joinInts(values []int) string {
-	items := make([]string, len(values))
-	for position, value := range values {
-		items[position] = strconv.Itoa(value)
-	}
-	return strings.Join(items, ",")
-}
