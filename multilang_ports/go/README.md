@@ -43,8 +43,10 @@ go run . bench -h                             # every flag
 go test ./...                                 # unit tests
 ```
 
-Outputs go to `output/` and CSV results are appended to `results/`
-(both git-ignored).
+Datalake and index artifacts go to `~/.cache/stage_1_benchmarks/go`
+(fast filesystem, same policy as the Python suite) and CSV results are
+appended to `results/` (git-ignored). Building the folder index writes one
+file per term, which takes 10+ minutes on a Windows-mounted working copy.
 
 ## Parity with the Python baseline
 

@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -91,7 +92,7 @@ func parseBenchmarkFlags(args []string) (benchmark.Config, error) {
 	flags.StringVar(&config.RawBooksDir, "raw-dir", "", "read raw pg<id>.txt files from this folder instead of downloading")
 	flags.StringVar(&config.GutenbergURL, "gutenberg-url", datalake.GutenbergBaseURL, "base URL of the Gutenberg mirror")
 	flags.StringVar(&config.BodiesDir, "bodies", benchmark.DefaultBodiesDir, "folder with <id>_body.txt files to index")
-	flags.StringVar(&config.OutputDir, "out", "output", "folder for the generated datalakes and indexes")
+	flags.StringVar(&config.OutputDir, "out", defaultArtifactDir(), "folder for the generated datalakes and indexes")
 	flags.StringVar(&config.ResultsDir, "results", "results", "folder for the CSV benchmark results")
 	flags.StringVar(&config.MongoURI, "mongo-uri", datamarts.DefaultMongoURI, "MongoDB connection URI")
 	flags.StringVar(&config.MongoDatabase, "mongo-db", datamarts.DefaultDatabaseName, "MongoDB database")
@@ -113,6 +114,14 @@ func parseBenchmarkFlags(args []string) (benchmark.Config, error) {
 	config.Queries = queries
 	config.BookIDs, err = bookIDsFrom(*bookIDs, config.BodiesDir)
 	return config, err
+}
+
+func defaultArtifactDir() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "output"
+	}
+	return filepath.Join(home, ".cache", "stage_1_benchmarks", "go")
 }
 
 func bookIDsFrom(flagValue string, bodiesDir string) ([]int, error) {
