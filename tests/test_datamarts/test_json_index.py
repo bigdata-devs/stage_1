@@ -1,5 +1,9 @@
 import json
 
+import pytest
+
+from src.utils import atomic_file
+
 from src.datamarts.inverted_index.json_index import add_book, build_index, save_index, load_index
 
 
@@ -82,3 +86,18 @@ class TestAddBook:
         add_book(3, ["cat"], path)
 
         assert load_index(path) == {"cat": [3]}
+
+
+class TestAtomicSave:
+    def test_interrupted_save_keeps_previous_index(self, tmp_path, monkeypatch):
+        path = tmp_path / "index.json"
+        save_index({"cat": [1]}, path)
+
+        def crash(*args, **kwargs):
+            raise KeyboardInterrupt
+
+        monkeypatch.setattr(atomic_file, "_write_and_sync", crash)
+        with pytest.raises(KeyboardInterrupt):
+            add_book(2, ["dog"], path)
+        assert load_index(path) == {"cat": [1]}
+        assert sorted(item.name for item in tmp_path.iterdir()) == ["index.json"]
