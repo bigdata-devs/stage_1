@@ -10,8 +10,9 @@ Every layout writes ``<BOOK_ID>_header.txt`` and ``<BOOK_ID>_body.txt`` below
 ``download_*`` functions fetch the book and store it; ``store_*`` functions
 store an already fetched book, so benchmarks can write the same download
 into every layout without hitting Project Gutenberg several times.
-``find_time_based_book`` and ``list_time_based_books`` locate books that the
-pipeline stored in the time-based layout.
+``find_*`` functions locate one book and ``list_*`` functions return every
+complete book (header and body present) of a layout; the pipeline uses the
+time-based ones, the benchmarks compare all three.
 """
 
 import json
@@ -20,16 +21,18 @@ import re
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from typing import Iterable
 
 from src.datalake.book_fetcher import GutenbergBook, fetch_and_split
+from src.utils.atomic_file import write_text_atomically
 from src.utils.paths import DATALAKE_DIR
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_BATCH_SIZE = 1000
 BOOK_METADATA_FILE_NAME = "metadata.json"
-_ENCODING = "utf-8"
-_TIME_BASED_BODY_PATTERN = re.compile(r"(\d+)_body\.txt")
+_BODY_FILE_PATTERN = re.compile(r"(\d+)_body\.txt")
+_BATCH_FOLDER_PATTERN = re.compile(r"batch_\d+_\d+")
 
 
 @dataclass(frozen=True)
@@ -113,17 +116,67 @@ def find_time_based_book(book_id: int, datalake_dir: Path = DATALAKE_DIR) -> Sto
     raise FileNotFoundError(f"No header and body files for book {book_id} in datalake {datalake_dir}")
 
 
+def find_book_based_book(book_id: int, datalake_dir: Path = DATALAKE_DIR) -> StoredBookFiles:
+    """Returns the files of a book in the book-based layout; the folder is derived from the ID, so no scan is needed.
+
+    Raises:
+        FileNotFoundError: If the folder does not hold both the header and the body.
+    """
+    return _require_complete_book(book_based_directory(datalake_dir, book_id), book_id)
+
+
+def find_batch_based_book(book_id: int, datalake_dir: Path = DATALAKE_DIR, batch_size: int = DEFAULT_BATCH_SIZE) -> StoredBookFiles:
+    """Returns the files of a book in the batch-based layout; the range folder is derived from the ID.
+
+    Raises:
+        FileNotFoundError: If the range folder does not hold both the header and the body.
+    """
+    return _require_complete_book(batch_based_directory(datalake_dir, book_id, batch_size), book_id)
+
+
 def list_time_based_books(datalake_dir: Path = DATALAKE_DIR) -> dict[int, StoredBookFiles]:
     """Returns the newest complete time-based copy of every book in the datalake, keyed by book ID."""
+    return _collect_complete_books(Path(datalake_dir).glob("*/*/*_body.txt"))
+
+
+def list_book_based_books(datalake_dir: Path = DATALAKE_DIR) -> dict[int, StoredBookFiles]:
+    """Returns every complete book stored in its own ``<BOOK_ID>/`` folder, keyed by book ID."""
+    body_paths = Path(datalake_dir).glob("*/*_body.txt")
+    return _collect_complete_books(path for path in body_paths if _is_in_own_book_folder(path))
+
+
+def list_batch_based_books(datalake_dir: Path = DATALAKE_DIR) -> dict[int, StoredBookFiles]:
+    """Returns every complete book stored in a ``batch_<LOW>_<HIGH>/`` folder, keyed by book ID."""
+    body_paths = Path(datalake_dir).glob("batch_*_*/*_body.txt")
+    return _collect_complete_books(path for path in body_paths if _BATCH_FOLDER_PATTERN.fullmatch(path.parent.name))
+
+
+def _require_complete_book(directory: Path, book_id: int) -> StoredBookFiles:
+    """Returns the files of a book in a known folder, or raises if either file is missing."""
+    header_path = directory / header_file_name(book_id)
+    body_path = directory / body_file_name(book_id)
+    if header_path.is_file() and body_path.is_file():
+        return StoredBookFiles(book_id, header_path, body_path)
+    raise FileNotFoundError(f"No header and body files for book {book_id} in {directory}")
+
+
+def _collect_complete_books(body_paths: Iterable[Path]) -> dict[int, StoredBookFiles]:
+    """Maps book IDs to their files; in sorted order later (newer time-based) copies win."""
     books: dict[int, StoredBookFiles] = {}
-    for body_path in sorted(Path(datalake_dir).glob("*/*/*_body.txt")):
+    for body_path in sorted(body_paths):
         books.update(_complete_book_at(body_path))
     return books
 
 
+def _is_in_own_book_folder(body_path: Path) -> bool:
+    """Tells whether a body file sits in the folder named after its book, as in ``84/84_body.txt``."""
+    folder_name = body_path.parent.name
+    return folder_name.isdigit() and body_path.name == body_file_name(int(folder_name))
+
+
 def _complete_book_at(body_path: Path) -> dict[int, StoredBookFiles]:
     """Returns ``{book_id: files}`` when a body file has its header next to it, otherwise an empty dict."""
-    match = _TIME_BASED_BODY_PATTERN.fullmatch(body_path.name)
+    match = _BODY_FILE_PATTERN.fullmatch(body_path.name)
     if not match:
         return {}
     book_id = int(match.group(1))
@@ -163,10 +216,8 @@ def _write_book_metadata(book: GutenbergBook, directory: Path) -> None:
 
 
 def write_text_file(file_path: Path, content: str) -> None:
-    """Writes UTF-8 text, creating the parent folder; newlines are not translated, so files match on every OS."""
-    file_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(file_path, "w", encoding=_ENCODING, newline="") as output_file:
-        output_file.write(content)
+    """Writes UTF-8 text atomically, so a crash never leaves a truncated header, body or ``metadata.json``."""
+    write_text_atomically(file_path, content)
 
 
 def main() -> None:

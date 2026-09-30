@@ -10,7 +10,11 @@ from src.datalake.datalake_engine import (
     StoredBookFiles,
     batch_based_directory,
     book_based_directory,
+    find_batch_based_book,
+    find_book_based_book,
     find_time_based_book,
+    list_batch_based_books,
+    list_book_based_books,
     list_time_based_books,
     store_batch_based,
     store_book_based,
@@ -138,3 +142,66 @@ class TestListTimeBasedBooks:
         store_book_based(BOOK, tmp_path)
         store_batch_based(BOOK, tmp_path)
         assert list_time_based_books(tmp_path) == {}
+
+
+def book(book_id):
+    return GutenbergBook(book_id, "Title: T", "Body text", f"https://example.org/{book_id}", DOWNLOADED_AT)
+
+
+@pytest.fixture
+def mixed_datalake(tmp_path):
+    """One datalake root holding books in all three layouts, as happens when benchmarks share DATALAKE_DIR."""
+    store_time_based(book(11), tmp_path)
+    store_book_based(book(84), tmp_path)
+    store_book_based(book(174), tmp_path)
+    store_batch_based(book(1342), tmp_path)
+    store_batch_based(book(2701), tmp_path)
+    return tmp_path
+
+
+class TestBookBasedLookup:
+    def test_find_returns_files_in_book_folder(self, mixed_datalake):
+        folder = mixed_datalake / "84"
+        assert find_book_based_book(84, mixed_datalake) == StoredBookFiles(84, folder / "84_header.txt", folder / "84_body.txt")
+
+    def test_find_missing_book_raises(self, mixed_datalake):
+        with pytest.raises(FileNotFoundError):
+            find_book_based_book(1342, mixed_datalake)
+
+    def test_find_requires_both_files(self, mixed_datalake):
+        (mixed_datalake / "84" / "84_header.txt").unlink()
+        with pytest.raises(FileNotFoundError):
+            find_book_based_book(84, mixed_datalake)
+
+    def test_list_returns_only_book_based_books(self, mixed_datalake):
+        assert sorted(list_book_based_books(mixed_datalake)) == [84, 174]
+
+
+class TestBatchBasedLookup:
+    def test_find_returns_files_in_range_folder(self, mixed_datalake):
+        folder = mixed_datalake / "batch_1000_1999"
+        assert find_batch_based_book(1342, mixed_datalake) == StoredBookFiles(1342, folder / "1342_header.txt", folder / "1342_body.txt")
+
+    def test_find_uses_the_given_batch_size(self, tmp_path):
+        store_batch_based(book(1342), tmp_path, batch_size=500)
+        assert find_batch_based_book(1342, tmp_path, batch_size=500).body_path.parent.name == "batch_1000_1499"
+        with pytest.raises(FileNotFoundError):
+            find_batch_based_book(1342, tmp_path)
+
+    def test_list_returns_only_batch_based_books(self, mixed_datalake):
+        assert sorted(list_batch_based_books(mixed_datalake)) == [1342, 2701]
+
+
+class TestLayoutListingsInSharedRoot:
+    def test_time_based_listing_ignores_other_layouts(self, mixed_datalake):
+        assert sorted(list_time_based_books(mixed_datalake)) == [11]
+
+    def test_listings_ignore_temporary_files_of_interrupted_writes(self, mixed_datalake):
+        (mixed_datalake / "84" / ".84_body.txt.x1y2.tmp").write_text("partial", encoding="utf-8")
+        (mixed_datalake / "batch_0_999").mkdir()
+        (mixed_datalake / "batch_0_999" / ".999_body.txt.x1y2.tmp").write_text("partial", encoding="utf-8")
+        assert sorted(list_book_based_books(mixed_datalake)) == [84, 174]
+        assert sorted(list_batch_based_books(mixed_datalake)) == [1342, 2701]
+
+    def test_stored_files_leave_no_temporary_files(self, mixed_datalake):
+        assert list(mixed_datalake.rglob("*.tmp")) == []
