@@ -28,9 +28,18 @@ func HeaderFileName(bookID int) string {
 
 // ReadBookBody mirrors read_book_body() in src/utils/body_files.py.
 func ReadBookBody(bookID int, bodiesDir string) (string, error) {
-	content, err := os.ReadFile(filepath.Join(bodiesDir, BodyFileName(bookID)))
+	return readBookFile(bookID, bodiesDir, BodySuffix)
+}
+
+// ReadBookHeader reads "<bookID>_header.txt" from a corpus directory.
+func ReadBookHeader(bookID int, headersDir string) (string, error) {
+	return readBookFile(bookID, headersDir, HeaderSuffix)
+}
+
+func readBookFile(bookID int, directory string, suffix string) (string, error) {
+	content, err := os.ReadFile(filepath.Join(directory, strconv.Itoa(bookID)+suffix))
 	if err != nil {
-		return "", fmt.Errorf("read body of book %d: %w", bookID, err)
+		return "", fmt.Errorf("read %s of book %d: %w", suffix, bookID, err)
 	}
 	return string(content), nil
 }

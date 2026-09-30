@@ -37,17 +37,43 @@ func (lake Datalake) Store(bookID int, rawText string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("split book %d: %w", bookID, err)
 	}
+	return lake.StoreBook(bookID, book.Header, book.Body)
+}
+
+// StoreBook writes the already separated header and body of a book into the
+// layout folder and returns that folder.
+func (lake Datalake) StoreBook(bookID int, header string, body string) (string, error) {
 	outputDir := lake.Layout.Directory(lake.Root, bookID)
 	if err := os.MkdirAll(outputDir, directoryPermissions); err != nil {
 		return "", fmt.Errorf("create %s: %w", outputDir, err)
 	}
-	if err := writeTextFile(filepath.Join(outputDir, utils.BodyFileName(bookID)), book.Body); err != nil {
+	if err := writeTextFile(filepath.Join(outputDir, utils.BodyFileName(bookID)), body); err != nil {
 		return "", err
 	}
-	if err := writeTextFile(filepath.Join(outputDir, utils.HeaderFileName(bookID)), book.Header); err != nil {
+	if err := writeTextFile(filepath.Join(outputDir, utils.HeaderFileName(bookID)), header); err != nil {
 		return "", err
 	}
 	return outputDir, nil
+}
+
+// PendingBookIDs returns the stored book IDs that are missing from known,
+// in ascending order, like detect_pending().
+func PendingBookIDs(root string, known []int) ([]int, error) {
+	stored, err := ListBookIDs(root)
+	if err != nil {
+		return nil, err
+	}
+	knownBooks := make(map[int]bool, len(known))
+	for _, bookID := range known {
+		knownBooks[bookID] = true
+	}
+	pending := make([]int, 0, len(stored))
+	for _, bookID := range stored {
+		if !knownBooks[bookID] {
+			pending = append(pending, bookID)
+		}
+	}
+	return pending, nil
 }
 
 func writeTextFile(path string, content string) error {

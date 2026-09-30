@@ -38,6 +38,15 @@ func TestReadBookBodyReadsTheBodyFile(t *testing.T) {
 	}
 }
 
+func TestReadBookHeaderReadsTheHeaderFile(t *testing.T) {
+	headersDir := t.TempDir()
+	writeFile(t, filepath.Join(headersDir, "84_header.txt"), "Project Gutenberg")
+	header, err := ReadBookHeader(84, headersDir)
+	if err != nil || header != "Project Gutenberg" {
+		t.Fatalf("unexpected header %q (err %v)", header, err)
+	}
+}
+
 func writeFile(t *testing.T, path string, content string) {
 	t.Helper()
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
