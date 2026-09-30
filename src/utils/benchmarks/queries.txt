@@ -1,0 +1,25 @@
+# Shared benchmark workload: one query per line, terms separated by a single space.
+# Semantics: a query matches the documents containing EVERY term (intersection of the
+# postings lists of each term); a term absent from the index yields an empty result.
+# Every language benchmark must read this file and apply exactly these semantics.
+
+which time any
+first years make use
+great take others
+world without come
+people who what
+another long find
+time first
+know what
+let us
+first time
+long time
+years ago
+let us go
+compartmentalization
+indistinguishability
+paleoanthropological
+philoprogenitiveness
+goodnessgracioussakes
+otorhinolaryngologist
+nonexistentterm

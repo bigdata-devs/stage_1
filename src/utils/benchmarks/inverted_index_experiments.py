@@ -1,5 +1,4 @@
 import logging
-import random
 import shutil
 import time
 from pathlib import Path
@@ -25,14 +24,14 @@ logging.basicConfig(level=logging.INFO)
 INDEX_OUTPUT_DIRECTORY = ARTIFACT_ROOT / "index"
 JSON_INDEX_PATH = INDEX_OUTPUT_DIRECTORY / "inverted_index.json"
 FOLDER_INDEX_PATH = INDEX_OUTPUT_DIRECTORY / "inverted_index"
+QUERIES_PATH = Path(__file__).with_name("queries.txt")
 BUILD_BATCH_SIZES = (10, 25, 50)
-QUERY_SAMPLE_SIZE = 100
-RANDOM_SEED = 42
+QUERY_SAMPLE_TARGET = 100
 
 def run():
     books = load_tokenized_books()
     logging.info("Loaded %s books for the index experiments", len(books))
-    terms = corpus_terms(books)
+    queries = load_shared_queries()
     structures = [JsonIndexStructure(), FolderIndexStructure()]
     skipped = []
     try:
@@ -41,16 +40,16 @@ def run():
         logging.warning("SKIP mongo_index: %s", error)
         skipped.append("mongo_index")
     for structure in structures:
-        run_structure_experiments(structure, books, terms)
+        run_structure_experiments(structure, books, queries)
     return skipped
 
-def run_structure_experiments(structure, books, terms):
+def run_structure_experiments(structure, books, queries):
     logging.info("--- Inverted index structure: %s ---", structure.name)
     structure.reset()
     for batch_size in batch_sizes(len(books)):
         measure_build(structure, books, batch_size)
     structure.prepare_query()
-    measure_query_performance(structure, select_query_terms(terms))
+    measure_query_performance(structure, queries)
     measure_update(structure, books)
     measure_storage_overhead(structure)
 
@@ -65,15 +64,37 @@ def measure_build(structure, books, batch_size):
         "cpu_percent": measurement.cpu_percent,
     })
 
-def measure_query_performance(structure, terms):
+def measure_query_performance(structure, queries):
     durations = []
-    for term in terms:
-        start_time = time.perf_counter()
-        structure.query_postings(term)
-        durations.append(time.perf_counter() - start_time)
+    for _ in range(query_rounds(queries)):
+        for terms in queries:
+            start_time = time.perf_counter()
+            matching_documents(structure, terms)
+            durations.append(time.perf_counter() - start_time)
     stats = calculate_statistics(durations)
     stats["test_name"] = f"query_{structure.name}"
     save_statistics(stats)
+
+def query_rounds(queries):
+    return max(1, QUERY_SAMPLE_TARGET // len(queries))
+
+def matching_documents(structure, terms):
+    matched = set(structure.query_postings(terms[0]))
+    for term in terms[1:]:
+        matched &= set(structure.query_postings(term))
+        if not matched:
+            break
+    return sorted(matched)
+
+def load_shared_queries():
+    queries = []
+    for line in QUERIES_PATH.read_text(encoding="utf-8").splitlines():
+        terms = line.partition("#")[0].split()
+        if terms:
+            queries.append(terms)
+    if not queries:
+        raise RuntimeError(f"{QUERIES_PATH} must define at least one query")
+    return queries
 
 def measure_update(structure, books):
     new_book_id = max(books) + 1
@@ -89,10 +110,6 @@ def measure_update(structure, books):
 def measure_storage_overhead(structure):
     save_disk_usage(structure.storage_usage())
 
-def select_query_terms(terms):
-    generator = random.Random(RANDOM_SEED)
-    return generator.sample(sorted(terms), min(QUERY_SAMPLE_SIZE, len(terms)))
-
 def batch_sizes(book_count):
     sizes = {size for size in BUILD_BATCH_SIZES if size <= book_count}
     sizes.add(book_count)
@@ -102,12 +119,6 @@ def load_tokenized_books():
     bodies_directory = data_source.bodies_directory()
     book_ids = data_source.book_ids()
     return {book_id: process_text(read_book_body(book_id, bodies_directory)) for book_id in book_ids}
-
-def corpus_terms(books):
-    terms = set()
-    for tokens in books.values():
-        terms.update(tokens)
-    return sorted(terms)
 
 def create_mongo_structure():
     from src.datamarts.inverted_index import mongo_index
