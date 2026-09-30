@@ -2,12 +2,11 @@ import json
 import logging
 import requests
 from datetime import datetime
-from pathlib import Path
 
 from src.datalake.book_fetcher import END_MARKER, START_MARKER
 from src.utils.body_files import discover_book_ids
+from src.utils.paths import PROJECT_ROOT
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 DATA_DIRECTORY = PROJECT_ROOT / "data_source"
 CACHED_BODIES_DIRECTORY = DATA_DIRECTORY / "bodies"
 CACHED_HEADERS_DIRECTORY = DATA_DIRECTORY / "headers"
