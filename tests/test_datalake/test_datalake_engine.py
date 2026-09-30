@@ -7,8 +7,11 @@ import pytest
 from src.datalake import book_fetcher, datalake_engine
 from src.datalake.book_fetcher import GutenbergBook
 from src.datalake.datalake_engine import (
+    StoredBookFiles,
     batch_based_directory,
     book_based_directory,
+    find_time_based_book,
+    list_time_based_books,
     store_batch_based,
     store_book_based,
     store_time_based,
@@ -94,3 +97,44 @@ class TestDownloadLayouts:
         with pytest.raises(BookUnavailableError):
             datalake_engine.download_time_based(1, tmp_path)
         assert list(tmp_path.iterdir()) == []
+
+
+def write_time_based_book(datalake_dir, hour_folder, book_id, with_header=True):
+    folder = datalake_dir / hour_folder
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / f"{book_id}_body.txt").write_text("body", encoding="utf-8")
+    if with_header:
+        (folder / f"{book_id}_header.txt").write_text("header", encoding="utf-8")
+    return folder
+
+
+class TestFindTimeBasedBook:
+    def test_returns_most_recent_complete_download(self, tmp_path):
+        write_time_based_book(tmp_path, "20250925/09", 7)
+        newest = write_time_based_book(tmp_path, "20250926/14", 7)
+        assert find_time_based_book(7, tmp_path) == StoredBookFiles(7, newest / "7_header.txt", newest / "7_body.txt")
+
+    def test_skips_copies_without_header(self, tmp_path):
+        complete = write_time_based_book(tmp_path, "20250925/09", 7)
+        write_time_based_book(tmp_path, "20250926/14", 7, with_header=False)
+        assert find_time_based_book(7, tmp_path).body_path == complete / "7_body.txt"
+
+    def test_raises_when_book_is_missing(self, tmp_path):
+        with pytest.raises(FileNotFoundError):
+            find_time_based_book(7, tmp_path)
+
+
+class TestListTimeBasedBooks:
+    def test_lists_newest_complete_copy_of_each_book(self, tmp_path):
+        write_time_based_book(tmp_path, "20250925/09", 7)
+        newest = write_time_based_book(tmp_path, "20250926/14", 7)
+        write_time_based_book(tmp_path, "20250926/14", 8)
+        write_time_based_book(tmp_path, "20250926/14", 9, with_header=False)
+        books = list_time_based_books(tmp_path)
+        assert sorted(books) == [7, 8]
+        assert books[7].body_path == newest / "7_body.txt"
+
+    def test_ignores_other_layouts(self, tmp_path):
+        store_book_based(BOOK, tmp_path)
+        store_batch_based(BOOK, tmp_path)
+        assert list_time_based_books(tmp_path) == {}

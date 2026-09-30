@@ -10,10 +10,14 @@ Every layout writes ``<BOOK_ID>_header.txt`` and ``<BOOK_ID>_body.txt`` below
 ``download_*`` functions fetch the book and store it; ``store_*`` functions
 store an already fetched book, so benchmarks can write the same download
 into every layout without hitting Project Gutenberg several times.
+``find_time_based_book`` and ``list_time_based_books`` locate books that the
+pipeline stored in the time-based layout.
 """
 
 import json
 import logging
+import re
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
@@ -25,6 +29,16 @@ logger = logging.getLogger(__name__)
 DEFAULT_BATCH_SIZE = 1000
 BOOK_METADATA_FILE_NAME = "metadata.json"
 _ENCODING = "utf-8"
+_TIME_BASED_BODY_PATTERN = re.compile(r"(\d+)_body\.txt")
+
+
+@dataclass(frozen=True)
+class StoredBookFiles:
+    """Location of the header and body files of one book inside the datalake."""
+
+    book_id: int
+    header_path: Path
+    body_path: Path
 
 
 def download_time_based(book_id: int, datalake_dir: Path = DATALAKE_DIR) -> None:
@@ -81,6 +95,42 @@ def batch_based_directory(datalake_dir: Path, book_id: int, batch_size: int = DE
     lower_bound = (book_id // batch_size) * batch_size
     upper_bound = lower_bound + batch_size - 1
     return Path(datalake_dir) / f"batch_{lower_bound}_{upper_bound}"
+
+
+def find_time_based_book(book_id: int, datalake_dir: Path = DATALAKE_DIR) -> StoredBookFiles:
+    """Returns the files of the most recent time-based download of a book.
+
+    ``YYYYMMDD/HH`` folder names sort chronologically, so the last match is
+    the newest download.
+
+    Raises:
+        FileNotFoundError: If the datalake has no complete (header + body) copy of the book.
+    """
+    for body_path in sorted(Path(datalake_dir).glob(f"*/*/{body_file_name(book_id)}"), reverse=True):
+        header_path = body_path.with_name(header_file_name(book_id))
+        if header_path.is_file():
+            return StoredBookFiles(book_id, header_path, body_path)
+    raise FileNotFoundError(f"No header and body files for book {book_id} in datalake {datalake_dir}")
+
+
+def list_time_based_books(datalake_dir: Path = DATALAKE_DIR) -> dict[int, StoredBookFiles]:
+    """Returns the newest complete time-based copy of every book in the datalake, keyed by book ID."""
+    books: dict[int, StoredBookFiles] = {}
+    for body_path in sorted(Path(datalake_dir).glob("*/*/*_body.txt")):
+        books.update(_complete_book_at(body_path))
+    return books
+
+
+def _complete_book_at(body_path: Path) -> dict[int, StoredBookFiles]:
+    """Returns ``{book_id: files}`` when a body file has its header next to it, otherwise an empty dict."""
+    match = _TIME_BASED_BODY_PATTERN.fullmatch(body_path.name)
+    if not match:
+        return {}
+    book_id = int(match.group(1))
+    header_path = body_path.with_name(header_file_name(book_id))
+    if not header_path.is_file():
+        return {}
+    return {book_id: StoredBookFiles(book_id, header_path, body_path)}
 
 
 def header_file_name(book_id: int) -> str:
