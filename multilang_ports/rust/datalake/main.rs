@@ -8,5 +8,5 @@ fn main() {
     book_based::download(84);
 
     println!("\n--- Testing Batch-based in Rust ---");
-    batch_based::download(1500, 1000);
+    batch_based::download(1500);
 }

@@ -1,11 +1,29 @@
-use super::downloader::{fetch_and_save, project_root};
+use super::fetcher::GutenbergFetcher;
+use super::layout::Layout;
+use super::store::Datalake;
+use std::path::{Path, PathBuf};
 
-pub fn download(book_id: u32, batch_size: u32) -> bool {
-    let base_path = project_root().join("datalake");
-    let lower_bound = (book_id / batch_size) * batch_size;
-    let upper_bound = lower_bound + batch_size - 1;
-    
-    let dir_name = format!("batch_{}_{}", lower_bound, upper_bound);
-    let output_path = base_path.join(dir_name);
-    fetch_and_save(book_id, &output_path)
+const BATCH_SIZE: i32 = 1000;
+
+pub struct BatchBased;
+
+impl Layout for BatchBased {
+    fn name(&self) -> &'static str {
+        "batch_based"
+    }
+
+    fn directory(&self, root: &Path, book_id: i32) -> PathBuf {
+        root.join(batch_folder_name(book_id))
+    }
+}
+
+fn batch_folder_name(book_id: i32) -> String {
+    let lower_bound = book_id.div_euclid(BATCH_SIZE) * BATCH_SIZE;
+    let upper_bound = lower_bound + BATCH_SIZE - 1;
+    format!("batch_{lower_bound}_{upper_bound}")
+}
+
+pub fn download(book_id: i32) -> bool {
+    let lake = Datalake::new(super::project_root().join("datalake"), BatchBased);
+    lake.download(&GutenbergFetcher::new(), book_id)
 }
