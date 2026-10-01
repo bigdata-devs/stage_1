@@ -48,11 +48,20 @@ func (layout TimeBasedLayout) Directory(root string, _ int) string {
 	return filepath.Join(root, now.Format("20060102"), now.Format("15"))
 }
 
-// LocateBook implements Layout: the date folders sort chronologically, so
-// the last complete match below root is the newest download, like
-// find_time_based_book().
+// LocateBook implements Layout: like find_time_based_book(), it probes the
+// exact file names inside every "YYYYMMDD/HH" folder, newest first, instead
+// of walking every stored file.
 func (TimeBasedLayout) LocateBook(root string, bookID int) (StoredBook, error) {
-	return findNewestBook(root, bookID)
+	hourDirs, err := hourDirsNewestFirst(root)
+	if err != nil {
+		return StoredBook{}, fmt.Errorf("locate book %d: %w", bookID, err)
+	}
+	for _, hourDir := range hourDirs {
+		if book, err := requireBook(hourDir, bookID); err == nil {
+			return book, nil
+		}
+	}
+	return StoredBook{}, fmt.Errorf("locate book %d: no complete copy below %s", bookID, root)
 }
 
 // BookBasedLayout stores books under "<root>/<BOOK_ID>/".
@@ -141,32 +150,39 @@ func requireBook(dir string, bookID int) (StoredBook, error) {
 	return book, nil
 }
 
-// findNewestBook scans root for every complete copy of bookID and returns
-// the last one, which is the most recent download of a time-based layout.
-func findNewestBook(root string, bookID int) (StoredBook, error) {
-	bodyName := utils.BodyFileName(bookID)
-	newest := StoredBook{}
-	found := false
-	walkErr := filepath.WalkDir(root, func(path string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil || entry.IsDir() || entry.Name() != bodyName {
-			return walkErr
-		}
-		candidate := StoredBook{
-			BodyPath:   path,
-			HeaderPath: filepath.Join(filepath.Dir(path), utils.HeaderFileName(bookID)),
-		}
-		if _, err := os.Stat(candidate.HeaderPath); err == nil {
-			newest, found = candidate, true
-		}
-		return nil
-	})
-	if walkErr != nil {
-		return newest, fmt.Errorf("locate book %d: %w", bookID, walkErr)
+// hourDirsNewestFirst lists the "<root>/YYYYMMDD/HH" folders in descending
+// order, which is newest first because the names sort chronologically.
+func hourDirsNewestFirst(root string) ([]string, error) {
+	dateDirs, err := subdirectories(root)
+	if err != nil {
+		return nil, err
 	}
-	if !found {
-		return newest, fmt.Errorf("locate book %d: no complete copy below %s", bookID, root)
+	hourDirs := []string{}
+	for _, dateDir := range dateDirs {
+		hours, err := subdirectories(dateDir)
+		if err != nil {
+			return nil, err
+		}
+		hourDirs = append(hourDirs, hours...)
 	}
-	return newest, nil
+	slices.Sort(hourDirs)
+	slices.Reverse(hourDirs)
+	return hourDirs, nil
+}
+
+// subdirectories returns the paths of the folders directly inside dir.
+func subdirectories(dir string) ([]string, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+	dirs := []string{}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			dirs = append(dirs, filepath.Join(dir, entry.Name()))
+		}
+	}
+	return dirs, nil
 }
 
 // StandardLayouts returns the three hierarchies required by Section 3.1.

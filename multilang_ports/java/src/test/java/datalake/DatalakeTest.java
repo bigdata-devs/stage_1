@@ -61,6 +61,23 @@ class DatalakeTest {
     }
 
     @Test
+    void timeBasedLocateSkipsNewerIncompleteCopies() throws IOException {
+        Path older = Files.createDirectories(root.resolve("20260930").resolve("14"));
+        Path newer = Files.createDirectories(root.resolve("20261001").resolve("09"));
+        writeBook(older, 1342, "old", "old");
+        writeBook(newer, 1342, "new", "new");
+        Files.delete(newer.resolve("1342_header.txt"));
+        assertEquals(older.resolve("1342_body.txt"), new TimeBased().locate(root, 1342).bodyPath());
+    }
+
+    @Test
+    void timeBasedLocateOnlyProbesHourFolders() throws IOException {
+        writeBook(Files.createDirectories(root.resolve("1342")), 1342, "h", "b");
+        writeBook(Files.createDirectories(root.resolve("20260930").resolve("14").resolve("nested")), 1342, "h", "b");
+        assertThrows(NoSuchFileException.class, () -> new TimeBased().locate(root, 1342));
+    }
+
+    @Test
     void locateFailsWhenAnyFileIsMissing() throws IOException {
         new Datalake(root, new BookBased()).store(84, "header", "body");
         Files.delete(root.resolve("84").resolve("84_header.txt"));

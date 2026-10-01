@@ -17,13 +17,17 @@ pub trait Layout {
     fn directory(&self, root: &Path, book_id: i32) -> PathBuf;
 
     fn locate(&self, root: &Path, book_id: i32) -> io::Result<LocatedBook> {
-        let body_path = self.directory(root, book_id).join(format!("{book_id}{BODY_SUFFIX}"));
-        let header_path = body_path.with_file_name(format!("{book_id}{HEADER_SUFFIX}"));
-        if body_path.is_file() && header_path.is_file() {
-            return Ok(LocatedBook { body_path, header_path });
-        }
-        Err(not_found(&body_path))
+        locate_in(&self.directory(root, book_id), book_id)
     }
+}
+
+pub fn locate_in(directory: &Path, book_id: i32) -> io::Result<LocatedBook> {
+    let body_path = directory.join(format!("{book_id}{BODY_SUFFIX}"));
+    let header_path = directory.join(format!("{book_id}{HEADER_SUFFIX}"));
+    if body_path.is_file() && header_path.is_file() {
+        return Ok(LocatedBook { body_path, header_path });
+    }
+    Err(not_found(&body_path))
 }
 
 pub fn not_found(path: &Path) -> io::Error {

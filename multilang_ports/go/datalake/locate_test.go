@@ -40,6 +40,29 @@ func TestLocateBookReturnsTheNewestTimeBasedCopy(t *testing.T) {
 	assertPath(t, book.HeaderPath, filepath.Join(root, "20260930", "15", "1342_header.txt"))
 }
 
+func TestTimeBasedLocateSkipsNewerIncompleteCopies(t *testing.T) {
+	root := t.TempDir()
+	writeStoredBook(t, filepath.Join(root, "20260930", "14"), "1342", "old", "old")
+	writeStoredBook(t, filepath.Join(root, "20261001", "09"), "1342", "new", "new")
+	if err := os.Remove(filepath.Join(root, "20261001", "09", "1342_header.txt")); err != nil {
+		t.Fatal(err)
+	}
+	book, err := TimeBasedLayout{}.LocateBook(root, 1342)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertPath(t, book.BodyPath, filepath.Join(root, "20260930", "14", "1342_body.txt"))
+}
+
+func TestTimeBasedLocateOnlyProbesHourFolders(t *testing.T) {
+	root := t.TempDir()
+	writeStoredBook(t, filepath.Join(root, "1342"), "1342", "h", "b")
+	writeStoredBook(t, filepath.Join(root, "20260930", "14", "nested"), "1342", "h", "b")
+	if _, err := (TimeBasedLayout{}).LocateBook(root, 1342); err == nil {
+		t.Fatal("expected an error: no copy sits directly in a YYYYMMDD/HH folder")
+	}
+}
+
 func TestListBookIDsReturnsSortedCompleteBooks(t *testing.T) {
 	root := t.TempDir()
 	writeStoredBook(t, filepath.Join(root, "1342"), "1342", "h", "b")

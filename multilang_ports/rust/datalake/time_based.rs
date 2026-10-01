@@ -1,5 +1,5 @@
 use super::fetcher::GutenbergFetcher;
-use super::layout::{Layout, LocatedBook, BODY_SUFFIX, HEADER_SUFFIX};
+use super::layout::{locate_in, Layout, LocatedBook, BODY_SUFFIX};
 use super::store::Datalake;
 use chrono::Local;
 use std::fs;
@@ -22,53 +22,41 @@ impl Layout for TimeBased {
             .join(now.format(HOUR_PATTERN).to_string())
     }
 
+    /// Probes the exact file names inside every `YYYYMMDD/HH` folder, newest
+    /// first, instead of walking every stored file, like `find_time_based_book()`.
     fn locate(&self, root: &Path, book_id: i32) -> io::Result<LocatedBook> {
-        let body_name = format!("{book_id}{BODY_SUFFIX}");
-        let header_name = format!("{book_id}{HEADER_SUFFIX}");
-        let newest = newest_matching(root, &body_name, &header_name)?.ok_or_else(|| {
-            io::Error::new(
-                io::ErrorKind::NotFound,
-                format!("book not found: {body_name}"),
-            )
-        })?;
-        let header_path = newest.with_file_name(header_name);
-        Ok(LocatedBook {
-            body_path: newest,
-            header_path,
-        })
+        hour_directories_newest_first(root)?
+            .iter()
+            .find_map(|hour_directory| locate_in(hour_directory, book_id).ok())
+            .ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::NotFound,
+                    format!("book not found: {book_id}{BODY_SUFFIX}"),
+                )
+            })
     }
 }
 
-fn newest_matching(directory: &Path, body_name: &str, header_name: &str) -> io::Result<Option<PathBuf>> {
-    let mut newest: Option<PathBuf> = None;
-    collect_newest(directory, body_name, header_name, &mut newest)?;
-    Ok(newest)
+/// Lists the `<root>/YYYYMMDD/HH` folders in descending order, which is
+/// newest first because the names sort chronologically.
+fn hour_directories_newest_first(root: &Path) -> io::Result<Vec<PathBuf>> {
+    let mut hour_directories = Vec::new();
+    for date_directory in subdirectories(root)? {
+        hour_directories.extend(subdirectories(&date_directory)?);
+    }
+    hour_directories.sort_unstable_by(|left, right| right.cmp(left));
+    Ok(hour_directories)
 }
 
-fn collect_newest(
-    directory: &Path,
-    body_name: &str,
-    header_name: &str,
-    newest: &mut Option<PathBuf>,
-) -> io::Result<()> {
+fn subdirectories(directory: &Path) -> io::Result<Vec<PathBuf>> {
+    let mut directories = Vec::new();
     for entry in fs::read_dir(directory)? {
-        let path = entry?.path();
-        if path.is_dir() {
-            collect_newest(&path, body_name, header_name, newest)?;
-            continue;
-        }
-        let matches = path.file_name().is_some_and(|name| name == body_name)
-            && path
-                .with_file_name(header_name)
-                .is_file();
-        if matches {
-            let replace = newest.as_ref().is_none_or(|current| path > *current);
-            if replace {
-                *newest = Some(path);
-            }
+        let entry = entry?;
+        if entry.file_type()?.is_dir() {
+            directories.push(entry.path());
         }
     }
-    Ok(())
+    Ok(directories)
 }
 
 pub fn download(book_id: i32) -> bool {

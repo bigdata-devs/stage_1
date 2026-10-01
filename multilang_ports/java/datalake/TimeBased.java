@@ -6,7 +6,10 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 public final class TimeBased implements Layout {
@@ -25,22 +28,41 @@ public final class TimeBased implements Layout {
         return root.resolve(now.format(DATE_PATTERN)).resolve(now.format(HOUR_PATTERN));
     }
 
+    /**
+     * Probes the exact file names inside every {@code YYYYMMDD/HH} folder, newest first, instead of walking
+     * every stored file, like {@code find_time_based_book()}.
+     */
     @Override
     public LocatedBook locate(Path root, int bookId) throws IOException {
-        String bodyName = bookId + Layout.BODY_SUFFIX;
-        String headerName = bookId + Layout.HEADER_SUFFIX;
-        Path newestBody;
-        try (Stream<Path> paths = Files.walk(root)) {
-            newestBody = paths.filter(Files::isRegularFile)
-                .filter(path -> path.getFileName().toString().equals(bodyName))
-                .filter(path -> Files.isRegularFile(path.resolveSibling(headerName)))
-                .max(Comparator.naturalOrder())
-                .orElse(null);
+        return hourDirectoriesNewestFirst(root).stream()
+            .map(hourDirectory -> completeCopy(hourDirectory, bookId))
+            .flatMap(Optional::stream)
+            .findFirst()
+            .orElseThrow(() -> new NoSuchFileException(bookId + Layout.BODY_SUFFIX));
+    }
+
+    private static List<Path> hourDirectoriesNewestFirst(Path root) throws IOException {
+        List<Path> hourDirectories = new ArrayList<>();
+        for (Path dateDirectory : subdirectories(root)) {
+            hourDirectories.addAll(subdirectories(dateDirectory));
         }
-        if (newestBody == null) {
-            throw new NoSuchFileException(bodyName);
+        hourDirectories.sort(Comparator.reverseOrder());
+        return hourDirectories;
+    }
+
+    private static List<Path> subdirectories(Path directory) throws IOException {
+        try (Stream<Path> entries = Files.list(directory)) {
+            return entries.filter(Files::isDirectory).toList();
         }
-        return new LocatedBook(newestBody, newestBody.resolveSibling(headerName));
+    }
+
+    private static Optional<LocatedBook> completeCopy(Path directory, int bookId) {
+        Path body = directory.resolve(bookId + Layout.BODY_SUFFIX);
+        Path header = directory.resolve(bookId + Layout.HEADER_SUFFIX);
+        if (Files.isRegularFile(body) && Files.isRegularFile(header)) {
+            return Optional.of(new LocatedBook(body, header));
+        }
+        return Optional.empty();
     }
 
     public static boolean download(int bookId) {

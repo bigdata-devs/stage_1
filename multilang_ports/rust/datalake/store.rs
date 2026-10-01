@@ -180,6 +180,35 @@ mod tests {
     }
 
     #[test]
+    fn time_based_locate_skips_newer_incomplete_copies() {
+        let root = temp_root("locate_incomplete");
+        let old_directory = root.join("20200101").join("00");
+        let new_directory = root.join("20990101").join("00");
+        for directory in [&old_directory, &new_directory] {
+            fs::create_dir_all(directory).unwrap();
+            fs::write(directory.join("42_body.txt"), "body").unwrap();
+            fs::write(directory.join("42_header.txt"), "header").unwrap();
+        }
+        fs::remove_file(new_directory.join("42_header.txt")).unwrap();
+        let book = TimeBased.locate(&root, 42).unwrap();
+        assert_eq!(old_directory.join("42_body.txt"), book.body_path);
+        fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
+    fn time_based_locate_only_probes_hour_directories() {
+        let root = temp_root("locate_depth");
+        let lake = Datalake::new(&root, &BookBased);
+        lake.store(42, "header", "body").unwrap();
+        let nested = root.join("20200101").join("00").join("nested");
+        fs::create_dir_all(&nested).unwrap();
+        fs::write(nested.join("42_body.txt"), "body").unwrap();
+        fs::write(nested.join("42_header.txt"), "header").unwrap();
+        assert!(TimeBased.locate(&root, 42).is_err());
+        fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
     fn list_book_ids_returns_sorted_numeric_ids_and_skips_incomplete() {
         let root = temp_root("list_ids");
         let lake = Datalake::new(&root, &BookBased);
