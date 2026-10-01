@@ -1,6 +1,7 @@
 import json
 import sqlite3
 import unittest
+from contextlib import closing
 from pathlib import Path
 from unittest import mock
 
@@ -51,7 +52,8 @@ class BookIndexingTaskTest(TemporaryDirectoryTestCase):
         return json.loads(self.index_path.read_text(encoding="utf-8"))
 
     def read_metadata_rows(self) -> list:
-        with sqlite3.connect(self.database_path) as connection:
+        """Closes the connection explicitly: sqlite3's own ``with`` only commits, and an open file blocks cleanup on Windows."""
+        with closing(sqlite3.connect(self.database_path)) as connection:
             return connection.execute("SELECT book_id, title, author, language, body_path FROM books").fetchall()
 
     def test_stores_metadata_and_terms(self) -> None:
