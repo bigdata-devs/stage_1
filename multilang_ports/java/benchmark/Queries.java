@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -45,20 +46,12 @@ public final class Queries {
         if (terms.isEmpty()) {
             return List.of();
         }
-        Set<Integer> matched = null;
-        for (int position = 0; position < terms.size(); position++) {
-            Set<Integer> current = new HashSet<>(lookup.apply(terms.get(position)));
-            if (position == 0) {
-                matched = current;
-            } else {
-                matched.retainAll(current);
-            }
-            if (matched.isEmpty()) {
-                break;
-            }
+        Set<Integer> matched = new HashSet<>(lookup.apply(terms.get(0)));
+        for (int position = 1; position < terms.size() && !matched.isEmpty(); position++) {
+            matched.retainAll(new HashSet<>(lookup.apply(terms.get(position))));
         }
         List<Integer> result = new ArrayList<>(matched);
-        result.sort(null);
+        Collections.sort(result);
         return result;
     }
 

@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -50,5 +51,17 @@ class QueriesTest {
         assertEquals(List.of(),
             Queries.intersect(List.of("alpha", "missing"),
                 term -> term.equals("alpha") ? List.of(1, 2) : List.of()));
+    }
+
+    @Test
+    void intersectStopsLookingUpTermsOnceNothingMatches() throws IOException {
+        List<String> lookedUp = new ArrayList<>();
+
+        Queries.intersect(List.of("missing", "alpha", "beta"), term -> {
+            lookedUp.add(term);
+            return term.equals("missing") ? List.of() : List.of(1);
+        });
+
+        assertEquals(List.of("missing"), lookedUp);
     }
 }

@@ -23,6 +23,7 @@ public record Config(List<Integer> bookIds, String rawBooksDir, String gutenberg
     public static final String DEFAULT_MONGO_COLLECTION = "inverted_index";
 
     private static final Set<String> BOOLEAN_FLAGS = Set.of("-skip-datalake", "-skip-index", "-skip-mongo");
+    private static final String BOOLEAN_FLAG_VALUE = "true";
 
     public static Config parse(String[] args) throws IOException {
         Map<String, String> flags = parseFlags(args);
@@ -55,17 +56,23 @@ public record Config(List<Integer> bookIds, String rawBooksDir, String gutenberg
         for (int position = 0; position < args.length; position++) {
             String argument = args[position];
             int equals = argument.indexOf('=');
-            String name = equals >= 0 ? argument.substring(0, equals) : argument;
-            String value = equals >= 0 ? argument.substring(equals + 1) : null;
-            if (value == null && !BOOLEAN_FLAGS.contains(name)) {
-                if (position + 1 >= args.length) {
-                    throw new IllegalArgumentException("missing value for " + name);
-                }
-                value = args[++position];
+            if (equals >= 0) {
+                flags.put(argument.substring(0, equals), argument.substring(equals + 1));
+            } else if (BOOLEAN_FLAGS.contains(argument)) {
+                flags.put(argument, BOOLEAN_FLAG_VALUE);
+            } else {
+                position++;
+                flags.put(argument, valueAt(args, position, argument));
             }
-            flags.put(name, value);
         }
         return flags;
+    }
+
+    private static String valueAt(String[] args, int position, String flagName) {
+        if (position >= args.length) {
+            throw new IllegalArgumentException("missing value for " + flagName);
+        }
+        return args[position];
     }
 
     private static List<Integer> bookIds(String flagValue, Path bodiesDir) throws IOException {

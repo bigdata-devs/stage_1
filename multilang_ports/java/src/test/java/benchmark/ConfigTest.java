@@ -39,6 +39,21 @@ class ConfigTest {
     }
 
     @Test
+    void parseAcceptsInlineValuesAndBareBooleanFlags() throws IOException {
+        Config config = Config.parse(new String[] {
+            "-ids=8",
+            "-queries=" + workloadFile(),
+            "-query-repetitions=3",
+            "-skip-index"
+        });
+
+        assertEquals(List.of(8), config.bookIds());
+        assertEquals(3, config.queryRepetitions());
+        assertTrue(config.skipIndex());
+        assertFalse(config.skipMongo());
+    }
+
+    @Test
     void missingIdsFlagDiscoversTheCorpusBodies() throws IOException {
         Path bodies = dir.resolve("bodies");
         Files.createDirectories(bodies);
