@@ -25,9 +25,8 @@ class TestWriteTextAtomically:
         target = tmp_path / "book.txt"
         target.write_text("complete old content", encoding="utf-8")
 
-        def crash_mid_write(file_descriptor, content):
-            with open(file_descriptor, "w", encoding="utf-8") as partial_file:
-                partial_file.write(content[:3])
+        def crash_mid_write(temporary_file, content):
+            temporary_file.write(content[:3])
             raise KeyboardInterrupt
 
         monkeypatch.setattr(atomic_file, "_write_and_sync", crash_mid_write)
@@ -45,4 +44,47 @@ class TestWriteTextAtomically:
         monkeypatch.setattr(atomic_file.os, "replace", refuse_replace)
         with pytest.raises(OSError):
             write_text_atomically(target, "content")
+        assert leftover_files(tmp_path) == []
+
+
+class TestTemporaryFileHandle:
+    """Windows can neither rename nor delete an open file, so these checks hold the handle order on every OS."""
+
+    def test_is_closed_before_the_swap(self, tmp_path, monkeypatch):
+        handles = []
+        closed_at_swap = []
+        real_write = atomic_file._write_and_sync
+        real_replace = atomic_file.os.replace
+
+        def recording_write(temporary_file, content):
+            handles.append(temporary_file)
+            real_write(temporary_file, content)
+
+        def recording_replace(source, destination):
+            closed_at_swap.append(handles[0].closed)
+            real_replace(source, destination)
+
+        monkeypatch.setattr(atomic_file, "_write_and_sync", recording_write)
+        monkeypatch.setattr(atomic_file.os, "replace", recording_replace)
+        write_text_atomically(tmp_path / "book.txt", "content")
+        assert closed_at_swap == [True]
+
+    def test_is_closed_before_an_interrupted_write_is_cleaned_up(self, tmp_path, monkeypatch):
+        handles = []
+        closed_at_cleanup = []
+        real_remove = atomic_file._remove_leftover
+
+        def crash_before_writing(temporary_file, content):
+            handles.append(temporary_file)
+            raise KeyboardInterrupt
+
+        def recording_remove(temporary_path):
+            closed_at_cleanup.append(handles[0].closed)
+            real_remove(temporary_path)
+
+        monkeypatch.setattr(atomic_file, "_write_and_sync", crash_before_writing)
+        monkeypatch.setattr(atomic_file, "_remove_leftover", recording_remove)
+        with pytest.raises(KeyboardInterrupt):
+            write_text_atomically(tmp_path / "book.txt", "content")
+        assert closed_at_cleanup == [True]
         assert leftover_files(tmp_path) == []
