@@ -14,7 +14,7 @@ from src.utils.benchmarks import (
     save_disk_usage,
 )
 from src.utils.benchmarks import data_source
-from src.utils.benchmarks.artifacts import ARTIFACT_ROOT
+from src.utils.benchmarks.artifacts import ARTIFACT_ROOT, BENCHMARK_MONGO_DATABASE
 from src.utils.body_files import read_book_body
 from src.utils.text_processor import process_text
 from src.datamarts.inverted_index import json_index, folder_index
@@ -187,7 +187,7 @@ class MongoIndexStructure:
 
     def __init__(self, backend):
         self.backend = backend
-        self.collection = backend.get_collection()
+        self.collection = backend.get_collection(database_name=BENCHMARK_MONGO_DATABASE)
 
     def reset(self):
         self.collection.delete_many({})

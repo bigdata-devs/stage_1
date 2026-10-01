@@ -10,6 +10,10 @@ const DefaultHeadersDir = "../../data_source/headers"
 // language benchmark reads this file and applies the same semantics.
 const DefaultQueriesPath = "../../src/utils/benchmarks/queries.txt"
 
+// DefaultMongoDatabase keeps the benchmark away from the pipeline's
+// "search_engine" datamart, which the index benchmark would otherwise wipe.
+const DefaultMongoDatabase = "search_engine_benchmark"
+
 // Config describes one benchmark run.
 type Config struct {
 	// BookIDs are the Gutenberg books ingested into the datalake.

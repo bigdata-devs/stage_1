@@ -9,7 +9,7 @@ pub const DEFAULT_HEADERS_DIR: &str = "../../data_source/headers";
 pub const DEFAULT_QUERIES_PATH: &str = "../../src/utils/benchmarks/queries.txt";
 pub const DEFAULT_GUTENBERG_URL: &str = "https://www.gutenberg.org/cache/epub";
 pub const DEFAULT_MONGO_URI: &str = "mongodb://localhost:27017";
-pub const DEFAULT_MONGO_DATABASE: &str = "search_engine";
+pub const DEFAULT_MONGO_DATABASE: &str = "search_engine_benchmark";
 pub const DEFAULT_MONGO_COLLECTION: &str = "inverted_index";
 
 const BOOLEAN_FLAGS: [&str; 3] = ["-skip-datalake", "-skip-index", "-skip-mongo"];

@@ -19,12 +19,11 @@ from src.utils.benchmarks import (
     save_disk_usage,
 )
 from src.utils.benchmarks import data_source
-from src.utils.benchmarks.artifacts import ARTIFACT_ROOT
+from src.utils.benchmarks.artifacts import BENCHMARK_MONGO_DATABASE, METADATA_BENCHMARK_DB_PATH
 
 logging.basicConfig(level=logging.INFO)
 
-METADATA_DIRECTORY = ARTIFACT_ROOT / "metadata"
-DATABASE_PATH = METADATA_DIRECTORY / "metadata.db"
+METADATA_DIRECTORY = METADATA_BENCHMARK_DB_PATH.parent
 MONGO_CONNECTION_STRING = "mongodb://localhost:27017/?serverSelectionTimeoutMS=1000"
 POSTGRES_CONNECTION_STRING = "host=/var/run/postgresql dbname=bigdata"
 QUERY_ITERATIONS = 100
@@ -70,7 +69,7 @@ def stored_book_files(book_id):
     return StoredBookFiles(book_id, header_path, body_path)
 
 def create_sqlite_storage():
-    return SQLiteStorage(db_path=DATABASE_PATH)
+    return SQLiteStorage(db_path=METADATA_BENCHMARK_DB_PATH)
 
 def create_postgres_storage():
     import psycopg2
@@ -80,7 +79,7 @@ def create_postgres_storage():
         raise ConnectionError("PostgreSQL server is not available") from error
 
 def create_mongo_storage():
-    storage = MongoStorage(MONGO_CONNECTION_STRING)
+    storage = MongoStorage(MONGO_CONNECTION_STRING, BENCHMARK_MONGO_DATABASE)
     probe_mongo_connection(storage)
     return storage
 

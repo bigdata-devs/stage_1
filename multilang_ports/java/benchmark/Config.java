@@ -19,7 +19,7 @@ public record Config(List<Integer> bookIds, String rawBooksDir, String gutenberg
     public static final String DEFAULT_QUERIES_PATH = "../../src/utils/benchmarks/queries.txt";
     public static final String DEFAULT_GUTENBERG_URL = "https://www.gutenberg.org/cache/epub";
     public static final String DEFAULT_MONGO_URI = "mongodb://localhost:27017";
-    public static final String DEFAULT_MONGO_DATABASE = "search_engine";
+    public static final String DEFAULT_MONGO_DATABASE = "search_engine_benchmark";
     public static final String DEFAULT_MONGO_COLLECTION = "inverted_index";
 
     private static final Set<String> BOOLEAN_FLAGS = Set.of("-skip-datalake", "-skip-index", "-skip-mongo");

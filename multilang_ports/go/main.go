@@ -96,7 +96,7 @@ func parseBenchmarkFlags(args []string) (benchmark.Config, error) {
 	flags.StringVar(&config.OutputDir, "out", defaultArtifactDir(), "folder for the generated datalakes and indexes")
 	flags.StringVar(&config.ResultsDir, "results", "results", "folder for the CSV benchmark results")
 	flags.StringVar(&config.MongoURI, "mongo-uri", datamarts.DefaultMongoURI, "MongoDB connection URI")
-	flags.StringVar(&config.MongoDatabase, "mongo-db", datamarts.DefaultDatabaseName, "MongoDB database")
+	flags.StringVar(&config.MongoDatabase, "mongo-db", benchmark.DefaultMongoDatabase, "MongoDB database")
 	flags.StringVar(&config.MongoCollection, "mongo-collection", datamarts.DefaultCollectionName, "MongoDB collection")
 	flags.IntVar(&config.QueryRepetitions, "query-repetitions", 5, "times the shared query workload is repeated")
 	flags.BoolVar(&config.SkipDatalake, "skip-datalake", false, "skip the datalake benchmark")

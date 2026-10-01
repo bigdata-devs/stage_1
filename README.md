@@ -113,8 +113,11 @@ the language and the storage structure, not from the data:
   build byte-identical `inverted_index.json` files from the corpus.
 
 Each language writes its generated datalakes and indexes to
-`~/.cache/stage_1_benchmarks/[<lang>/]`, so benchmarks never touch the
-pipeline's `datalake/` and `datamarts/`.
+`~/.cache/stage_1_benchmarks/[<lang>/]`, the Python metadata benchmark uses
+`~/.cache/stage_1_benchmarks/metadata/metadata_benchmark.db`, and every MongoDB
+experiment runs in the `search_engine_benchmark` database, so benchmarks never
+touch the pipeline's `datalake/`, `datamarts/metadata.db` or the
+`search_engine` MongoDB datamart.
 
 ### What is measured
 
