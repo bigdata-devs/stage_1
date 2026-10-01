@@ -48,6 +48,20 @@ class TestSaveAndFind:
         assert len(filled_storage.list_books()) == 3
 
 
+class TestSaveMany:
+    def test_saves_every_record_of_the_batch(self, metadata_storage):
+        metadata_storage.save_many(make_metadata(book_id, f"Book {book_id}", "Someone") for book_id in range(1, 6))
+        assert [book.book_id for book in metadata_storage.list_books()] == [1, 2, 3, 4, 5]
+
+    def test_last_record_of_a_book_id_wins(self, metadata_storage):
+        metadata_storage.save_many([make_metadata(7, "Draft", "Someone"), make_metadata(7, "Final", "Someone")])
+        assert metadata_storage.find_book_by_id(7).title == "Final"
+
+    def test_empty_batch_stores_nothing(self, metadata_storage):
+        metadata_storage.save_many([])
+        assert metadata_storage.list_books() == []
+
+
 class TestSchemaMigration:
     def test_adds_path_columns_to_old_databases(self, tmp_path):
         db_path = tmp_path / "old.db"

@@ -79,14 +79,9 @@ def create_postgres_storage():
         raise ConnectionError("PostgreSQL server is not available") from error
 
 def create_mongo_storage():
-    storage = MongoStorage(MONGO_CONNECTION_STRING, BENCHMARK_MONGO_DATABASE)
-    probe_mongo_connection(storage)
-    return storage
-
-def probe_mongo_connection(storage):
     from pymongo.errors import ServerSelectionTimeoutError
     try:
-        storage.client.admin.command("ping")
+        return MongoStorage(MONGO_CONNECTION_STRING, BENCHMARK_MONGO_DATABASE)
     except ServerSelectionTimeoutError as error:
         raise ConnectionError("MongoDB server is not available") from error
 
@@ -107,7 +102,7 @@ def measure_storage_overhead(storage, name):
     })
 
 def measure_insert_throughput(storage, metadata_rows, name):
-    measurement = measure_operation(lambda: save_all(storage, metadata_rows))
+    measurement = measure_operation(lambda: storage.save_many(metadata_rows))
     save_throughput({
         "test_name": f"insert_throughput_{name}",
         "item_count": len(metadata_rows),
@@ -148,7 +143,7 @@ def measure_query_performance(test_name, query):
 def measure_insert_scalability(storage, template, name):
     for batch_size in SCALABILITY_BATCH_SIZES:
         rows = synthetic_metadata_rows(batch_size, template)
-        measurement = measure_operation(lambda: save_all(storage, rows))
+        measurement = measure_operation(lambda: storage.save_many(rows))
         save_scalability({
             "test_name": f"insert_{name}",
             "batch_size": batch_size,
@@ -159,10 +154,6 @@ def measure_insert_scalability(storage, template, name):
 
 def synthetic_metadata_rows(count, template):
     return [replace(template, book_id=SYNTHETIC_BOOK_ID_BASE + offset) for offset in range(count)]
-
-def save_all(storage, metadata_rows):
-    for metadata in metadata_rows:
-        storage.save(metadata)
 
 if __name__ == "__main__":
     run()

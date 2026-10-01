@@ -21,9 +21,7 @@ def populate_datalake_layouts():
         datalake_experiments.populate_structure(layout, book_ids)
 
 def save_frozen_metadata():
-    storage = SQLiteStorage(METADATA_BENCHMARK_DB_PATH)
-    for metadata in metadata_experiments.load_book_metadata():
-        storage.save(metadata)
+    SQLiteStorage(METADATA_BENCHMARK_DB_PATH).save_many(metadata_experiments.load_book_metadata())
 
 if __name__ == "__main__":
     main()

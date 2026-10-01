@@ -3,29 +3,50 @@
 ``SQLiteStorage`` is the project's metadata datamart: it stores every book and
 answers the queries of Section 4.1 (books by author, path of a book by title
 or ID). ``PostgresStorage`` and ``MongoStorage`` implement the same schema for
-the optional storage comparison and are write-only for now.
+the optional storage comparison and are write-only for now. Every backend saves
+records in batches through ``save_many``.
 """
 
 import sqlite3
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
+from itertools import islice
 from pathlib import Path
-from typing import Iterator
+from typing import Iterable, Iterator
 
-from pymongo import MongoClient
+from pymongo import ASCENDING, MongoClient, UpdateOne
 
 from src.datamarts.metadata.book_metadata import BookMetadata, BookNotFoundError, resolve_stored_path, to_stored_path
 from src.utils.paths import METADATA_DB_PATH
 
 _COLUMNS = ("book_id", "title", "author", "language", "capture_date", "header_path", "body_path")
+_COLUMN_LIST = ", ".join(_COLUMNS)
 _PATH_COLUMNS = ("header_path", "body_path")
-_SELECT_BOOKS = f"SELECT {', '.join(_COLUMNS)} FROM books WHERE body_path IS NOT NULL"
+_SELECT_BOOKS = f"SELECT {_COLUMN_LIST} FROM books WHERE body_path IS NOT NULL"
+_SQLITE_UPSERT = f"INSERT OR REPLACE INTO books ({_COLUMN_LIST}) VALUES ({', '.join('?' for _ in _COLUMNS)})"
+_POSTGRES_UPDATES = ", ".join(f"{column} = EXCLUDED.{column}" for column in _COLUMNS[1:])
+_POSTGRES_UPSERT = (f"INSERT INTO books ({_COLUMN_LIST}) VALUES ({', '.join('%s' for _ in _COLUMNS)}) "
+                    f"ON CONFLICT (book_id) DO UPDATE SET {_POSTGRES_UPDATES}")
+BATCH_SIZE = 1000
 
 
 def _connect_postgres(connection_string):
     """Imports the PostgreSQL driver lazily so SQLite users do not need psycopg2 installed."""
     import psycopg2
     return psycopg2.connect(connection_string)
+
+
+def _execute_postgres_batch(cursor, statement: str, rows: list[tuple]) -> None:
+    """Sends ``rows`` in pages of ``BATCH_SIZE`` statements; imported lazily like ``_connect_postgres``."""
+    from psycopg2.extras import execute_batch
+    execute_batch(cursor, statement, rows, page_size=BATCH_SIZE)
+
+
+def _batches(metadata_rows: Iterable[BookMetadata]) -> Iterator[list[BookMetadata]]:
+    """Splits the records into consecutive lists of at most ``BATCH_SIZE`` items."""
+    remaining = iter(metadata_rows)
+    while batch := list(islice(remaining, BATCH_SIZE)):
+        yield batch
 
 
 def _to_row(metadata: BookMetadata) -> tuple:
@@ -41,6 +62,12 @@ def _from_row(row: tuple) -> BookMetadata:
                         resolve_stored_path(header_path), resolve_stored_path(body_path))
 
 
+def _upsert_by_book_id(metadata: BookMetadata) -> UpdateOne:
+    """Builds the MongoDB upsert that makes ``metadata`` the only document of its book ID."""
+    document = dict(zip(_COLUMNS, _to_row(metadata)))
+    return UpdateOne({"book_id": metadata.book_id}, {"$set": document}, upsert=True)
+
+
 def _contains_pattern(text: str) -> str:
     """Returns a LIKE pattern matching ``text`` anywhere, with its wildcards escaped."""
     escaped = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
@@ -50,9 +77,13 @@ def _contains_pattern(text: str) -> str:
 class MetadataStorage(ABC):
     """Anything that can persist book metadata."""
 
-    @abstractmethod
     def save(self, metadata: BookMetadata) -> None:
         """Inserts the record, replacing any previous one with the same book ID."""
+        self.save_many([metadata])
+
+    @abstractmethod
+    def save_many(self, metadata_rows: Iterable[BookMetadata]) -> None:
+        """Inserts the records in batches, replacing any previous ones with the same book IDs."""
 
     @abstractmethod
     def storage_location(self) -> str:
@@ -95,11 +126,10 @@ class SQLiteStorage(SearchableMetadataStorage):
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._initialize_db()
 
-    def save(self, metadata: BookMetadata) -> None:
-        placeholders = ", ".join("?" for _ in _COLUMNS)
+    def save_many(self, metadata_rows: Iterable[BookMetadata]) -> None:
+        """Writes every record with one ``executemany`` inside a single transaction."""
         with self._connection() as connection:
-            connection.execute(f"INSERT OR REPLACE INTO books ({', '.join(_COLUMNS)}) VALUES ({placeholders})",
-                               _to_row(metadata))
+            connection.executemany(_SQLITE_UPSERT, (_to_row(metadata) for metadata in metadata_rows))
 
     def find_book_by_id(self, book_id: int) -> BookMetadata:
         books = self._select("AND book_id = ?", (book_id,))
@@ -189,13 +219,12 @@ class PostgresStorage(MetadataStorage):
                     cursor.execute(f"ALTER TABLE books ADD COLUMN IF NOT EXISTS {column} TEXT")
             connection.commit()
 
-    def save(self, metadata: BookMetadata) -> None:
-        updates = ", ".join(f"{column} = EXCLUDED.{column}" for column in _COLUMNS[1:])
-        placeholders = ", ".join("%s" for _ in _COLUMNS)
+    def save_many(self, metadata_rows: Iterable[BookMetadata]) -> None:
+        """Writes every record in pages of ``BATCH_SIZE`` upserts inside a single transaction."""
+        rows = [_to_row(metadata) for metadata in metadata_rows]
         with _connect_postgres(self.connection_string) as connection:
             with connection.cursor() as cursor:
-                cursor.execute(f"INSERT INTO books ({', '.join(_COLUMNS)}) VALUES ({placeholders}) "
-                               f"ON CONFLICT (book_id) DO UPDATE SET {updates}", _to_row(metadata))
+                _execute_postgres_batch(cursor, _POSTGRES_UPSERT, rows)
             connection.commit()
 
     def storage_location(self) -> str:
@@ -209,17 +238,22 @@ class PostgresStorage(MetadataStorage):
 
 
 class MongoStorage(MetadataStorage):
-    """MongoDB implementation of the metadata schema, used for the optional storage comparison."""
+    """MongoDB implementation of the metadata schema, used for the optional storage comparison.
+
+    The unique index on ``book_id`` lets every upsert find its document without scanning the collection.
+    """
 
     def __init__(self, connection_string: str, db_name: str = "bigdata_project"):
         self.connection_string = connection_string
         self.client = MongoClient(connection_string)
         self.db = self.client[db_name]
         self.collection = self.db["books"]
+        self.collection.create_index([("book_id", ASCENDING)], unique=True)
 
-    def save(self, metadata: BookMetadata) -> None:
-        document = dict(zip(_COLUMNS, _to_row(metadata)))
-        self.collection.update_one({"book_id": metadata.book_id}, {"$set": document}, upsert=True)
+    def save_many(self, metadata_rows: Iterable[BookMetadata]) -> None:
+        """Sends one ordered ``bulk_write`` per ``BATCH_SIZE`` records, so the last record of a book ID wins."""
+        for batch in _batches(metadata_rows):
+            self.collection.bulk_write([_upsert_by_book_id(metadata) for metadata in batch])
 
     def storage_location(self) -> str:
         base_uri = self.connection_string.split("?")[0].rstrip("/")
