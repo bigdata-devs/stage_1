@@ -18,9 +18,8 @@ from src.utils.benchmarks import (
 from src.utils.benchmarks import data_source
 from src.utils.benchmarks.artifacts import ARTIFACT_ROOT
 from src.utils.benchmarks.datalake_layouts import TimeBasedLayout, BookBasedLayout, BatchBasedLayout
+from src.utils.benchmarks.logging_setup import configure_logging
 from src.datalake.datalake_engine import download_time_based
-
-logging.basicConfig(level=logging.INFO)
 
 BENCHMARK_DATA_DIRECTORY = ARTIFACT_ROOT / "datalake"
 DOWNLOAD_PROBE_COUNT = 10
@@ -167,4 +166,5 @@ def structure_base(layout):
     return BENCHMARK_DATA_DIRECTORY / layout.name
 
 if __name__ == "__main__":
+    configure_logging()
     run()

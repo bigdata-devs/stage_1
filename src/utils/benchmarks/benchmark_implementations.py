@@ -1,11 +1,6 @@
 import logging
 from src.utils.benchmarks import data_source, datalake_experiments, inverted_index_experiments, metadata_experiments
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+from src.utils.benchmarks.logging_setup import configure_logging
 
 def main():
     data_source.prepare_books()
@@ -15,4 +10,5 @@ def main():
     logging.info("Skipped experiments: %s", ", ".join(skipped) if skipped else "none")
 
 if __name__ == "__main__":
+    configure_logging()
     main()

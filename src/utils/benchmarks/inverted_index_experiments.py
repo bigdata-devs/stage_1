@@ -15,11 +15,10 @@ from src.utils.benchmarks import (
 )
 from src.utils.benchmarks import data_source
 from src.utils.benchmarks.artifacts import ARTIFACT_ROOT, BENCHMARK_MONGO_DATABASE
+from src.utils.benchmarks.logging_setup import configure_logging
 from src.utils.body_files import read_book_body
 from src.utils.text_processor import process_text
 from src.datamarts.inverted_index import json_index, folder_index
-
-logging.basicConfig(level=logging.INFO)
 
 INDEX_OUTPUT_DIRECTORY = ARTIFACT_ROOT / "index"
 JSON_INDEX_PATH = INDEX_OUTPUT_DIRECTORY / "inverted_index.json"
@@ -215,4 +214,5 @@ class MongoIndexStructure:
         }
 
 if __name__ == "__main__":
+    configure_logging()
     run()

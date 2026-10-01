@@ -20,8 +20,7 @@ from src.utils.benchmarks import (
 )
 from src.utils.benchmarks import data_source
 from src.utils.benchmarks.artifacts import BENCHMARK_MONGO_DATABASE, METADATA_BENCHMARK_DB_PATH
-
-logging.basicConfig(level=logging.INFO)
+from src.utils.benchmarks.logging_setup import configure_logging
 
 METADATA_DIRECTORY = METADATA_BENCHMARK_DB_PATH.parent
 MONGO_CONNECTION_STRING = "mongodb://localhost:27017/?serverSelectionTimeoutMS=1000"
@@ -156,4 +155,5 @@ def synthetic_metadata_rows(count, template):
     return [replace(template, book_id=SYNTHETIC_BOOK_ID_BASE + offset) for offset in range(count)]
 
 if __name__ == "__main__":
+    configure_logging()
     run()

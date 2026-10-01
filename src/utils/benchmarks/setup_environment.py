@@ -3,8 +3,7 @@ import logging
 from src.datamarts.metadata.storage import SQLiteStorage
 from src.utils.benchmarks import data_source, datalake_experiments, metadata_experiments
 from src.utils.benchmarks.artifacts import METADATA_BENCHMARK_DB_PATH
-
-logging.basicConfig(level=logging.INFO)
+from src.utils.benchmarks.logging_setup import configure_logging
 
 def main():
     data_source.prepare_books()
@@ -24,4 +23,5 @@ def save_frozen_metadata():
     SQLiteStorage(METADATA_BENCHMARK_DB_PATH).save_many(metadata_experiments.load_book_metadata())
 
 if __name__ == "__main__":
+    configure_logging()
     main()
