@@ -1475,15 +1475,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "procesador_metadatos"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "mongodb",
- "reqwest",
-]
-
-[[package]]
 name = "quote"
 version = "1.0.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1764,6 +1755,15 @@ checksum = "da046153aa2352493d6cb7da4b6e5c0c057d8a1d0a9aa8560baffdd945acd414"
 dependencies = [
  "ring",
  "untrusted",
+]
+
+[[package]]
+name = "search_engine_bench"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "mongodb",
+ "reqwest",
 ]
 
 [[package]]

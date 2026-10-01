@@ -1,5 +1,5 @@
 [package]
-name = "procesador_metadatos"
+name = "search_engine_bench"
 version = "0.1.0"
 edition = "2021"
 
