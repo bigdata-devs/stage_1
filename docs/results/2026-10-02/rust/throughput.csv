@@ -1,6 +1,0 @@
-test_name,item_count,elapsed_seconds,items_per_second,timestamp
-write_throughput_time_based,100,1.290587,77.4841,2026-10-02T13:02:59.003851
-write_throughput_book_based,100,1.388523,72.0190,2026-10-02T13:03:00.496343
-write_throughput_batch_based,100,1.320179,75.7473,2026-10-02T13:03:01.895143
-download_write_throughput,10,7.671897,1.3035,2026-10-02T13:03:09.636952
-tokenize_books,100,2.665678,37.5139,2026-10-02T13:03:12.324015

@@ -1,7 +1,0 @@
-path,size_mb,file_count,dir_count,timestamp
-/home/aythami/.cache/stage_1_benchmarks/java/datalake/time_based,58.6691,200,2,2026-09-30T19:59:30.701572
-/home/aythami/.cache/stage_1_benchmarks/java/datalake/book_based,58.6691,200,100,2026-09-30T19:59:32.520332
-/home/aythami/.cache/stage_1_benchmarks/java/datalake/batch_based,58.6691,200,3,2026-09-30T19:59:34.306355
-/home/aythami/.cache/stage_1_benchmarks/java/datamarts/inverted_index.json,37.7649,1,0,2026-09-30T20:00:21.326511
-/home/aythami/.cache/stage_1_benchmarks/java/datamarts/inverted_index,19.8749,106479,26,2026-09-30T20:01:17.382865
-mongodb://localhost:27017/search_engine.inverted_index,25.3984,0,0,2026-09-30T20:02:09.505628
