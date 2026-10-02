@@ -10,9 +10,12 @@ class IndexBenchmarkTest {
 
     @Test
     void batchSizesSortAndDeduplicateTheCorpusSize() {
-        assertEquals(List.of(10, 25, 50, 60, 250, 500), IndexBenchmark.buildBatchSizes(60));
-        assertEquals(List.of(10, 25, 50, 250, 500), IndexBenchmark.buildBatchSizes(10));
-        assertEquals(List.of(10, 25, 50, 250, 500, 600), IndexBenchmark.buildBatchSizes(600));
+        assertEquals(List.of(25, 50, 60, 250, 500, 1000, 5000, 10000),
+            IndexBenchmark.buildBatchSizes(60));
+        assertEquals(List.of(10, 25, 50, 250, 500, 1000, 5000, 10000),
+            IndexBenchmark.buildBatchSizes(10));
+        assertEquals(List.of(25, 50, 250, 500, 600, 1000, 5000, 10000),
+            IndexBenchmark.buildBatchSizes(600));
     }
 
     @Test

@@ -100,7 +100,7 @@ final class IndexBenchmark {
     }
 
     static List<Integer> buildBatchSizes(int bookCount) {
-        TreeSet<Integer> sizes = new TreeSet<>(List.of(10, 25, 50, 250, 500));
+        TreeSet<Integer> sizes = new TreeSet<>(List.of(25, 50, 250, 500, 1000, 5000, 10000));
         sizes.add(bookCount);
         return List.copyOf(sizes);
     }

@@ -150,7 +150,7 @@ func closeStructures(structures []indexStructure) {
 
 // buildBatchSizes returns the fixed Python batch sizes plus the corpus size.
 func buildBatchSizes(bookCount int) []int {
-	sizes := []int{10, 25, 50, 250, 500, bookCount}
+	sizes := []int{25, 50, 250, 500, 1000, 5000, 10000, bookCount}
 	slices.Sort(sizes)
 	return slices.Compact(sizes)
 }

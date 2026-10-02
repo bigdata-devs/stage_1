@@ -8,10 +8,10 @@ import (
 )
 
 func TestBuildBatchSizesMergesCorpusSizeIntoThePythonList(t *testing.T) {
-	if sizes := buildBatchSizes(100); !reflect.DeepEqual(sizes, []int{10, 25, 50, 100, 250, 500}) {
+	if sizes := buildBatchSizes(100); !reflect.DeepEqual(sizes, []int{25, 50, 100, 250, 500, 1000, 5000, 10000}) {
 		t.Fatalf("unexpected batch sizes %v", sizes)
 	}
-	if sizes := buildBatchSizes(250); !reflect.DeepEqual(sizes, []int{10, 25, 50, 250, 500}) {
+	if sizes := buildBatchSizes(250); !reflect.DeepEqual(sizes, []int{25, 50, 250, 500, 1000, 5000, 10000}) {
 		t.Fatalf("unexpected batch sizes %v", sizes)
 	}
 }

@@ -14,7 +14,7 @@ use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 const SYNTHETIC_BOOK_ID_BASE: i32 = 900000;
-const BASE_BATCH_SIZES: [usize; 5] = [10, 25, 50, 250, 500];
+const BASE_BATCH_SIZES: [usize; 7] = [25, 50, 250, 500, 1000, 5000, 10000];
 
 pub struct TokenizedBook {
     pub id: i32,
@@ -364,9 +364,12 @@ mod tests {
 
     #[test]
     fn batch_sizes_sort_and_deduplicate_the_corpus_size() {
-        assert_eq!(vec![10, 25, 50, 60, 250, 500], build_batch_sizes(60));
-        assert_eq!(vec![10, 25, 50, 250, 500], build_batch_sizes(10));
-        assert_eq!(vec![10, 25, 50, 250, 500, 600], build_batch_sizes(600));
+        assert_eq!(vec![25, 50, 60, 250, 500, 1000, 5000, 10000], build_batch_sizes(60));
+        assert_eq!(vec![10, 25, 50, 250, 500, 1000, 5000, 10000], build_batch_sizes(10));
+        assert_eq!(
+            vec![25, 50, 250, 500, 600, 1000, 5000, 10000],
+            build_batch_sizes(600)
+        );
     }
 
     #[test]
