@@ -52,10 +52,19 @@ impl MongoIndex {
 
     pub fn save(&self, index: &InvertedIndex) -> MongoResult<()> {
         self.clear()?;
-        let documents: Vec<Document> = index
-            .iter()
-            .map(|(term, postings)| doc! { "term": term, "postings": postings })
-            .collect();
+        const INSERT_CHUNK_SIZE: usize = 5_000;
+        let mut chunk: Vec<Document> = Vec::with_capacity(INSERT_CHUNK_SIZE);
+        for (term, postings) in index.iter() {
+            chunk.push(doc! { "term": term, "postings": postings });
+            if chunk.len() == INSERT_CHUNK_SIZE {
+                self.insert_documents(&chunk)?;
+                chunk.clear();
+            }
+        }
+        self.insert_documents(&chunk)
+    }
+
+    fn insert_documents(&self, documents: &[Document]) -> MongoResult<()> {
         if documents.is_empty() {
             return Ok(());
         }

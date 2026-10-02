@@ -8,9 +8,9 @@ use crate::datamarts::folder_index;
 use crate::datamarts::mongo_index::MongoIndex;
 use crate::inverted_index::corpus;
 use crate::inverted_index::json_index::{self, InvertedIndex};
-use crate::inverted_index::postings;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
+use std::rc::Rc;
 use std::time::{Duration, Instant};
 
 const SYNTHETIC_BOOK_ID_BASE: i32 = 900000;
@@ -18,7 +18,7 @@ const BASE_BATCH_SIZES: [usize; 7] = [25, 50, 250, 500, 1000, 5000, 10000];
 
 pub struct TokenizedBook {
     pub id: i32,
-    pub tokens: Vec<String>,
+    pub tokens: Rc<Vec<String>>,
 }
 
 pub trait IndexStructure {
@@ -193,7 +193,10 @@ fn load_corpus(suite: &Suite) -> BenchResult<Vec<TokenizedBook>> {
     let corpus: BTreeMap<i32, Vec<String>> = corpus::load(&suite.config().bodies_dir)?;
     Ok(corpus
         .into_iter()
-        .map(|(id, tokens)| TokenizedBook { id, tokens })
+        .map(|(id, tokens)| TokenizedBook {
+            id,
+            tokens: Rc::new(tokens),
+        })
         .collect())
 }
 
@@ -203,13 +206,6 @@ fn build_index(books: &[TokenizedBook]) -> InvertedIndex {
         index.add_book(book.id, &book.tokens);
     }
     index
-}
-
-fn index_map(books: &[TokenizedBook]) -> BTreeMap<i32, Vec<String>> {
-    books
-        .iter()
-        .map(|book| (book.id, book.tokens.clone()))
-        .collect()
 }
 
 struct JsonIndexStructure {
@@ -328,7 +324,7 @@ impl IndexStructure for MongoIndexStructure {
     }
 
     fn build(&mut self, books: &[TokenizedBook]) -> BenchResult<()> {
-        self.index.save(&postings::build(&index_map(books)))
+        self.index.save(&build_index(books))
     }
 
     fn prepare_query(&mut self, _suite: &Suite) -> BenchResult<()> {
@@ -358,8 +354,8 @@ impl IndexStructure for MongoIndexStructure {
 mod tests {
     use super::*;
 
-    fn tokens(values: &[&str]) -> Vec<String> {
-        values.iter().map(|value| value.to_string()).collect()
+    fn tokens(values: &[&str]) -> Rc<Vec<String>> {
+        Rc::new(values.iter().map(|value| value.to_string()).collect())
     }
 
     #[test]
