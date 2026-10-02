@@ -53,6 +53,7 @@ final class IndexBenchmark {
         }
         structure.prepareQuery();
         suite.recordQueryStatistics("query_" + structure.name(), runQueryWorkload(structure));
+        structure.releaseQueryCache();
         measureStructureUpdate(structure, books);
         measureStructureStorage(structure);
     }

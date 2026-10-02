@@ -48,6 +48,11 @@ final class JsonIndexStructure implements IndexStructure {
     }
 
     @Override
+    public void releaseQueryCache() {
+        loaded = Map.of();
+    }
+
+    @Override
     public void addBook(int bookId, List<String> tokens) throws IOException {
         JsonIndex.addBook(bookId, tokens, path());
     }

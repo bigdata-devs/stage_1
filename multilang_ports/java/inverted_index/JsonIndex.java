@@ -1,6 +1,7 @@
 package inverted_index;
 
 import java.io.IOException;
+import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -22,7 +23,9 @@ public final class JsonIndex {
         if (outputPath.getParent() != null) {
             Files.createDirectories(outputPath.getParent());
         }
-        Files.writeString(outputPath, serialize(index), StandardCharsets.UTF_8);
+        try (Writer writer = Files.newBufferedWriter(outputPath, StandardCharsets.UTF_8)) {
+            serialize(index, writer);
+        }
     }
 
     public static Map<String, List<Integer>> loadIndex(Path indexPath) throws IOException {
@@ -40,8 +43,8 @@ public final class JsonIndex {
         saveIndex(index, outputPath);
     }
 
-    private static String serialize(Map<String, List<Integer>> index) {
-        StringBuilder json = new StringBuilder("{\n");
+    private static void serialize(Map<String, List<Integer>> index, Appendable json) throws IOException {
+        json.append("{\n");
         List<Map.Entry<String, List<Integer>>> entries = new ArrayList<>(index.entrySet());
         for (int position = 0; position < entries.size(); position++) {
             Map.Entry<String, List<Integer>> entry = entries.get(position);
@@ -49,17 +52,17 @@ public final class JsonIndex {
             appendPostings(json, entry.getValue());
             json.append(isLastEntry(entries, position) ? "\n" : ",\n");
         }
-        return json.append("}").toString();
+        json.append("}");
     }
 
-    private static void appendPostings(StringBuilder json, List<Integer> bookIds) {
+    private static void appendPostings(Appendable json, List<Integer> bookIds) throws IOException {
         if (bookIds.isEmpty()) {
             json.append("[]");
             return;
         }
         json.append("[\n");
         for (int position = 0; position < bookIds.size(); position++) {
-            json.append("    ").append(bookIds.get(position));
+            json.append("    ").append(String.valueOf(bookIds.get(position)));
             json.append(position < bookIds.size() - 1 ? ",\n" : "\n");
         }
         json.append("  ]");

@@ -17,6 +17,9 @@ interface IndexStructure {
 
     void addBook(int bookId, List<String> tokens) throws IOException;
 
+    default void releaseQueryCache() {
+    }
+
     DiskUsage storageUsage() throws IOException;
 
     default void close() throws IOException {

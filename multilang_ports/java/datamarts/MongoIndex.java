@@ -31,6 +31,8 @@ public final class MongoIndex implements AutoCloseable {
 
     private static final Duration SERVER_SELECTION_TIMEOUT = Duration.ofSeconds(2);
 
+    private static final int INSERT_CHUNK_SIZE = 5000;
+
     private final MongoClient client;
     private final MongoDatabase database;
     private final MongoCollection<Document> collection;
@@ -77,10 +79,17 @@ public final class MongoIndex implements AutoCloseable {
         if (index.isEmpty()) {
             return;
         }
-        List<Document> documents = new ArrayList<>(index.size());
-        index.forEach((term, bookIds) ->
-            documents.add(new Document("term", term).append("postings", bookIds)));
-        collection.insertMany(documents);
+        List<Document> chunk = new ArrayList<>(INSERT_CHUNK_SIZE);
+        for (Map.Entry<String, List<Integer>> entry : index.entrySet()) {
+            chunk.add(new Document("term", entry.getKey()).append("postings", entry.getValue()));
+            if (chunk.size() >= INSERT_CHUNK_SIZE) {
+                collection.insertMany(chunk);
+                chunk.clear();
+            }
+        }
+        if (!chunk.isEmpty()) {
+            collection.insertMany(chunk);
+        }
     }
 
     public List<Integer> query(String term) {
