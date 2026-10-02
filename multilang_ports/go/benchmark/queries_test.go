@@ -42,8 +42,8 @@ func TestLoadSharedQueriesReadsRepositoryWorkloadFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(queries) != 20 {
-		t.Fatalf("expected the 20 shared queries, got %d", len(queries))
+	if len(queries) != 30 {
+		t.Fatalf("expected the 30 shared queries, got %d", len(queries))
 	}
 }
 
