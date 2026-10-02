@@ -106,7 +106,7 @@ the language and the storage structure, not from the data:
   (the IDs are listed in `data_source/manifest.json`). No port downloads its
   own corpus; the only network access is an identical 10-book download probe
   that measures download throughput and is skipped when offline.
-- **Queries:** `src/utils/benchmarks/queries.txt` — 20 queries, one per line;
+- **Queries:** `src/utils/benchmarks/queries.txt` — 30 queries, one per line;
   a query matches the books that contain every term (postings intersection).
 - **Rules:** the same header/body split, tokenizer (`[a-z]+`, stop words,
   Roman numerals, 1-letter tokens), layouts and index formats. The four ports
@@ -125,7 +125,7 @@ touch the pipeline's `datalake/`, `datamarts/metadata.db` or the
   throughput, lookup latency, incremental detection of new books, resume
   after an interrupted run, and storage overhead (size, files, folders).
 - **Inverted index** (JSON file, folder of term files, MongoDB): build time
-  for 10–500 books, latency of the shared queries, adding one book to an
+  for 25–10,000 books, latency of the shared queries, adding one book to an
   existing index, and storage size.
 - **Metadata** (Python only, optional in the guide): insert throughput and
   queries on SQLite, PostgreSQL (needs `psycopg2` and a local server,

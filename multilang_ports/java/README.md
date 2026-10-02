@@ -90,7 +90,7 @@ Defaults: books and headers come from the tracked 100-book corpus
 (`data_source/bodies` and `data_source/headers`, overridable with
 `-bodies`/`-headers`) and queries come from the shared workload file
 (`src/utils/benchmarks/queries.txt`, intersection semantics); the default
-`-query-repetitions 5` yields 100 samples per query test, like Python.
+`-query-repetitions 5` yields 150 samples per query test, like Python.
 
 A published snapshot of this suite lives in
 `docs/results/2026-09-30/java/`, next to the Python and Go snapshots it is
