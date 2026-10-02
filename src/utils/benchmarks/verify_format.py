@@ -3,8 +3,8 @@
 
 Run from anywhere:
 
-    python3 src/utils/benchmarks/verify_format.py docs/results/2026-09-30/rust
-    python3 src/utils/benchmarks/verify_format.py docs/results/2026-09-30/python --format-only
+    python3 src/utils/benchmarks/verify_format.py docs/results/2026-10-02/rust
+    python3 src/utils/benchmarks/verify_format.py docs/results/2026-10-02/python --format-only
 
 Full mode checks header/column parity, labels and batch sizes against the Go
 snapshot. `--format-only` (used for the Python baseline, whose label sets
@@ -18,7 +18,7 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-REFERENCE_DIR = REPO_ROOT / "docs/results/2026-09-30/go"
+REFERENCE_DIR = REPO_ROOT / "docs/results/2026-10-02/go"
 FILES = ["benchmarks", "statistics", "scalability", "recovery", "throughput", "disk_usage"]
 TIMESTAMP = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}$")
 DECIMALS = {
