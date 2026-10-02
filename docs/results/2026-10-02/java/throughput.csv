@@ -1,0 +1,6 @@
+test_name,item_count,elapsed_seconds,items_per_second,timestamp
+write_throughput_time_based,100,1.852296,53.9870,2026-10-02T14:08:49.604542
+write_throughput_book_based,100,1.781707,56.1260,2026-10-02T14:08:51.668205
+write_throughput_batch_based,100,1.666571,60.0034,2026-10-02T14:08:53.512312
+download_write_throughput,10,3.512002,2.8474,2026-10-02T14:08:57.575444
+tokenize_books,100,3.938474,25.3905,2026-10-02T14:09:01.544632
