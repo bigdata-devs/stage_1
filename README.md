@@ -1,186 +1,202 @@
-# Boogle Engine — Stage 1: Building the Data Layer
+# Boogle Engine
+![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+![Java](https://img.shields.io/badge/java-%23ED8B00.svg?style=for-the-badge&logo=openjdk&logoColor=white)
+![Go](https://img.shields.io/badge/go-%2300ADD8.svg?style=for-the-badge&logo=go&logoColor=white)
+![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)
 
-Big Data course project (Grado en Ciencia e Ingeniería de Datos, ULPGC).
-Stage 1 builds the data layer of a book search engine over Project Gutenberg:
+## Overview
 
-- a **datalake** with the raw header and body of every downloaded book,
-- **datamarts** with the book metadata (SQLite) and the inverted index
-  (monolithic JSON file, hierarchical folder of term files, MongoDB),
-- a **control layer** that coordinates downloading and indexing without
-  duplicating or losing books,
-- a **benchmark suite** that compares datalake layouts and inverted-index
-  structures in four languages: Python (baseline), Go, Rust and Java.
+**Boogle Engine** is the course project for *Big Data* and its goal is a
+search engine for thousands to millions of public-domain books from
+[Project Gutenberg](https://www.gutenberg.org/), built in three layers:
 
-Group: `bigdata-devs` — repository: <https://github.com/bigdata-devs/stage_1>
+- **Datalake**: the raw header and body of every downloaded book, kept unstructured.
+- **Datamarts**: structured, queryable data. Book metadata goes in SQLite and the inverted
+  index maps each term to the books that contain it.
+- **Control layer**: decides at every step whether to download a new book or index a pending
+  one. It never duplicates or loses work, and it can resume after an interruption.
 
-## Repository structure
+### Reference pipeline for Stage 1, target stack for Stage 2
 
-```
-stage_1/
-├── main.py                     # entry point: runs the control-layer pipeline
-├── requirements.txt            # Python dependencies
-├── docker-compose.yml          # optional MongoDB 7 server
-├── src/
-│   ├── control/                # control layer: state files, controller, pipeline tasks
-│   ├── datalake/               # Gutenberg download + header/body split, 3 layouts
-│   ├── datamarts/
-│   │   ├── metadata/           # header parser + SQLite/PostgreSQL/MongoDB storage
-│   │   └── inverted_index/     # JSON, folder and MongoDB index structures
-│   └── utils/
-│       ├── text_processor.py   # shared tokenizer/normalizer rules
-│       └── benchmarks/         # Python benchmark suite + shared queries.txt
-├── tests/                      # pytest suite for the Python code
-├── data_source/                # frozen 100-book benchmark corpus (bodies/, headers/, manifest.json)
-├── sample_data/                # 4-book sample dataset for quick checks
-├── multilang_ports/
-│   ├── go/                     # Go port (datalake, datamarts, benchmark)
-│   ├── rust/                   # Rust port
-│   └── java/                   # Java port
-├── docs/results/<date>/<lang>/ # published benchmark CSV snapshots
-├── prototypes/c_port/          # archived C prototype (not built or benchmarked)
-├── datalake/                   # generated: pipeline datalake (git-ignored)
-├── datamarts/                  # generated: metadata.db, inverted_index.json (git-ignored)
-└── control/                    # generated: control files (git-ignored)
-```
+This repository contains **two kinds of code with two different jobs**:
 
-## Setup
+| | **Stage 1 Reference Pipeline** | **Benchmark PoC ports** |
+|---|---|---|
+| **Purpose** | The complete, working Stage 1 system you run and evaluate | Isolated proofs of concept that measure performance and justify the Stage 2 stack |
+| **Language** | Python 3.10+ | Go, Rust and Java (with Python as the baseline) |
+| **Scope** | Control layer + datalake + datamarts, end to end | Datalake layouts, tokenizer and inverted-index structures only. No control layer. |
+| **Data** | Live downloads from Project Gutenberg | A frozen 100-book corpus and 30 shared queries, identical for every language |
+| **Code** | [`main.py`](main.py), [`src/`](src/) | [`multilang_ports/`](multilang_ports/) |
 
-Requires Python 3.10+.
+The benchmarks compared **3 datalake layouts × 3 inverted-index structures × 4 languages**.
+Their conclusion sets the stack for **Stage 2**.
+
+## Quick Start
+
+This runs the **Stage 1 Reference Pipeline** end to end: download four books, store them in the
+datalake and index them in the datamarts.
+
+**You need:** Python 3.10+, Git and internet access, because books are downloaded live from
+gutenberg.org. MongoDB and Docker are **not** required. Full requirements are listed in
+[Prerequisites](#prerequisites).
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
+# 1. Clone the repository
+git clone https://github.com/bigdata-devs/stage_1.git
+cd stage_1
+
+# 2. Create and activate a virtual environment (Windows: see the PowerShell block below)
+python3 -m venv .venv
+source .venv/bin/activate
+
+# 3. Install the dependencies
 pip install -r requirements.txt
 
-docker compose up -d               # optional: MongoDB for the MongoDB index
+# 4. Run 8 pipeline steps: each book takes 2 steps (download, then index), so this ingests 4 books
+python main.py --steps 8
 ```
 
-Without MongoDB the pipeline still works; the MongoDB experiments and tests
-are skipped.
+<details>
+<summary><b>Windows (PowerShell)</b>: step 2</summary>
 
-## 1. Python pipeline: populating the Datalake and Datamarts
-
-The control layer runs the pipeline step by step. At each step it either
-indexes one downloaded book that is still pending or, if none is pending,
-downloads a new random book ID that was never tried before.
-
-```bash
-python main.py --steps 20          # same as: python -m src.control --steps 20
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+# If script execution is blocked, run this first:
+# Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process
 ```
 
-What each step writes (all paths relative to the repository root):
+Steps 1, 3 and 4 are the same on every platform.
 
-| Stage | Output |
-|---|---|
-| Download | `datalake/YYYYMMDD/HH/<BOOK_ID>_header.txt` and `<BOOK_ID>_body.txt` (time-based layout, atomic writes) |
-| Metadata | row in `datamarts/metadata.db` (SQLite table `books`: `book_id`, `title`, `author`, `language`, `capture_date`, `header_path`, `body_path`) |
-| Inverted index | postings merged into `datamarts/inverted_index.json` |
-| State | `control/downloaded_books.txt`, `control/indexed_books.txt`, `control/failed_books.txt` |
+</details>
 
-The control files make the pipeline resumable: stopping it and running
-`main.py` again continues where it left off, without downloading or indexing
-a book twice. IDs that do not exist on Gutenberg (or lack the START/END
-markers) go to `failed_books.txt` and are never requested again.
+## Prerequisites
 
-Rebuilding the datamarts from what is already in the datalake:
+The Quick Start only needs **Python and Git**. The other tools are for the benchmark ports and
+the MongoDB experiments.
+
+| Tool | Version | Needed for | Verify |
+|---|---|---|---|
+| Python | 3.10+ | Reference pipeline, Python benchmark, tests, charts | `python --version` |
+| Git | any recent | Cloning the repository | `git --version` |
+| Docker + Compose v2 | any recent | MongoDB 7 for the benchmarks (optional) | `docker --version` and `docker compose version` |
+| Go | 1.22+ | Go benchmark port | `go version` |
+| Rust | stable, via [rustup](https://rustup.rs/) | Rust benchmark port | `cargo --version` |
+| JDK | 21 | Java benchmark port | `java --version` |
+| Maven | 3.x | Building and running the Java port | `mvn --version` |
+
+## Installation & Configuration
+
+The Python environment was set up in the [Quick Start](#quick-start) (steps 1–3). The steps
+below are only needed for the benchmarks and charts. They are bash commands, run from the
+repository root on Linux or WSL2.
+
+**1. Extra Python packages for the charts and their tests** (not in `requirements.txt`):
 
 ```bash
-python -m src.datamarts.metadata.book_processor             # metadata.db from every header
-python -m src.datamarts.inverted_index.build_inverted_index # datamarts/inverted_index.json
-python -m src.datamarts.inverted_index.build_folder_index   # datamarts/inverted_index/<LETTER>/<term>.txt
-python -m src.datamarts.inverted_index.build_mongo_index    # MongoDB search_engine.inverted_index
+pip install pandas numpy matplotlib plotly
 ```
 
-The index builders take the list of books and their body paths from
-`metadata.db`, so run `book_processor` (or the pipeline) first.
-
-## 2. Benchmarks
-
-### Shared inputs
-
-Every language benchmarks exactly the same workload, so differences come from
-the language and the storage structure, not from the data:
-
-- **Corpus:** `data_source/bodies/<id>_body.txt` and
-  `data_source/headers/<id>_header.txt` — 100 Gutenberg books frozen in git
-  (the IDs are listed in `data_source/manifest.json`). No port downloads its
-  own corpus; the only network access is an identical 10-book download probe
-  that measures download throughput and is skipped when offline.
-- **Queries:** `src/utils/benchmarks/queries.txt` — 30 queries, one per line;
-  a query matches the books that contain every term (postings intersection).
-- **Rules:** the same header/body split, tokenizer (`[a-z]+`, stop words,
-  Roman numerals, 1-letter tokens), layouts and index formats. The four ports
-  build byte-identical `inverted_index.json` files from the corpus.
-
-Each language writes its generated datalakes and indexes to
-`~/.cache/stage_1_benchmarks/[<lang>/]`, the Python metadata benchmark uses
-`~/.cache/stage_1_benchmarks/metadata/metadata_benchmark.db`, and every MongoDB
-experiment runs in the `search_engine_benchmark` database, so benchmarks never
-touch the pipeline's `datalake/`, `datamarts/metadata.db` or the
-`search_engine` MongoDB datamart.
-
-### What is measured
-
-- **Datalake** (time-based, book-based and batch-based layouts): write
-  throughput, lookup latency, incremental detection of new books, resume
-  after an interrupted run, and storage overhead (size, files, folders).
-- **Inverted index** (JSON file, folder of term files, MongoDB): build time
-  for 25–10,000 books, latency of the shared queries, adding one book to an
-  existing index, and storage size.
-- **Metadata** (Python only, optional in the guide): insert throughput and
-  queries on SQLite, PostgreSQL (needs `psycopg2` and a local server,
-  otherwise skipped) and MongoDB.
-
-### Running each language
+**2. Benchmark port dependencies:**
 
 ```bash
-# Python (baseline) — CSVs in src/utils/benchmarks/results/
+(cd multilang_ports/go   && go mod download)
+(cd multilang_ports/rust && cargo build --release)
+(cd multilang_ports/java && mvn -q compile)
+```
+
+**3. MongoDB:**
+
+```bash
+docker compose up -d                # starts mongo:7 as container "stage1-mongodb" on port 27017
+docker compose ps                   # wait until STATUS shows "(healthy)"
+docker exec stage1-mongodb mongosh --quiet --eval "db.adminCommand('ping')"   # expected: { ok: 1 }
+```
+
+Benchmark collections are not reset between runs. Drop the benchmark database before a final
+run so the results measure fresh inserts:
+
+```bash
+docker exec stage1-mongodb mongosh search_engine_benchmark --quiet --eval "db.dropDatabase()"
+```
+
+`docker compose down` stops MongoDB, and `docker compose down -v` also deletes its data. If you
+have no Docker, pass `-skip-mongo` to the ports. The Python benchmark and the tests skip the
+MongoDB experiments automatically when no server is reachable.
+
+## Running the Benchmarks
+
+Every port processes the same workload: the frozen corpus in `data_source/` (100 books, IDs in
+`data_source/manifest.json`), the 30 queries in `src/utils/benchmarks/queries.txt`, and the
+same tokenizer and index formats. The only network access is a 10-book download probe, which
+is skipped when offline.
+
+Run from the repository root on Linux or WSL2, with MongoDB running (or add `-skip-mongo`):
+
+```bash
+# Go
+(cd multilang_ports/go && go run . bench -results ../../benchmarks_results/go)
+
+# Rust
+(cd multilang_ports/rust && cargo run --release --bin bench -- bench -results ../../benchmarks_results/rust)
+
+# Java
+(cd multilang_ports/java && mvn -q compile exec:java "-Dexec.mainClass=benchmark.Main" "-Dexec.args=bench -results ../../benchmarks_results/java")
+
+# Python baseline: it always writes to src/utils/benchmarks/results/, so copy the CSVs afterwards
 python -m src.utils.benchmarks.benchmark_implementations
-
-# Go — CSVs in multilang_ports/go/results/
-cd multilang_ports/go && go run . bench
-
-# Rust — CSVs in multilang_ports/rust/results/
-cd multilang_ports/rust && cargo run --release --bin bench -- bench
-
-# Java — CSVs in multilang_ports/java/results/
-cd multilang_ports/java && mvn -q compile exec:java -Dexec.mainClass=benchmark.Main -Dexec.args="bench"
+cp src/utils/benchmarks/results/*.csv benchmarks_results/python/
 ```
 
-Useful flags for the Go/Rust/Java runners: `-skip-mongo`,
-`-query-repetitions N`, `-raw-dir <folder>` (offline download probe from
-`pg<id>.txt` files). See each port's `README.md` for details.
+Each runner writes the same six CSVs (`benchmarks`, `throughput`, `statistics`, `scalability`,
+`recovery`, `disk_usage`) with identical columns.
 
-All runners write the same CSV files (`benchmarks`, `throughput`,
-`statistics`, `scalability`, `recovery`, `disk_usage`) with the same columns.
-Check a snapshot against the reference format with:
+### Generate the charts
 
 ```bash
-python src/utils/benchmarks/verify_format.py docs/results/<date>/rust
+python -m src.visualizations.main   # reads benchmarks_results/, writes charts/
 ```
 
-The Rust and Java runners read memory (and Rust also CPU time) from
-`/proc`, so run the final benchmarks on Linux.
+This produces scalability, throughput, latency, storage (Sankey) and radar charts as SVG, PDF
+and PNG (HTML for the interactive ones), plus `charts/consolidated_metrics.csv`.
 
-## Tests
+## Testing
+
+The test suites need no internet access. Tests that require MongoDB are skipped when no
+server is reachable.
 
 ```bash
-python -m pytest                             # Python
-cd multilang_ports/go && go test ./...       # Go
-cd multilang_ports/rust && cargo test        # Rust
-cd multilang_ports/java && mvn test          # Java
+# Python, core suite (works with requirements.txt only)
+python -m pytest --ignore=tests/test_visualizations
+
+# Python, full suite (needs the chart packages from Installation step 1)
+python -m pytest
+
+# Benchmark ports
+(cd multilang_ports/go   && go test ./...)
+(cd multilang_ports/rust && cargo test)
+(cd multilang_ports/java && mvn -q test)
 ```
 
-MongoDB tests are skipped when no server is reachable.
+## Roadmap (Stage 2)
 
-## Sample dataset
+Stage 2 moves the system onto the stack selected by the Stage 1 benchmarks and adds the
+crawling, indexing and querying modules:
 
-`sample_data/` holds 4 books (IDs 11, 84, 174, 1342) for quick checks, for
-example:
+- **Go** replaces Python as the main language, with concurrent downloaders and indexers.
+  In the published run, Go built the JSON index for 10,000 books in 77 s, against 252 s for Rust and 1,181 s for Java.
+- **Batch-based datalake** (`datalake/batch_<LOW>_<HIGH>/`) replaces the time-based layout.
+- **MongoDB** stores the inverted index as one document per term, replacing the monolithic JSON
+  file.
 
-```bash
-cd multilang_ports/go && go run . build ../../sample_data/bodies output/inverted_index.json
-```
+## Team
 
-Regenerate it with `python -m src.datalake.download_sample_data`. The
-100-book benchmark corpus in `data_source/` doubles as a larger test dataset.
+**Group `bigdata-devs`**
+
+| Member | GitHub |
+|---|---|
+| Tomás Santana Suárez | [@TemiArtemi](https://github.com/TemiArtemi) |
+| Carlos Montesdeoca Vega | [@CarlosMontesdeoca21](https://github.com/CarlosMontesdeoca21) |
+| Aythami Lorenzo Padilla | [@aythamilorenzo](https://github.com/aythamilorenzo) |
+| Javier Ruano Hernández  | [@javierruanohdez](https://github.com/javierruanohdez) |
+| Alejandro Delgado Valera | [@aledelgadoo](https://github.com/aledelgadoo) |
