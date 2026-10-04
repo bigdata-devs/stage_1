@@ -1,0 +1,6 @@
+# Benchmark outputs (datalakes, indexes)
+output/
+
+# Compiled binaries
+search_engine_bench
+search_engine_bench.exe

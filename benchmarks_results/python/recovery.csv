@@ -1,0 +1,4 @@
+test_name,total_books,processed_before_interruption,processed_after_resume,duplicated,lost,detection_time,processing_time,elapsed_seconds,timestamp
+recovery_time_based,100,50,50,0,0,0.002868,0.048124,0.051034,2026-10-02T10:39:12.211334
+recovery_book_based,100,50,50,0,0,0.005421,0.040577,0.046029,2026-10-02T10:39:16.789857
+recovery_batch_based,100,50,50,0,0,0.002997,0.039856,0.042879,2026-10-02T10:39:20.849660

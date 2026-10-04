@@ -1,0 +1,171 @@
+package inverted_index;
+
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+public final class JsonIndex {
+
+    private JsonIndex() {
+    }
+
+    public static LinkedHashMap<String, List<Integer>> buildIndex(Map<Integer, List<String>> books) {
+        return Postings.build(books);
+    }
+
+    public static void saveIndex(Map<String, List<Integer>> index, Path outputPath) throws IOException {
+        if (outputPath.getParent() != null) {
+            Files.createDirectories(outputPath.getParent());
+        }
+        try (Writer writer = Files.newBufferedWriter(outputPath, StandardCharsets.UTF_8)) {
+            serialize(index, writer);
+        }
+    }
+
+    public static Map<String, List<Integer>> loadIndex(Path indexPath) throws IOException {
+        String json = Files.readString(indexPath, StandardCharsets.UTF_8);
+        return new IndexParser(json).parse();
+    }
+
+    public static void addBook(int bookId, List<String> tokens, Path outputPath) throws IOException {
+        Map<String, List<Integer>> index = Files.isRegularFile(outputPath)
+            ? loadIndex(outputPath)
+            : new LinkedHashMap<>();
+        for (String term : Postings.uniqueTerms(tokens)) {
+            index.put(term, Postings.appendSortedUnique(index.getOrDefault(term, List.of()), bookId));
+        }
+        saveIndex(index, outputPath);
+    }
+
+    private static void serialize(Map<String, List<Integer>> index, Appendable json) throws IOException {
+        json.append("{\n");
+        List<Map.Entry<String, List<Integer>>> entries = new ArrayList<>(index.entrySet());
+        for (int position = 0; position < entries.size(); position++) {
+            Map.Entry<String, List<Integer>> entry = entries.get(position);
+            json.append("  \"").append(entry.getKey()).append("\": ");
+            appendPostings(json, entry.getValue());
+            json.append(isLastEntry(entries, position) ? "\n" : ",\n");
+        }
+        json.append("}");
+    }
+
+    private static void appendPostings(Appendable json, List<Integer> bookIds) throws IOException {
+        if (bookIds.isEmpty()) {
+            json.append("[]");
+            return;
+        }
+        json.append("[\n");
+        for (int position = 0; position < bookIds.size(); position++) {
+            json.append("    ").append(String.valueOf(bookIds.get(position)));
+            json.append(position < bookIds.size() - 1 ? ",\n" : "\n");
+        }
+        json.append("  ]");
+    }
+
+    private static boolean isLastEntry(List<Map.Entry<String, List<Integer>>> entries, int position) {
+        return position == entries.size() - 1;
+    }
+
+    private static final class IndexParser {
+
+        private final String source;
+        private int position;
+
+        IndexParser(String source) {
+            this.source = source;
+        }
+
+        Map<String, List<Integer>> parse() {
+            Map<String, List<Integer>> index = new LinkedHashMap<>();
+            expect('{');
+            skipWhitespace();
+            if (peek() == '}') {
+                return index;
+            }
+            while (true) {
+                skipWhitespace();
+                String term = parseString();
+                skipWhitespace();
+                expect(':');
+                skipWhitespace();
+                index.put(term, parsePostings());
+                skipWhitespace();
+                if (consumeIf('}')) {
+                    return index;
+                }
+                expect(',');
+            }
+        }
+
+        private List<Integer> parsePostings() {
+            List<Integer> bookIds = new ArrayList<>();
+            expect('[');
+            skipWhitespace();
+            if (peek() == ']') {
+                position++;
+                return bookIds;
+            }
+            while (true) {
+                skipWhitespace();
+                bookIds.add(parseInteger());
+                skipWhitespace();
+                if (consumeIf(']')) {
+                    return bookIds;
+                }
+                expect(',');
+            }
+        }
+
+        private String parseString() {
+            expect('"');
+            int start = position;
+            while (source.charAt(position) != '"') {
+                position++;
+            }
+            String value = source.substring(start, position);
+            position++;
+            return value;
+        }
+
+        private int parseInteger() {
+            int start = position;
+            while (Character.isDigit(source.charAt(position)) || source.charAt(position) == '-') {
+                position++;
+            }
+            return Integer.parseInt(source.substring(start, position));
+        }
+
+        private void skipWhitespace() {
+            while (position < source.length() && Character.isWhitespace(source.charAt(position))) {
+                position++;
+            }
+        }
+
+        private char peek() {
+            return source.charAt(position);
+        }
+
+        private boolean consumeIf(char expected) {
+            if (peek() == expected) {
+                position++;
+                return true;
+            }
+            return false;
+        }
+
+        private void expect(char expected) {
+            char actual = source.charAt(position);
+            if (actual != expected) {
+                throw new IllegalStateException(
+                    "Expected '" + expected + "' but found '" + actual + "' at position " + position);
+            }
+            position++;
+        }
+    }
+}

@@ -1,0 +1,245 @@
+language,metric,test_name,elapsed_seconds,memory_mb,cpu_percent,path,size_mb,file_count,dir_count,storage_layer,storage_component,total_books,processed_before_interruption,processed_after_resume,duplicated,lost,detection_time,processing_time,integrity_ok,batch_size,iterations,mean_seconds,stdev_seconds,min_seconds,max_seconds,item_count,items_per_second,timestamp
+python,benchmarks,incremental_batch_based,0.00338,0.0039,0.0,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T10:39:20.791375
+python,benchmarks,incremental_book_based,0.005686,0.0039,160.0,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T10:39:16.723356
+python,benchmarks,incremental_time_based,0.003328,0.1836,0.0,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T10:39:12.143025
+python,benchmarks,insert_mongo,1.300504,0.0,13.8,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T11:07:03.420596
+python,benchmarks,insert_postgres,1.33345,0.0625,12.7,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T11:04:38.853693
+python,benchmarks,insert_sqlite,1.109112,0.0273,12.6,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T11:02:28.708135
+python,benchmarks,update_folder_index,2.094979,0.0391,86.9,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T10:53:48.816705
+python,benchmarks,update_json_index,23.244687,171.0781,99.9,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T10:45:25.925514
+python,benchmarks,update_mongo_index,2.728211,0.0,0.4,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T11:02:22.644953
+java,benchmarks,build_postings,2.515563,1.3438,113.29,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T14:09:04.076166
+java,benchmarks,download_write_throughput,3.512002,103.8125,81.15,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T14:08:57.567950
+java,benchmarks,incremental_batch_based,0.004247,0.0117,0.0,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T14:08:53.535882
+java,benchmarks,incremental_book_based,0.011971,0.1875,250.6,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T14:08:51.701009
+java,benchmarks,incremental_time_based,0.013103,0.1016,152.63,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T14:08:49.674890
+java,benchmarks,load_json_index,12.820133,1919.3633,215.99,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T14:38:41.077201
+java,benchmarks,tokenize_books,3.938474,640.8945,171.89,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T14:09:01.532017
+java,benchmarks,update_folder_index,0.518756,0.0,177.35,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T15:08:35.003840
+java,benchmarks,update_json_index,21.999573,414.9258,215.78,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T14:39:03.327698
+java,benchmarks,update_mongo_index,2.818653,0.0781,7.45,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T15:39:19.624716
+java,benchmarks,write_throughput_batch_based,1.666571,10.4883,33.6,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T14:08:53.504578
+java,benchmarks,write_throughput_book_based,1.781707,77.8242,38.17,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T14:08:51.660117
+java,benchmarks,write_throughput_time_based,1.852296,94.7422,72.88,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T14:08:49.596442
+go,benchmarks,build_postings,0.562132,0.5625,100.41,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T10:05:42.969421
+go,benchmarks,download_write_throughput,3.83063,0.75,5.27,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T10:05:39.277957
+go,benchmarks,incremental_batch_based,0.000995,0.0,108.43,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T10:05:35.377494
+go,benchmarks,incremental_book_based,0.002073,0.0,103.6,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T10:05:33.479361
+go,benchmarks,incremental_time_based,0.000739,0.0,103.4,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T10:05:31.513472
+go,benchmarks,load_json_index,9.347979,764.8049,108.01,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T10:07:59.522658
+go,benchmarks,tokenize_books,3.075772,296.3477,109.46,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T10:05:42.378543
+go,benchmarks,update_folder_index,0.461606,0.0,110.05,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T10:11:26.636901
+go,benchmarks,update_json_index,20.599454,1343.2297,104.38,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T10:08:20.318666
+go,benchmarks,update_mongo_index,2.811195,0.0,0.21,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T10:14:06.816208
+go,benchmarks,write_throughput_batch_based,1.80062,0.0,35.13,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T10:05:35.342451
+go,benchmarks,write_throughput_book_based,1.827485,4.0,34.93,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T10:05:33.446391
+go,benchmarks,write_throughput_time_based,2.008554,17.6562,28.47,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T10:05:31.483423
+rust,benchmarks,build_postings,0.99575,13.8984,99.42,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T13:03:13.327618
+rust,benchmarks,download_write_throughput,7.671897,7.2812,1.17,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T13:03:09.630024
+rust,benchmarks,incremental_batch_based,0.000945,0.0,1058.43,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T13:03:01.910445
+rust,benchmarks,incremental_book_based,0.0021,0.0,0.0,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T13:03:00.512014
+rust,benchmarks,incremental_time_based,0.001654,0.0508,0.0,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T13:02:59.021889
+rust,benchmarks,load_json_index,3.637859,311.957,99.51,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T13:09:39.413332
+rust,benchmarks,tokenize_books,2.665678,276.4297,68.28,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T13:03:12.311268
+rust,benchmarks,update_folder_index,0.388485,0.0,100.39,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T13:16:34.875758
+rust,benchmarks,update_json_index,11.20221,361.0469,100.07,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T13:09:50.735270
+rust,benchmarks,update_mongo_index,3.6123,0.0547,14.95,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T13:23:06.851186
+rust,benchmarks,write_throughput_batch_based,1.320179,0.0,15.91,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T13:03:01.889066
+rust,benchmarks,write_throughput_book_based,1.388523,1.2383,19.45,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T13:03:00.490093
+rust,benchmarks,write_throughput_time_based,1.290587,3.3359,17.05,,,,,,,,,,,,,,,,,,,,,,,2026-10-02T13:02:58.996830
+python,disk_usage,Datalake: Batch-based,,,,/home/aythami/.cache/stage_1_benchmarks/datalake/batch_based,57.3831,200,3,Datalake,Batch-based,,,,,,,,,,,,,,,,,2026-10-02T10:39:20.866942
+python,disk_usage,Datalake: Book-based,,,,/home/aythami/.cache/stage_1_benchmarks/datalake/book_based,57.4017,300,100,Datalake,Book-based,,,,,,,,,,,,,,,,,2026-10-02T10:39:16.815578
+python,disk_usage,Datalake: Time-based,,,,/home/aythami/.cache/stage_1_benchmarks/datalake/time_based,57.3831,200,2,Datalake,Time-based,,,,,,,,,,,,,,,,,2026-10-02T10:39:12.234083
+python,disk_usage,Index: Folder,,,,/home/aythami/.cache/stage_1_benchmarks/index/inverted_index,442.3936,106479,26,Index,Folder,,,,,,,,,,,,,,,,,2026-10-02T10:53:50.753459
+python,disk_usage,Index: JSON file,,,,/home/aythami/.cache/stage_1_benchmarks/index/inverted_index.json,762.0826,1,0,Index,JSON file,,,,,,,,,,,,,,,,,2026-10-02T10:45:25.944063
+python,disk_usage,Index: MongoDB,,,,mongodb://localhost:27017/search_engine_benchmark.inverted_index,548.7383,0,0,Index,MongoDB,,,,,,,,,,,,,,,,,2026-10-02T11:02:22.666654
+python,disk_usage,Metadata: MongoDB,,,,mongodb://localhost:27017/search_engine_benchmark.books,0.2461,0,0,Metadata,MongoDB,,,,,,,,,,,,,,,,,2026-10-02T11:09:24.838331
+python,disk_usage,Metadata: PostgreSQL,,,,host=/var/run/postgresql dbname=bigdata,4.4766,0,0,Metadata,PostgreSQL,,,,,,,,,,,,,,,,,2026-10-02T11:07:02.012218
+python,disk_usage,Metadata: SQLite,,,,/home/aythami/.cache/stage_1_benchmarks/metadata/metadata_benchmark.db,2.0,1,0,Metadata,SQLite,,,,,,,,,,,,,,,,,2026-10-02T11:04:37.328752
+java,disk_usage,Datalake: Batch-based,,,,/home/aythami/.cache/stage_1_benchmarks/java/datalake/batch_based,58.6691,200,3,Datalake,Batch-based,,,,,,,,,,,,,,,,,2026-10-02T14:08:53.672404
+java,disk_usage,Datalake: Book-based,,,,/home/aythami/.cache/stage_1_benchmarks/java/datalake/book_based,58.6691,200,100,Datalake,Book-based,,,,,,,,,,,,,,,,,2026-10-02T14:08:51.827225
+java,disk_usage,Datalake: Time-based,,,,/home/aythami/.cache/stage_1_benchmarks/java/datalake/time_based,58.6691,200,2,Datalake,Time-based,,,,,,,,,,,,,,,,,2026-10-02T14:08:49.866923
+java,disk_usage,Index: Folder,,,,/home/aythami/.cache/stage_1_benchmarks/java/datamarts/inverted_index,442.3936,106479,26,Index,Folder,,,,,,,,,,,,,,,,,2026-10-02T15:08:35.541482
+java,disk_usage,Index: JSON file,,,,/home/aythami/.cache/stage_1_benchmarks/java/datamarts/inverted_index.json,762.0826,1,0,Index,JSON file,,,,,,,,,,,,,,,,,2026-10-02T14:39:03.335132
+java,disk_usage,Index: MongoDB,,,,mongodb://localhost:27017/search_engine_benchmark.inverted_index,544.8047,0,0,Index,MongoDB,,,,,,,,,,,,,,,,,2026-10-02T15:39:19.655703
+go,disk_usage,Datalake: Batch-based,,,,/home/aythami/.cache/stage_1_benchmarks/go/datalake/batch_based,58.6691,200,3,Datalake,Batch-based,,,,,,,,,,,,,,,,,2026-10-02T10:05:35.430782
+go,disk_usage,Datalake: Book-based,,,,/home/aythami/.cache/stage_1_benchmarks/go/datalake/book_based,58.6691,200,100,Datalake,Book-based,,,,,,,,,,,,,,,,,2026-10-02T10:05:33.522281
+go,disk_usage,Datalake: Time-based,,,,/home/aythami/.cache/stage_1_benchmarks/go/datalake/time_based,58.6691,200,2,Datalake,Time-based,,,,,,,,,,,,,,,,,2026-10-02T10:05:31.561929
+go,disk_usage,Index: Folder,,,,/home/aythami/.cache/stage_1_benchmarks/go/datamarts/inverted_index,442.3936,106479,26,Index,Folder,,,,,,,,,,,,,,,,,2026-10-02T10:11:27.184653
+go,disk_usage,Index: JSON file,,,,/home/aythami/.cache/stage_1_benchmarks/go/datamarts/inverted_index.json,762.0826,1,0,Index,JSON file,,,,,,,,,,,,,,,,,2026-10-02T10:08:20.331488
+go,disk_usage,Index: MongoDB,,,,mongodb://localhost:27017/search_engine_benchmark.inverted_index,548.7383,0,0,Index,MongoDB,,,,,,,,,,,,,,,,,2026-10-02T10:14:06.838319
+rust,disk_usage,Datalake: Batch-based,,,,/home/aythami/.cache/stage_1_benchmarks/rust/datalake/batch_based,58.6691,200,3,Datalake,Batch-based,,,,,,,,,,,,,,,,,2026-10-02T13:03:01.941880
+rust,disk_usage,Datalake: Book-based,,,,/home/aythami/.cache/stage_1_benchmarks/rust/datalake/book_based,58.6691,200,100,Datalake,Book-based,,,,,,,,,,,,,,,,,2026-10-02T13:03:00.547546
+rust,disk_usage,Datalake: Time-based,,,,/home/aythami/.cache/stage_1_benchmarks/rust/datalake/time_based,58.6691,200,2,Datalake,Time-based,,,,,,,,,,,,,,,,,2026-10-02T13:02:59.053099
+rust,disk_usage,Index: Folder,,,,/home/aythami/.cache/stage_1_benchmarks/rust/datamarts/inverted_index,442.3936,106479,26,Index,Folder,,,,,,,,,,,,,,,,,2026-10-02T13:16:35.419891
+rust,disk_usage,Index: JSON file,,,,/home/aythami/.cache/stage_1_benchmarks/rust/datamarts/inverted_index.json,762.0826,1,0,Index,JSON file,,,,,,,,,,,,,,,,,2026-10-02T13:09:50.741216
+rust,disk_usage,Index: MongoDB,,,,mongodb://localhost:27017/search_engine_benchmark.inverted_index,547.0508,0,0,Index,MongoDB,,,,,,,,,,,,,,,,,2026-10-02T13:23:06.862559
+python,recovery,recovery_batch_based,0.042879,,,,,,,,,100,50,50,0,0,0.002997,0.039856,True,,,,,,,,,2026-10-02T10:39:20.849660
+python,recovery,recovery_book_based,0.046029,,,,,,,,,100,50,50,0,0,0.005421,0.040577,True,,,,,,,,,2026-10-02T10:39:16.789857
+python,recovery,recovery_time_based,0.051034,,,,,,,,,100,50,50,0,0,0.002868,0.048124,True,,,,,,,,,2026-10-02T10:39:12.211334
+java,recovery,recovery_batch_based,0.119504,,,,,,,,,100,50,50,0,0,0.004,0.115504,True,,,,,,,,,2026-10-02T14:08:53.664571
+java,recovery,recovery_book_based,0.102423,,,,,,,,,100,50,50,0,0,0.010251,0.092172,True,,,,,,,,,2026-10-02T14:08:51.812797
+java,recovery,recovery_time_based,0.129248,,,,,,,,,100,50,50,0,0,0.007951,0.121297,True,,,,,,,,,2026-10-02T14:08:49.833235
+go,recovery,recovery_batch_based,0.023466,,,,,,,,,100,50,50,0,0,0.000726,0.022739,True,,,,,,,,,2026-10-02T10:05:35.418204
+go,recovery,recovery_book_based,0.01781,,,,,,,,,100,50,50,0,0,0.001776,0.016034,True,,,,,,,,,2026-10-02T10:05:33.512224
+go,recovery,recovery_time_based,0.025532,,,,,,,,,100,50,50,0,0,0.000841,0.024691,True,,,,,,,,,2026-10-02T10:05:31.553650
+rust,recovery,recovery_batch_based,0.016741,,,,,,,,,100,50,50,0,0,0.000986,0.015755,True,,,,,,,,,2026-10-02T13:03:01.934007
+rust,recovery,recovery_book_based,0.017758,,,,,,,,,100,50,50,0,0,0.00189,0.015868,True,,,,,,,,,2026-10-02T13:03:00.537162
+rust,recovery,recovery_time_based,0.017399,,,,,,,,,100,50,50,0,0,0.000948,0.016451,True,,,,,,,,,2026-10-02T13:02:59.045573
+python,scalability,build_folder_index,10.268325,74.9922,92.2,,,,,,,,,,,,,,,25,,,,,,,,2026-10-02T10:45:39.310716
+python,scalability,build_folder_index,17.157443,215.2617,81.6,,,,,,,,,,,,,,,50,,,,,,,,2026-10-02T10:45:56.486140
+python,scalability,build_folder_index,17.592857,1.1055,99.5,,,,,,,,,,,,,,,100,,,,,,,,2026-10-02T10:46:14.095052
+python,scalability,build_folder_index,20.357942,3.1719,99.8,,,,,,,,,,,,,,,250,,,,,,,,2026-10-02T10:46:34.469169
+python,scalability,build_folder_index,25.773721,0.7656,99.9,,,,,,,,,,,,,,,500,,,,,,,,2026-10-02T10:47:00.261668
+python,scalability,build_folder_index,35.21351,0.0,99.8,,,,,,,,,,,,,,,1000,,,,,,,,2026-10-02T10:47:35.495884
+python,scalability,build_folder_index,112.06887,0.0,100.0,,,,,,,,,,,,,,,5000,,,,,,,,2026-10-02T10:49:27.583066
+python,scalability,build_folder_index,258.686623,0.0,94.6,,,,,,,,,,,,,,,10000,,,,,,,,2026-10-02T10:53:46.303033
+python,scalability,build_json_index,0.533595,2.6758,97.3,,,,,,,,,,,,,,,25,,,,,,,,2026-10-02T10:39:34.005832
+python,scalability,build_json_index,0.801345,0.4805,98.5,,,,,,,,,,,,,,,50,,,,,,,,2026-10-02T10:39:34.822617
+python,scalability,build_json_index,1.527685,13.9453,98.8,,,,,,,,,,,,,,,100,,,,,,,,2026-10-02T10:39:36.365339
+python,scalability,build_json_index,3.785976,52.6406,99.6,,,,,,,,,,,,,,,250,,,,,,,,2026-10-02T10:39:40.167206
+python,scalability,build_json_index,7.838519,112.8516,99.6,,,,,,,,,,,,,,,500,,,,,,,,2026-10-02T10:39:48.022217
+python,scalability,build_json_index,17.863652,174.0547,99.8,,,,,,,,,,,,,,,1000,,,,,,,,2026-10-02T10:40:05.902333
+python,scalability,build_json_index,102.680418,13.6602,99.9,,,,,,,,,,,,,,,5000,,,,,,,,2026-10-02T10:41:48.605854
+python,scalability,build_json_index,183.347663,3.8242,100.0,,,,,,,,,,,,,,,10000,,,,,,,,2026-10-02T10:44:51.978791
+python,scalability,build_mongo_index,2.075025,2.3398,43.8,,,,,,,,,,,,,,,25,,,,,,,,2026-10-02T10:53:57.277505
+python,scalability,build_mongo_index,12.517788,507.9922,40.0,,,,,,,,,,,,,,,50,,,,,,,,2026-10-02T10:54:09.811074
+python,scalability,build_mongo_index,5.627012,3.1289,54.2,,,,,,,,,,,,,,,100,,,,,,,,2026-10-02T10:54:15.454699
+python,scalability,build_mongo_index,8.045672,1.9062,63.3,,,,,,,,,,,,,,,250,,,,,,,,2026-10-02T10:54:23.519729
+python,scalability,build_mongo_index,12.925899,3.8477,75.0,,,,,,,,,,,,,,,500,,,,,,,,2026-10-02T10:54:36.461681
+python,scalability,build_mongo_index,21.259564,0.1211,83.0,,,,,,,,,,,,,,,1000,,,,,,,,2026-10-02T10:54:57.735452
+python,scalability,build_mongo_index,96.716412,2.0977,94.1,,,,,,,,,,,,,,,5000,,,,,,,,2026-10-02T10:56:34.472562
+python,scalability,build_mongo_index,344.965677,0.0,61.2,,,,,,,,,,,,,,,10000,,,,,,,,2026-10-02T11:02:19.479073
+python,scalability,insert_mongo,0.126103,0.0,7.9,,,,,,,,,,,,,,,10,,,,,,,,2026-10-02T11:07:03.564924
+python,scalability,insert_mongo,1.310047,0.0,13.7,,,,,,,,,,,,,,,100,,,,,,,,2026-10-02T11:07:04.892124
+python,scalability,insert_mongo,12.987152,0.0781,13.2,,,,,,,,,,,,,,,1000,,,,,,,,2026-10-02T11:07:17.904173
+python,scalability,insert_mongo,126.857555,0.0,13.2,,,,,,,,,,,,,,,10000,,,,,,,,2026-10-02T11:09:24.818370
+python,scalability,insert_postgres,0.137616,0.0,14.5,,,,,,,,,,,,,,,10,,,,,,,,2026-10-02T11:04:39.011733
+python,scalability,insert_postgres,1.283574,0.0,14.0,,,,,,,,,,,,,,,100,,,,,,,,2026-10-02T11:04:40.311757
+python,scalability,insert_postgres,12.989178,0.0,13.2,,,,,,,,,,,,,,,1000,,,,,,,,2026-10-02T11:04:53.321268
+python,scalability,insert_postgres,128.612653,0.0039,13.0,,,,,,,,,,,,,,,10000,,,,,,,,2026-10-02T11:07:01.988054
+python,scalability,insert_sqlite,0.120552,0.0,8.3,,,,,,,,,,,,,,,10,,,,,,,,2026-10-02T11:02:28.986280
+python,scalability,insert_sqlite,1.133195,0.0,11.5,,,,,,,,,,,,,,,100,,,,,,,,2026-10-02T11:02:30.134009
+python,scalability,insert_sqlite,10.9983,0.0,11.9,,,,,,,,,,,,,,,1000,,,,,,,,2026-10-02T11:02:41.149690
+python,scalability,insert_sqlite,116.109794,0.0898,12.2,,,,,,,,,,,,,,,10000,,,,,,,,2026-10-02T11:04:37.313849
+java,scalability,build_folder_index,3.505214,1.0469,265.32,,,,,,,,,,,,,,,25,,,,,,,,2026-10-02T14:39:06.851438
+java,scalability,build_folder_index,6.424012,0.0,101.96,,,,,,,,,,,,,,,50,,,,,,,,2026-10-02T14:39:13.284387
+java,scalability,build_folder_index,7.914048,1.9805,103.23,,,,,,,,,,,,,,,100,,,,,,,,2026-10-02T14:39:21.209409
+java,scalability,build_folder_index,14.594255,0.0039,100.04,,,,,,,,,,,,,,,250,,,,,,,,2026-10-02T14:39:35.812916
+java,scalability,build_folder_index,29.378646,0.0,106.88,,,,,,,,,,,,,,,500,,,,,,,,2026-10-02T14:40:05.201575
+java,scalability,build_folder_index,61.0504,0.1445,104.95,,,,,,,,,,,,,,,1000,,,,,,,,2026-10-02T14:41:06.261648
+java,scalability,build_folder_index,473.321739,18.3828,104.38,,,,,,,,,,,,,,,5000,,,,,,,,2026-10-02T14:48:59.593763
+java,scalability,build_folder_index,1174.424879,0.0,104.42,,,,,,,,,,,,,,,10000,,,,,,,,2026-10-02T15:08:34.031233
+java,scalability,build_json_index,0.505047,0.8047,166.32,,,,,,,,,,,,,,,25,,,,,,,,2026-10-02T14:09:05.818653
+java,scalability,build_json_index,0.978778,21.5625,145.08,,,,,,,,,,,,,,,50,,,,,,,,2026-10-02T14:09:06.807985
+java,scalability,build_json_index,2.573964,0.0,101.4,,,,,,,,,,,,,,,100,,,,,,,,2026-10-02T14:09:09.392356
+java,scalability,build_json_index,8.98459,53.2969,129.44,,,,,,,,,,,,,,,250,,,,,,,,2026-10-02T14:09:18.387987
+java,scalability,build_json_index,25.087198,88.7383,115.24,,,,,,,,,,,,,,,500,,,,,,,,2026-10-02T14:09:43.485721
+java,scalability,build_json_index,54.547189,142.7188,113.53,,,,,,,,,,,,,,,1000,,,,,,,,2026-10-02T14:10:38.043039
+java,scalability,build_json_index,488.892656,1600.6641,107.57,,,,,,,,,,,,,,,5000,,,,,,,,2026-10-02T14:18:46.947438
+java,scalability,build_json_index,1181.271623,0.0,104.29,,,,,,,,,,,,,,,10000,,,,,,,,2026-10-02T14:38:28.235646
+java,scalability,build_mongo_index,2.87047,24.8828,115.31,,,,,,,,,,,,,,,25,,,,,,,,2026-10-02T15:08:50.873623
+java,scalability,build_mongo_index,4.081342,0.0859,40.67,,,,,,,,,,,,,,,50,,,,,,,,2026-10-02T15:08:54.963665
+java,scalability,build_mongo_index,5.913234,0.0313,54.96,,,,,,,,,,,,,,,100,,,,,,,,2026-10-02T15:09:00.886033
+java,scalability,build_mongo_index,13.013771,0.0781,80.07,,,,,,,,,,,,,,,250,,,,,,,,2026-10-02T15:09:13.910373
+java,scalability,build_mongo_index,28.010513,0.4063,94.64,,,,,,,,,,,,,,,500,,,,,,,,2026-10-02T15:09:41.929975
+java,scalability,build_mongo_index,67.632929,0.0,101.74,,,,,,,,,,,,,,,1000,,,,,,,,2026-10-02T15:10:49.573689
+java,scalability,build_mongo_index,491.558712,793.3438,104.27,,,,,,,,,,,,,,,5000,,,,,,,,2026-10-02T15:19:01.143257
+java,scalability,build_mongo_index,1214.737608,254.7813,103.77,,,,,,,,,,,,,,,10000,,,,,,,,2026-10-02T15:39:15.894422
+go,scalability,build_folder_index,3.415306,52.8242,100.14,,,,,,,,,,,,,,,25,,,,,,,,2026-10-02T10:08:26.449131
+go,scalability,build_folder_index,5.565852,61.0664,103.71,,,,,,,,,,,,,,,50,,,,,,,,2026-10-02T10:08:32.022354
+go,scalability,build_folder_index,7.087571,93.3164,101.93,,,,,,,,,,,,,,,100,,,,,,,,2026-10-02T10:08:39.116971
+go,scalability,build_folder_index,8.787528,142.8828,102.55,,,,,,,,,,,,,,,250,,,,,,,,2026-10-02T10:08:47.912335
+go,scalability,build_folder_index,10.559194,220.0157,102.18,,,,,,,,,,,,,,,500,,,,,,,,2026-10-02T10:08:58.478863
+go,scalability,build_folder_index,17.539706,366.7696,104.67,,,,,,,,,,,,,,,1000,,,,,,,,2026-10-02T10:09:16.025743
+go,scalability,build_folder_index,44.24955,4.0703,103.71,,,,,,,,,,,,,,,5000,,,,,,,,2026-10-02T10:10:00.281741
+go,scalability,build_folder_index,85.525072,0.0,102.81,,,,,,,,,,,,,,,10000,,,,,,,,2026-10-02T10:11:25.814708
+go,scalability,build_json_index,0.158886,0.0625,100.96,,,,,,,,,,,,,,,25,,,,,,,,2026-10-02T10:05:43.203295
+go,scalability,build_json_index,0.329869,16.3125,100.49,,,,,,,,,,,,,,,50,,,,,,,,2026-10-02T10:05:43.541015
+go,scalability,build_json_index,0.727416,48.7539,100.25,,,,,,,,,,,,,,,100,,,,,,,,2026-10-02T10:05:44.275593
+go,scalability,build_json_index,1.66941,16.9062,120.72,,,,,,,,,,,,,,,250,,,,,,,,2026-10-02T10:05:45.952945
+go,scalability,build_json_index,3.324584,23.8672,110.86,,,,,,,,,,,,,,,500,,,,,,,,2026-10-02T10:05:49.285464
+go,scalability,build_json_index,6.7649,80.0547,105.75,,,,,,,,,,,,,,,1000,,,,,,,,2026-10-02T10:05:56.058835
+go,scalability,build_json_index,36.669632,486.1144,103.52,,,,,,,,,,,,,,,5000,,,,,,,,2026-10-02T10:06:32.737128
+go,scalability,build_json_index,77.416057,733.8991,103.92,,,,,,,,,,,,,,,10000,,,,,,,,2026-10-02T10:07:50.161794
+go,scalability,build_mongo_index,1.326096,0.0,27.16,,,,,,,,,,,,,,,25,,,,,,,,2026-10-02T10:11:28.539180
+go,scalability,build_mongo_index,2.534037,0.0,19.53,,,,,,,,,,,,,,,50,,,,,,,,2026-10-02T10:11:31.080883
+go,scalability,build_mongo_index,3.425846,0.0,24.41,,,,,,,,,,,,,,,100,,,,,,,,2026-10-02T10:11:34.513829
+go,scalability,build_mongo_index,5.023861,0.0,38.35,,,,,,,,,,,,,,,250,,,,,,,,2026-10-02T10:11:39.545056
+go,scalability,build_mongo_index,7.026956,0.0078,61.12,,,,,,,,,,,,,,,500,,,,,,,,2026-10-02T10:11:46.581216
+go,scalability,build_mongo_index,10.442974,0.0078,72.87,,,,,,,,,,,,,,,1000,,,,,,,,2026-10-02T10:11:57.031995
+go,scalability,build_mongo_index,41.898648,0.0,91.5,,,,,,,,,,,,,,,5000,,,,,,,,2026-10-02T10:12:38.938283
+go,scalability,build_mongo_index,84.315763,0.0078,94.12,,,,,,,,,,,,,,,10000,,,,,,,,2026-10-02T10:14:03.261673
+rust,scalability,build_folder_index,3.133176,2.6016,98.3,,,,,,,,,,,,,,,25,,,,,,,,2026-10-02T13:09:56.547715
+rust,scalability,build_folder_index,4.413859,0.4883,99.01,,,,,,,,,,,,,,,50,,,,,,,,2026-10-02T13:10:00.969479
+rust,scalability,build_folder_index,6.480244,0.8398,100.3,,,,,,,,,,,,,,,100,,,,,,,,2026-10-02T13:10:07.457670
+rust,scalability,build_folder_index,8.278121,1.5742,99.9,,,,,,,,,,,,,,,250,,,,,,,,2026-10-02T13:10:15.742992
+rust,scalability,build_folder_index,11.442903,2.3398,99.36,,,,,,,,,,,,,,,500,,,,,,,,2026-10-02T13:10:27.193896
+rust,scalability,build_folder_index,19.725891,3.0586,99.92,,,,,,,,,,,,,,,1000,,,,,,,,2026-10-02T13:10:46.927402
+rust,scalability,build_folder_index,108.545784,15.8672,100.05,,,,,,,,,,,,,,,5000,,,,,,,,2026-10-02T13:12:35.481186
+rust,scalability,build_folder_index,238.833686,5.3398,100.07,,,,,,,,,,,,,,,10000,,,,,,,,2026-10-02T13:16:34.323756
+rust,scalability,build_json_index,0.269831,0.0,96.36,,,,,,,,,,,,,,,25,,,,,,,,2026-10-02T13:03:13.668460
+rust,scalability,build_json_index,0.54628,0.0,100.68,,,,,,,,,,,,,,,50,,,,,,,,2026-10-02T13:03:14.223144
+rust,scalability,build_json_index,1.123087,0.0,100.62,,,,,,,,,,,,,,,100,,,,,,,,2026-10-02T13:03:15.354353
+rust,scalability,build_json_index,3.055178,24.1406,100.16,,,,,,,,,,,,,,,250,,,,,,,,2026-10-02T13:03:18.417622
+rust,scalability,build_json_index,6.615677,19.4492,100.07,,,,,,,,,,,,,,,500,,,,,,,,2026-10-02T13:03:25.041657
+rust,scalability,build_json_index,14.892141,19.9062,100.05,,,,,,,,,,,,,,,1000,,,,,,,,2026-10-02T13:03:39.941642
+rust,scalability,build_json_index,103.915969,0.0,100.09,,,,,,,,,,,,,,,5000,,,,,,,,2026-10-02T13:05:23.866200
+rust,scalability,build_json_index,251.81694,0.0156,100.08,,,,,,,,,,,,,,,10000,,,,,,,,2026-10-02T13:09:35.691616
+rust,scalability,build_mongo_index,1.334873,0.1523,32.21,,,,,,,,,,,,,,,25,,,,,,,,2026-10-02T13:16:36.769676
+rust,scalability,build_mongo_index,2.741888,0.0039,25.53,,,,,,,,,,,,,,,50,,,,,,,,2026-10-02T13:16:39.519943
+rust,scalability,build_mongo_index,3.967495,0.0,33.02,,,,,,,,,,,,,,,100,,,,,,,,2026-10-02T13:16:43.495423
+rust,scalability,build_mongo_index,6.146146,0.0,51.58,,,,,,,,,,,,,,,250,,,,,,,,2026-10-02T13:16:49.649177
+rust,scalability,build_mongo_index,9.88575,0.0,67.57,,,,,,,,,,,,,,,500,,,,,,,,2026-10-02T13:16:59.542796
+rust,scalability,build_mongo_index,18.159196,0.1289,81.12,,,,,,,,,,,,,,,1000,,,,,,,,2026-10-02T13:17:17.709387
+rust,scalability,build_mongo_index,105.513042,24.6719,95.32,,,,,,,,,,,,,,,5000,,,,,,,,2026-10-02T13:19:03.230971
+rust,scalability,build_mongo_index,239.292639,0.0,97.21,,,,,,,,,,,,,,,10000,,,,,,,,2026-10-02T13:23:02.531610
+python,statistics,lookup_batch_based,,,,,,,,,,,,,,,,,,,100,3.6e-05,1.5e-05,3.1e-05,0.000137,,,2026-10-02T10:39:20.770804
+python,statistics,lookup_book_based,,,,,,,,,,,,,,,,,,,100,4e-05,1.8e-05,3.2e-05,0.000156,,,2026-10-02T10:39:16.698183
+python,statistics,lookup_time_based,,,,,,,,,,,,,,,,,,,100,0.000133,7.3e-05,7.9e-05,0.00046,,,2026-10-02T10:39:12.119801
+python,statistics,query_author_sqlite,,,,,,,,,,,,,,,,,,,100,0.000402,0.00013,0.000331,0.001449,,,2026-10-02T11:02:28.767071
+python,statistics,query_folder_index,,,,,,,,,,,,,,,,,,,90,0.00414,0.00372,6.5e-05,0.01517,,,2026-10-02T10:53:46.697614
+python,statistics,query_id_sqlite,,,,,,,,,,,,,,,,,,,100,0.000217,3.2e-05,0.000191,0.000366,,,2026-10-02T11:02:28.803845
+python,statistics,query_json_index,,,,,,,,,,,,,,,,,,,90,0.000797,0.000802,1e-06,0.002823,,,2026-10-02T10:45:02.610624
+python,statistics,query_mongo_index,,,,,,,,,,,,,,,,,,,90,0.003761,0.006886,0.000606,0.065572,,,2026-10-02T11:02:19.900606
+python,statistics,query_path_sqlite,,,,,,,,,,,,,,,,,,,100,0.000287,3.4e-05,0.000256,0.000409,,,2026-10-02T11:02:28.849257
+java,statistics,lookup_batch_based,,,,,,,,,,,,,,,,,,,100,2.1e-05,6.1e-05,1e-05,0.000619,,,2026-10-02T14:08:53.522964
+java,statistics,lookup_book_based,,,,,,,,,,,,,,,,,,,100,2.3e-05,9.3e-05,9e-06,0.00094,,,2026-10-02T14:08:51.679317
+java,statistics,lookup_time_based,,,,,,,,,,,,,,,,,,,100,0.000284,0.00099,0.000109,0.010056,,,2026-10-02T14:08:49.650633
+java,statistics,query_folder_index,,,,,,,,,,,,,,,,,,,150,0.002914,0.003927,1.2e-05,0.031391,,,2026-10-02T15:08:34.477173
+java,statistics,query_json_index,,,,,,,,,,,,,,,,,,,150,0.001501,0.002073,5e-06,0.019983,,,2026-10-02T14:38:41.313069
+java,statistics,query_mongo_index,,,,,,,,,,,,,,,,,,,150,0.005952,0.013614,0.000906,0.165015,,,2026-10-02T15:39:16.797035
+go,statistics,lookup_batch_based,,,,,,,,,,,,,,,,,,,100,1.3e-05,1.3e-05,6e-06,0.000105,,,2026-10-02T10:05:35.368135
+go,statistics,lookup_book_based,,,,,,,,,,,,,,,,,,,100,7e-06,3e-06,6e-06,2.5e-05,,,2026-10-02T10:05:33.470446
+go,statistics,lookup_time_based,,,,,,,,,,,,,,,,,,,100,2.4e-05,1e-05,2.1e-05,9.6e-05,,,2026-10-02T10:05:31.506333
+go,statistics,query_folder_index,,,,,,,,,,,,,,,,,,,150,0.002222,0.002129,9e-06,0.00832,,,2026-10-02T10:11:26.156201
+go,statistics,query_json_index,,,,,,,,,,,,,,,,,,,150,0.001156,0.00112,1e-06,0.003542,,,2026-10-02T10:07:59.711052
+go,statistics,query_mongo_index,,,,,,,,,,,,,,,,,,,150,0.004853,0.003919,0.00052,0.014923,,,2026-10-02T10:14:03.997088
+rust,statistics,lookup_batch_based,,,,,,,,,,,,,,,,,,,100,6e-06,3e-06,5e-06,3.6e-05,,,2026-10-02T13:03:01.902606
+rust,statistics,lookup_book_based,,,,,,,,,,,,,,,,,,,100,5e-06,2e-06,5e-06,2.3e-05,,,2026-10-02T13:03:00.503701
+rust,statistics,lookup_time_based,,,,,,,,,,,,,,,,,,,100,1.9e-05,7e-06,1.7e-05,7.3e-05,,,2026-10-02T13:02:59.012223
+rust,statistics,query_folder_index,,,,,,,,,,,,,,,,,,,150,0.000994,0.000966,5e-06,0.00355,,,2026-10-02T13:16:34.480025
+rust,statistics,query_json_index,,,,,,,,,,,,,,,,,,,150,0.000705,0.000725,0.0,0.00288,,,2026-10-02T13:09:39.526056
+rust,statistics,query_mongo_index,,,,,,,,,,,,,,,,,,,150,0.004594,0.003498,0.000645,0.014807,,,2026-10-02T13:23:03.228177
+python,throughput,download_write_throughput,6.64957,,,,,,,,,,,,,,,,,,,,,,,10,1.5039,2026-10-02T10:39:27.533797
+python,throughput,insert_throughput_mongo,1.300504,,,,,,,,,,,,,,,,,,,,,,,100,76.8933,2026-10-02T11:07:03.405926
+python,throughput,insert_throughput_postgres,1.33345,,,,,,,,,,,,,,,,,,,,,,,100,74.9935,2026-10-02T11:04:38.837791
+python,throughput,insert_throughput_sqlite,1.109112,,,,,,,,,,,,,,,,,,,,,,,100,90.1622,2026-10-02T11:02:28.694499
+python,throughput,write_throughput_batch_based,3.903762,,,,,,,,,,,,,,,,,,,,,,,100,25.6163,2026-10-02T10:39:20.749884
+python,throughput,write_throughput_book_based,4.364618,,,,,,,,,,,,,,,,,,,,,,,100,22.9115,2026-10-02T10:39:16.676861
+python,throughput,write_throughput_time_based,3.86939,,,,,,,,,,,,,,,,,,,,,,,100,25.8439,2026-10-02T10:39:12.087459
+java,throughput,download_write_throughput,3.512002,,,,,,,,,,,,,,,,,,,,,,,10,2.8474,2026-10-02T14:08:57.575444
+java,throughput,tokenize_books,3.938474,,,,,,,,,,,,,,,,,,,,,,,100,25.3905,2026-10-02T14:09:01.544632
+java,throughput,write_throughput_batch_based,1.666571,,,,,,,,,,,,,,,,,,,,,,,100,60.0034,2026-10-02T14:08:53.512312
+java,throughput,write_throughput_book_based,1.781707,,,,,,,,,,,,,,,,,,,,,,,100,56.126,2026-10-02T14:08:51.668205
+java,throughput,write_throughput_time_based,1.852296,,,,,,,,,,,,,,,,,,,,,,,100,53.987,2026-10-02T14:08:49.604542
+go,throughput,download_write_throughput,3.83063,,,,,,,,,,,,,,,,,,,,,,,10,2.6105,2026-10-02T10:05:39.294643
+go,throughput,tokenize_books,3.075772,,,,,,,,,,,,,,,,,,,,,,,100,32.5122,2026-10-02T10:05:42.399027
+go,throughput,write_throughput_batch_based,1.80062,,,,,,,,,,,,,,,,,,,,,,,100,55.5364,2026-10-02T10:05:35.358530
+go,throughput,write_throughput_book_based,1.827485,,,,,,,,,,,,,,,,,,,,,,,100,54.72,2026-10-02T10:05:33.462614
+go,throughput,write_throughput_time_based,2.008554,,,,,,,,,,,,,,,,,,,,,,,100,49.7871,2026-10-02T10:05:31.497029
+rust,throughput,download_write_throughput,7.671897,,,,,,,,,,,,,,,,,,,,,,,10,1.3035,2026-10-02T13:03:09.636952
+rust,throughput,tokenize_books,2.665678,,,,,,,,,,,,,,,,,,,,,,,100,37.5139,2026-10-02T13:03:12.324015
+rust,throughput,write_throughput_batch_based,1.320179,,,,,,,,,,,,,,,,,,,,,,,100,75.7473,2026-10-02T13:03:01.895143
+rust,throughput,write_throughput_book_based,1.388523,,,,,,,,,,,,,,,,,,,,,,,100,72.019,2026-10-02T13:03:00.496343
+rust,throughput,write_throughput_time_based,1.290587,,,,,,,,,,,,,,,,,,,,,,,100,77.4841,2026-10-02T13:02:59.003851
