@@ -1,3 +1,4 @@
+use search_engine_bench::benchmark::equivalence;
 use search_engine_bench::inverted_index::corpus;
 use search_engine_bench::inverted_index::json_index::{self, InvertedIndex};
 use search_engine_bench::inverted_index::postings;
@@ -17,6 +18,12 @@ fn run() -> Result<(), Box<dyn Error>> {
     match args.get(1).map(String::as_str) {
         Some("build") if args.len() == 4 => build_index(&args[2], &args[3]),
         Some("query") if args.len() >= 4 => query_terms(&args[2], &args[3..]),
+        Some("equivalence") if args.len() == 6 => equivalence::run(
+            Path::new(&args[2]),
+            Path::new(&args[3]),
+            Path::new(&args[4]),
+            Path::new(&args[5]),
+        ),
         _ => Err(usage().into()),
     }
 }
@@ -41,5 +48,5 @@ fn query_terms(index_path: &str, terms: &[String]) -> Result<(), Box<dyn Error>>
 }
 
 fn usage() -> &'static str {
-    "Usage: index_rust build <bodies_dir> <output_json>\n       index_rust query <index_json> <term>..."
+    "Usage: index_rust build <bodies_dir> <output_json>\n       index_rust query <index_json> <term>...\n       index_rust equivalence <bodies_dir> <book_ids_file> <queries_file> <output_file>"
 }

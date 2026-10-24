@@ -27,6 +27,7 @@ import (
 
 const usage = `Usage: search_engine_bench build <bodies_dir> <output_json>
        search_engine_bench query <index_json> <term>...
+       search_engine_bench equivalence <bodies_dir> <book_ids_file> <queries_file> <output_file>
        search_engine_bench bench [flags]`
 
 func main() {
@@ -44,6 +45,8 @@ func run(args []string) error {
 		return queryJSONIndex(args[1], args[2:])
 	case len(args) >= 1 && args[0] == "bench":
 		return runBenchmark(args[1:])
+	case len(args) == 5 && args[0] == "equivalence":
+		return benchmark.RunEquivalence(args[1], args[2], args[3], args[4])
 	default:
 		return errors.New(usage)
 	}

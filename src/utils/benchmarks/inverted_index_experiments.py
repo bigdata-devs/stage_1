@@ -17,6 +17,7 @@ from src.utils.benchmarks import (
 from src.utils.benchmarks import data_source
 from src.utils.benchmarks.artifacts import ARTIFACT_ROOT, BENCHMARK_MONGO_DATABASE
 from src.utils.benchmarks.logging_setup import configure_logging
+from src.utils.benchmarks.queries import load_queries
 from src.utils.body_files import read_book_body
 from src.utils.text_processor import process_text
 from src.datamarts.inverted_index import json_index, folder_index
@@ -109,14 +110,7 @@ def matching_documents(structure, terms):
     return sorted(matched)
 
 def load_shared_queries():
-    queries = []
-    for line in QUERIES_PATH.read_text(encoding="utf-8").splitlines():
-        terms = line.partition("#")[0].split()
-        if terms:
-            queries.append(terms)
-    if not queries:
-        raise RuntimeError(f"{QUERIES_PATH} must define at least one query")
-    return queries
+    return load_queries(QUERIES_PATH)
 
 def measure_update(structure, books):
     new_book_id = max(books) + 1
