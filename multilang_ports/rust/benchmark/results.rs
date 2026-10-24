@@ -121,6 +121,37 @@ impl ResultsWriter {
         )
     }
 
+    pub fn save_updates(
+        &self,
+        test_name: &str,
+        base_size: usize,
+        aggregate: &BuildAggregate,
+    ) -> BenchResult<()> {
+        self.append_timestamped_row(
+            "updates.csv",
+            &[
+                "test_name",
+                "base_size",
+                "elapsed_seconds",
+                "stdev_seconds",
+                "repetitions",
+                "memory_mb",
+                "cpu_percent",
+                "peak_rss_mb",
+            ],
+            vec![
+                test_name.to_string(),
+                base_size.to_string(),
+                format!("{:.6}", aggregate.elapsed_seconds),
+                format!("{:.6}", aggregate.stdev_seconds),
+                aggregate.repetitions.to_string(),
+                format!("{:.4}", aggregate.memory_mb),
+                format!("{:.2}", aggregate.cpu_percent),
+                format!("{:.4}", aggregate.peak_rss_mb),
+            ],
+        )
+    }
+
     pub fn save_recovery(&self, test_name: &str, report: &RecoveryReport) -> BenchResult<()> {
         self.append_timestamped_row(
             "recovery.csv",
@@ -297,6 +328,9 @@ mod tests {
             .save_scalability("build_json_index", 25, &build_aggregate())
             .unwrap();
         writer
+            .save_updates("update_json_index", 25, &build_aggregate())
+            .unwrap();
+        writer
             .save_recovery(
                 "recovery_book_based",
                 &RecoveryReport {
@@ -318,6 +352,9 @@ mod tests {
         let scalability = fs::read_to_string(dir.join("scalability.csv")).unwrap();
         assert!(scalability
             .contains("build_json_index,25,1.000000,0.250000,5,12.5000,33.33,40.1250,"));
+        let updates = fs::read_to_string(dir.join("updates.csv")).unwrap();
+        assert!(updates
+            .contains("update_json_index,25,1.000000,0.250000,5,12.5000,33.33,40.1250,"));
         let recovery = fs::read_to_string(dir.join("recovery.csv")).unwrap();
         assert!(recovery.contains("recovery_book_based,100,50,50,0,0,0.005000,0.007000,0.012000,"));
         fs::remove_dir_all(&dir).unwrap();

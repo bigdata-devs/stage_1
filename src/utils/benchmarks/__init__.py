@@ -11,6 +11,7 @@ from src.utils.benchmarks.storage import (
     save_disk_usage,
     save_throughput,
     save_scalability,
+    save_updates,
     save_recovery,
     save_statistics,
 )

@@ -49,6 +49,21 @@ def save_scalability(stats):
         f"{stats['peak_rss_mb']:.4f}",
     ])
 
+def save_updates(stats):
+    append_timestamped_row("updates.csv", [
+        "test_name", "base_size", "elapsed_seconds", "stdev_seconds", "repetitions",
+        "memory_mb", "cpu_percent", "peak_rss_mb",
+    ], [
+        stats["test_name"],
+        stats["base_size"],
+        f"{stats['elapsed_seconds']:.6f}",
+        f"{stats['stdev_seconds']:.6f}",
+        stats["repetitions"],
+        f"{stats['memory_mb']:.4f}",
+        f"{stats['cpu_percent']:.2f}",
+        f"{stats['peak_rss_mb']:.4f}",
+    ])
+
 def save_recovery(stats):
     append_timestamped_row("recovery.csv", [
         "test_name", "total_books", "processed_before_interruption",

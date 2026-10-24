@@ -56,6 +56,7 @@ final class IndexBenchmark {
         suite.recordQueryStatistics("query_" + structure.name(), runQueryWorkload(structure));
         structure.releaseQueryCache();
         measureStructureUpdate(structure, books);
+        measureStructureUpdateScaling(structure, books);
         measureStructureStorage(structure);
     }
 
@@ -104,6 +105,37 @@ final class IndexBenchmark {
         int newBookId = books.get(books.size() - 1).id() + 1;
         List<String> tokens = books.get(0).tokens();
         suite.measure("update_" + structure.name(), () -> structure.addBook(newBookId, tokens));
+    }
+
+    /** updateBaseSizes sweeps the base index size of the isolated update
+     * experiment, mirroring UPDATE_BASE_SIZES in the Python suite. */
+    static final int[] UPDATE_BASE_SIZES = {25, 50, 250, 500, 1000};
+
+    /** updateRepetitions bounds the runtime of the isolated update experiment. */
+    static final int UPDATE_REPETITIONS = 5;
+
+    /**
+     * measureStructureUpdateScaling isolates the incremental update cost: it
+     * builds a base index of a given size (untimed), then times repeated
+     * single-book additions on top of it, mirroring measure_update_scaling().
+     */
+    private void measureStructureUpdateScaling(IndexStructure structure, List<TokenizedBook> books)
+            throws IOException {
+        List<String> tokens = books.get(0).tokens();
+        for (int baseSize : UPDATE_BASE_SIZES) {
+            structure.build(buildSubset(books, baseSize));
+            List<Measurement> samples = new ArrayList<>(UPDATE_REPETITIONS);
+            for (int offset = 0; offset < UPDATE_REPETITIONS; offset++) {
+                int bookId = SYNTHETIC_BOOK_ID_BASE + baseSize * 100 + offset;
+                samples.add(Measure.measure("update_" + structure.name(),
+                    () -> structure.addBook(bookId, tokens)));
+            }
+            BuildAggregate aggregate = BuildAggregate.of(samples);
+            Log.line("[update_%s] base %d books: %.4fs mean over %d repetitions (stdev %.4fs)",
+                structure.name(), baseSize, aggregate.elapsedSeconds(), aggregate.repetitions(),
+                aggregate.stdevSeconds());
+            suite.results().saveUpdates("update_" + structure.name(), baseSize, aggregate);
+        }
     }
 
     private void measureStructureStorage(IndexStructure structure) throws IOException {

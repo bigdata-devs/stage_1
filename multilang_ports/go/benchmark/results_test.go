@@ -31,6 +31,26 @@ func TestResultsWriterWritesPythonCompatibleScalabilityRow(t *testing.T) {
 	}
 }
 
+func TestResultsWriterWritesPythonCompatibleUpdatesRow(t *testing.T) {
+	writer := ResultsWriter{Dir: t.TempDir()}
+	aggregate := BuildAggregate{
+		ElapsedSeconds: 0.5, StdevSeconds: 0.05, Repetitions: 5,
+		MemoryMB: 1.5, CPUPercent: 99.456, PeakRSSMB: 20.125,
+	}
+	if err := writer.SaveUpdates("update_json_index", 25, aggregate); err != nil {
+		t.Fatal(err)
+	}
+	content, _ := os.ReadFile(filepath.Join(writer.Dir, "updates.csv"))
+	lines := strings.Split(strings.TrimSuffix(string(content), "\r\n"), "\r\n")
+	if len(lines) != 2 ||
+		lines[0] != "test_name,base_size,elapsed_seconds,stdev_seconds,repetitions,memory_mb,cpu_percent,peak_rss_mb,timestamp" {
+		t.Fatalf("unexpected CSV:\n%s", content)
+	}
+	if !strings.HasPrefix(lines[1], "update_json_index,25,0.500000,0.050000,5,1.5000,99.46,20.1250,") {
+		t.Fatalf("unexpected row %q", lines[1])
+	}
+}
+
 func TestResultsWriterWritesPythonCompatibleRecoveryRow(t *testing.T) {
 	writer := ResultsWriter{Dir: t.TempDir()}
 	report := RecoveryReport{

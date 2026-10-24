@@ -74,6 +74,8 @@ class ResultsWriterTest {
         results.saveThroughput("write_throughput_book_based", 100, Duration.ofSeconds(5), 20.5);
         results.saveScalability("build_json_index", 25,
             new BuildAggregate(1.0, 0.25, 5, 2.0, 10.0, 40.125));
+        results.saveUpdates("update_json_index", 25,
+            new BuildAggregate(1.0, 0.25, 5, 2.0, 10.0, 40.125));
 
         String recovery = Files.readString(dir.resolve("recovery.csv"), StandardCharsets.UTF_8);
         assertTrue(recovery.contains(
@@ -82,5 +84,7 @@ class ResultsWriterTest {
         assertTrue(throughput.contains("write_throughput_book_based,100,5.000000,20.5000,"));
         String scalability = Files.readString(dir.resolve("scalability.csv"), StandardCharsets.UTF_8);
         assertTrue(scalability.contains("build_json_index,25,1.000000,0.250000,5,2.0000,10.00,40.1250,"));
+        String updates = Files.readString(dir.resolve("updates.csv"), StandardCharsets.UTF_8);
+        assertTrue(updates.contains("update_json_index,25,1.000000,0.250000,5,2.0000,10.00,40.1250,"));
     }
 }

@@ -10,6 +10,7 @@ from src.utils.benchmarks import (
     measure_disk_usage,
     calculate_statistics,
     save_scalability,
+    save_updates,
     save_result,
     save_statistics,
     save_disk_usage,
@@ -31,6 +32,8 @@ BUILD_REPETITIONS_SCHEDULE = ((1000, 5), (5000, 3))
 DEFAULT_BUILD_REPETITIONS = 2
 QUERY_SAMPLE_TARGET = 100
 SYNTHETIC_BOOK_ID_BASE = 900000
+UPDATE_BASE_SIZES = (25, 50, 250, 500, 1000)
+UPDATE_REPETITIONS = 5
 
 def run():
     books = load_tokenized_books()
@@ -55,6 +58,7 @@ def run_structure_experiments(structure, books, queries):
     structure.prepare_query()
     measure_query_performance(structure, queries)
     measure_update(structure, books)
+    measure_update_scaling(structure, books)
     measure_storage_overhead(structure)
 
 def measure_build(structure, books, batch_size):
@@ -122,6 +126,25 @@ def measure_update(structure, books):
         "memory_mb": measurement.memory_mb,
         "cpu_percent": measurement.cpu_percent,
     })
+
+def measure_update_scaling(structure, books):
+    """Isolates the incremental update cost: builds a base index of a given
+    size (untimed), then times repeated single-book additions on top of it, so
+    the report can show how each structure scales as the index grows."""
+    tokens = next(iter(books.values()))
+    for base_size in UPDATE_BASE_SIZES:
+        structure.build_and_save(build_subset(books, base_size))
+        samples = [
+            measure_operation(
+                lambda offset=offset: structure.add_book(
+                    SYNTHETIC_BOOK_ID_BASE + base_size * 100 + offset, tokens))
+            for offset in range(UPDATE_REPETITIONS)
+        ]
+        save_updates({
+            "test_name": f"update_{structure.name}",
+            "base_size": base_size,
+            **aggregate_scalability(samples),
+        })
 
 def measure_storage_overhead(structure):
     save_disk_usage(structure.storage_usage())

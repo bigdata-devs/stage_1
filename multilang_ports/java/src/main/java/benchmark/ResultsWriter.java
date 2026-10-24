@@ -62,6 +62,16 @@ public final class ResultsWriter {
                 format(aggregate.peakRssMb(), 4)));
     }
 
+    public void saveUpdates(String testName, int baseSize, BuildAggregate aggregate) throws IOException {
+        appendTimestampedRow("updates.csv",
+            List.of("test_name", "base_size", "elapsed_seconds", "stdev_seconds", "repetitions",
+                "memory_mb", "cpu_percent", "peak_rss_mb"),
+            List.of(testName, Integer.toString(baseSize), format(aggregate.elapsedSeconds(), 6),
+                format(aggregate.stdevSeconds(), 6), Integer.toString(aggregate.repetitions()),
+                format(aggregate.memoryMb(), 4), format(aggregate.cpuPercent(), 2),
+                format(aggregate.peakRssMb(), 4)));
+    }
+
     public void saveRecovery(String testName, RecoveryReport report) throws IOException {
         appendTimestampedRow("recovery.csv",
             List.of("test_name", "total_books", "processed_before_interruption", "processed_after_resume",

@@ -77,6 +77,9 @@ func (suite Suite) runStructureExperiments(structure indexStructure, books []dat
 	if err := suite.measureStructureUpdate(structure, books); err != nil {
 		return err
 	}
+	if err := suite.measureStructureUpdateScaling(structure, books); err != nil {
+		return err
+	}
 	return suite.measureStructureStorage(structure)
 }
 
@@ -131,6 +134,44 @@ func (suite Suite) measureStructureUpdate(structure indexStructure, books []data
 		return structure.addBook(newBookID, books[0].Tokens)
 	})
 	return err
+}
+
+// updateBaseSizes sweeps the base index size of the isolated update
+// experiment, mirroring UPDATE_BASE_SIZES in the Python suite.
+var updateBaseSizes = []int{25, 50, 250, 500, 1000}
+
+// updateRepetitions bounds the runtime of the isolated update experiment.
+const updateRepetitions = 5
+
+// measureStructureUpdateScaling isolates the incremental update cost: it
+// builds a base index of a given size (untimed), then times repeated
+// single-book additions on top of it, mirroring measure_update_scaling().
+func (suite Suite) measureStructureUpdateScaling(structure indexStructure, books []datamarts.TokenizedBook) error {
+	tokens := books[0].Tokens
+	for _, baseSize := range updateBaseSizes {
+		if err := structure.build(buildSubset(books, baseSize)); err != nil {
+			return err
+		}
+		samples := make([]Measurement, 0, updateRepetitions)
+		for offset := 0; offset < updateRepetitions; offset++ {
+			bookID := syntheticBookIDBase + baseSize*100 + offset
+			measurement, err := Measure("update_"+structure.name(), func() error {
+				return structure.addBook(bookID, tokens)
+			})
+			if err != nil {
+				return err
+			}
+			samples = append(samples, measurement)
+		}
+		aggregate := aggregateBuild(samples)
+		log.Printf("[update_%s] base %d books: %.4fs mean over %d repetitions (stdev %.4fs)",
+			structure.name(), baseSize, aggregate.ElapsedSeconds, aggregate.Repetitions,
+			aggregate.StdevSeconds)
+		if err := suite.results.SaveUpdates("update_"+structure.name(), baseSize, aggregate); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // measureStructureStorage writes the disk_usage.csv row of one structure.

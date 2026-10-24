@@ -59,6 +59,7 @@ fn run_structure_experiments(
     let durations = run_query_workload(suite, structure)?;
     suite.record_query_statistics(&format!("query_{}", structure.name()), &durations)?;
     measure_structure_update(suite, structure, books)?;
+    measure_structure_update_scaling(suite, structure, books)?;
     measure_structure_storage(suite, structure)
 }
 
@@ -113,6 +114,52 @@ fn measure_structure_update(
         structure.add_book(new_book_id, tokens.map_or(&[], |tokens| tokens.as_slice()))
     })
     .map(|_| ())
+}
+
+/// Sweeps the base index size of the isolated update experiment, mirroring
+/// UPDATE_BASE_SIZES in the Python suite.
+const UPDATE_BASE_SIZES: [usize; 5] = [25, 50, 250, 500, 1000];
+
+/// Bounds the runtime of the isolated update experiment.
+const UPDATE_REPETITIONS: usize = 5;
+
+/// measure_structure_update_scaling isolates the incremental update cost: it
+/// builds a base index of a given size (untimed), then times repeated
+/// single-book additions on top of it, mirroring measure_update_scaling().
+fn measure_structure_update_scaling(
+    suite: &Suite,
+    structure: &mut dyn IndexStructure,
+    books: &[TokenizedBook],
+) -> BenchResult<()> {
+    let tokens: &[String] = books
+        .first()
+        .map_or(&[], |book| book.tokens.as_slice());
+    for base_size in UPDATE_BASE_SIZES {
+        let batch = build_subset(books, base_size);
+        structure.build(&batch)?;
+        let mut samples = Vec::with_capacity(UPDATE_REPETITIONS);
+        for offset in 0..UPDATE_REPETITIONS {
+            let book_id = SYNTHETIC_BOOK_ID_BASE + (base_size as i32) * 100 + offset as i32;
+            samples.push(measure::measure(&format!("update_{}", structure.name()), || {
+                structure.add_book(book_id, tokens)
+            })?);
+        }
+        let aggregate = measure::aggregate_build(&samples)?;
+        log::line(&format!(
+            "[update_{}] base {} books: {:.4}s mean over {} repetitions (stdev {:.4}s)",
+            structure.name(),
+            base_size,
+            aggregate.elapsed_seconds,
+            aggregate.repetitions,
+            aggregate.stdev_seconds
+        ));
+        suite.results().save_updates(
+            &format!("update_{}", structure.name()),
+            base_size,
+            &aggregate,
+        )?;
+    }
+    Ok(())
 }
 
 fn measure_structure_storage(suite: &Suite, structure: &dyn IndexStructure) -> BenchResult<()> {

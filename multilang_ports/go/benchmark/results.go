@@ -105,6 +105,24 @@ func (writer ResultsWriter) SaveScalability(testName string, batchSize int, aggr
 		})
 }
 
+// SaveUpdates mirrors save_updates() -> updates.csv: the isolated incremental
+// update cost measured on top of a base index of baseSize books.
+func (writer ResultsWriter) SaveUpdates(testName string, baseSize int, aggregate BuildAggregate) error {
+	return writer.appendTimestampedRow("updates.csv",
+		[]string{"test_name", "base_size", "elapsed_seconds", "stdev_seconds", "repetitions",
+			"memory_mb", "cpu_percent", "peak_rss_mb"},
+		[]string{
+			testName,
+			strconv.Itoa(baseSize),
+			formatFloat(aggregate.ElapsedSeconds, 6),
+			formatFloat(aggregate.StdevSeconds, 6),
+			strconv.Itoa(aggregate.Repetitions),
+			formatFloat(aggregate.MemoryMB, 4),
+			formatFloat(aggregate.CPUPercent, 2),
+			formatFloat(aggregate.PeakRSSMB, 4),
+		})
+}
+
 // SaveRecovery mirrors save_recovery() -> recovery.csv.
 func (writer ResultsWriter) SaveRecovery(testName string, report RecoveryReport) error {
 	return writer.appendTimestampedRow("recovery.csv",
