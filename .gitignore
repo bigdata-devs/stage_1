@@ -58,3 +58,6 @@ multilang_ports/go/output/
 # Local AI agent instructions: used locally, never tracked
 AGENTS.md
 
+# Maven shade artifact generated when packaging the jmh jar
+dependency-reduced-pom.xml
+
