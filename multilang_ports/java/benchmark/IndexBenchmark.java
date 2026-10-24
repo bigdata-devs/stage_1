@@ -47,6 +47,7 @@ final class IndexBenchmark {
 
     private void runStructureExperiments(IndexStructure structure, List<TokenizedBook> books) throws IOException {
         Log.line("--- Inverted index structure: %s ---", structure.name());
+        warmUpStructure(structure, books);
         structure.reset();
         for (int batchSize : buildBatchSizes(books.size())) {
             measureBuildBatch(structure, buildSubset(books, batchSize), batchSize);
@@ -56,6 +57,18 @@ final class IndexBenchmark {
         structure.releaseQueryCache();
         measureStructureUpdate(structure, books);
         measureStructureStorage(structure);
+    }
+
+    /**
+     * warmUpStructure runs one unmeasured build of the smallest batch so the
+     * JIT compiles the hot paths before the first timed batch; the reset that
+     * follows discards its artifacts. Only the Java harness warms up: the
+     * other languages run without a JIT.
+     */
+    static void warmUpStructure(IndexStructure structure, List<TokenizedBook> books) throws IOException {
+        int warmUpSize = buildBatchSizes(books.size()).get(0);
+        structure.build(buildSubset(books, warmUpSize));
+        Log.line("[warmup] %s: unmeasured %d-book build before timing", structure.name(), warmUpSize);
     }
 
     /**
