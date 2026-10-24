@@ -53,14 +53,20 @@ def measure_memory(func):
 def measure_cpu_usage(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        process = psutil.Process()
-        process.cpu_percent()
+        cpu_before = time.process_time()
+        wall_before = time.perf_counter()
         result = func(*args, **kwargs)
-        cpu_percent = process.cpu_percent()
+        cpu_used = time.process_time() - cpu_before
+        cpu_percent = process_cpu_percent(cpu_used, time.perf_counter() - wall_before)
         logging.info("[%s] used %.2f%% CPU", func.__name__, cpu_percent)
         wrapper.last_cpu_percent = cpu_percent
         return result
     return wrapper
+
+def process_cpu_percent(cpu_seconds, wall_seconds):
+    if wall_seconds <= 0:
+        return 0.0
+    return cpu_seconds / wall_seconds * 100.0
 
 def measure_disk_usage(path):
     root = Path(path)
