@@ -6,7 +6,10 @@ package benchmark
 import (
 	"errors"
 	"math"
+	"os"
 	"runtime"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -16,9 +19,10 @@ const bytesPerMB = 1024 * 1024
 type Measurement struct {
 	Name    string
 	Elapsed time.Duration
-	// MemoryMB is the growth of memory obtained from the OS (MemStats.Sys),
-	// clamped at zero. It is the closest analogue of the RSS delta that
-	// psutil reports in measure_memory() for Python.
+	// MemoryMB is the growth of the resident set size (VmRSS from
+	// /proc/self/status), clamped at zero: the same RSS delta that
+	// psutil reports in measure_memory() for Python and that rss_bytes()
+	// reports for Rust and Java. It is 0 when procfs is unavailable.
 	MemoryMB float64
 	// HeapAllocDeltaMB is the change in live heap bytes (may be negative).
 	HeapAllocDeltaMB float64
@@ -36,8 +40,9 @@ type Measurement struct {
 
 // Measure runs operation once and records time, memory and CPU usage.
 func Measure(name string, operation func() error) (Measurement, error) {
-	var memoryBefore, memoryAfter runtime.MemStats
-	runtime.ReadMemStats(&memoryBefore)
+	memoryBefore := rssBytes()
+	var statsBefore, statsAfter runtime.MemStats
+	runtime.ReadMemStats(&statsBefore)
 	cpuBefore := processCPUTime()
 	start := time.Now()
 
@@ -45,17 +50,47 @@ func Measure(name string, operation func() error) (Measurement, error) {
 
 	elapsed := time.Since(start)
 	cpuUsed := processCPUTime() - cpuBefore
-	runtime.ReadMemStats(&memoryAfter)
+	memoryAfter := rssBytes()
+	runtime.ReadMemStats(&statsAfter)
 	return Measurement{
 		Name:             name,
 		Elapsed:          elapsed,
-		MemoryMB:         math.Max(toMB(int64(memoryAfter.Sys)-int64(memoryBefore.Sys)), 0),
-		HeapAllocDeltaMB: toMB(int64(memoryAfter.HeapAlloc) - int64(memoryBefore.HeapAlloc)),
-		TotalAllocMB:     toMB(int64(memoryAfter.TotalAlloc - memoryBefore.TotalAlloc)),
-		HeapInUseMB:      toMB(int64(memoryAfter.HeapInuse)),
-		GCCycles:         memoryAfter.NumGC - memoryBefore.NumGC,
+		MemoryMB:         math.Max(toMB(int64(memoryAfter)-int64(memoryBefore)), 0),
+		HeapAllocDeltaMB: toMB(int64(statsAfter.HeapAlloc) - int64(statsBefore.HeapAlloc)),
+		TotalAllocMB:     toMB(int64(statsAfter.TotalAlloc - statsBefore.TotalAlloc)),
+		HeapInUseMB:      toMB(int64(statsAfter.HeapInuse)),
+		GCCycles:         statsAfter.NumGC - statsBefore.NumGC,
 		CPUPercent:       cpuPercent(cpuUsed, elapsed),
 	}, err
+}
+
+// rssBytes returns the current resident set size of this process in bytes.
+// It reads /proc/self/status like the Rust and Java ports do; on systems
+// without procfs it reports 0, which also matches their behaviour.
+func rssBytes() uint64 {
+	data, err := os.ReadFile("/proc/self/status")
+	if err != nil {
+		return 0
+	}
+	return residentSetBytes(string(data))
+}
+
+func residentSetBytes(status string) uint64 {
+	for _, line := range strings.Split(status, "\n") {
+		if !strings.HasPrefix(line, "VmRSS:") {
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) < 2 {
+			return 0
+		}
+		kilobytes, err := strconv.ParseUint(fields[1], 10, 64)
+		if err != nil {
+			return 0
+		}
+		return kilobytes * 1024
+	}
+	return 0
 }
 
 func toMB(bytes int64) float64 {
