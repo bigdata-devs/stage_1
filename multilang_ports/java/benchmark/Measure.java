@@ -18,16 +18,23 @@ public final class Measure {
 
     public static Measurement measure(String name, Operation operation) throws IOException {
         long memoryBefore = rssBytes();
+        RssSampler sampler = RssSampler.start(memoryBefore);
         long cpuBefore = processCpuTimeNanos();
         long start = System.nanoTime();
 
-        operation.run();
+        try {
+            operation.run();
+        } catch (RuntimeException | IOException exception) {
+            sampler.stop(rssBytes());
+            throw exception;
+        }
 
         Duration elapsed = Duration.ofNanos(System.nanoTime() - start);
         long memoryAfter = rssBytes();
         long cpuUsed = processCpuTimeNanos() - cpuBefore;
         double memoryMb = Math.max(memoryAfter - memoryBefore, 0) / BYTES_PER_MB;
-        return new Measurement(name, elapsed, memoryMb, cpuPercent(cpuUsed, elapsed));
+        double peakRssMb = sampler.stop(memoryAfter) / BYTES_PER_MB;
+        return new Measurement(name, elapsed, memoryMb, peakRssMb, cpuPercent(cpuUsed, elapsed));
     }
 
     public static double throughput(int itemCount, Duration elapsed) {

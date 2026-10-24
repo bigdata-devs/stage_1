@@ -81,16 +81,37 @@ func (suite Suite) runStructureExperiments(structure indexStructure, books []dat
 }
 
 // measureBuildBatch stores one scalability.csv row per batch size, the only
-// output of measure_build() in the Python suite.
+// output of measure_build() in the Python suite: the build is repeated
+// buildRepetitions() times and the row reports mean, deviation and peak.
 func (suite Suite) measureBuildBatch(structure indexStructure, batch []datamarts.TokenizedBook, batchSize int) error {
-	measurement, err := Measure("build_"+structure.name(), func() error {
-		return structure.build(batch)
-	})
-	if err != nil {
-		return err
+	samples := make([]Measurement, 0, buildRepetitions(batchSize))
+	for repetition := 0; repetition < buildRepetitions(batchSize); repetition++ {
+		measurement, err := Measure("build_"+structure.name(), func() error {
+			return structure.build(batch)
+		})
+		if err != nil {
+			return err
+		}
+		samples = append(samples, measurement)
 	}
-	log.Printf("[build_%s] batch %d: %.4fs", structure.name(), batchSize, measurement.Elapsed.Seconds())
-	return suite.results.SaveScalability("build_"+structure.name(), batchSize, measurement)
+	aggregate := aggregateBuild(samples)
+	log.Printf("[build_%s] batch %d: %.4fs mean over %d repetitions (stdev %.4fs, peak RSS %.1f MB)",
+		structure.name(), batchSize, aggregate.ElapsedSeconds, aggregate.Repetitions,
+		aggregate.StdevSeconds, aggregate.PeakRSSMB)
+	return suite.results.SaveScalability("build_"+structure.name(), batchSize, aggregate)
+}
+
+// buildRepetitions bounds the runtime of the scalability sweep: small
+// batches are repeated five times, the two largest ones only twice.
+func buildRepetitions(batchSize int) int {
+	switch {
+	case batchSize <= 1000:
+		return 5
+	case batchSize <= 5000:
+		return 3
+	default:
+		return 2
+	}
 }
 
 // measureStructureQuery times the shared workload against one structure.

@@ -1,5 +1,6 @@
 from src.utils.benchmarks.metrics import (
     BYTES_PER_MB,
+    aggregate_scalability,
     measure_operation,
     measure_disk_usage,
     calculate_throughput,

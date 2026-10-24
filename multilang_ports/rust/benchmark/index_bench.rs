@@ -68,18 +68,38 @@ fn measure_build_batch(
     batch: &[TokenizedBook],
     batch_size: usize,
 ) -> BenchResult<()> {
-    let measurement = measure::measure(&format!("build_{}", structure.name()), || {
-        structure.build(batch)
-    })?;
+    let repetitions = build_repetitions(batch_size);
+    let mut samples = Vec::with_capacity(repetitions);
+    for _ in 0..repetitions {
+        samples.push(measure::measure(&format!("build_{}", structure.name()), || {
+            structure.build(batch)
+        })?);
+    }
+    let aggregate = measure::aggregate_build(&samples)?;
     log::line(&format!(
-        "[build_{}] batch {}: {:.4}s",
+        "[build_{}] batch {}: {:.4}s mean over {} repetitions (stdev {:.4}s, peak RSS {:.1} MB)",
         structure.name(),
         batch_size,
-        measurement.seconds()
+        aggregate.elapsed_seconds,
+        aggregate.repetitions,
+        aggregate.stdev_seconds,
+        aggregate.peak_rss_mb
     ));
     suite
         .results()
-        .save_scalability(&format!("build_{}", structure.name()), batch_size, &measurement)
+        .save_scalability(&format!("build_{}", structure.name()), batch_size, &aggregate)
+}
+
+/// Bounds the runtime of the scalability sweep: small batches are repeated
+/// five times, the two largest ones only twice.
+fn build_repetitions(batch_size: usize) -> usize {
+    if batch_size <= 1000 {
+        5
+    } else if batch_size <= 5000 {
+        3
+    } else {
+        2
+    }
 }
 
 fn measure_structure_update(
@@ -366,6 +386,14 @@ mod tests {
             vec![25, 50, 250, 500, 600, 1000, 5000, 10000],
             build_batch_sizes(600)
         );
+    }
+
+    #[test]
+    fn repetitions_shrink_for_large_batches() {
+        assert_eq!(5, build_repetitions(25));
+        assert_eq!(5, build_repetitions(1000));
+        assert_eq!(3, build_repetitions(5000));
+        assert_eq!(2, build_repetitions(10000));
     }
 
     #[test]

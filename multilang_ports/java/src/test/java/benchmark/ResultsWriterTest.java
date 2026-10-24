@@ -21,7 +21,7 @@ class ResultsWriterTest {
     @Test
     void measurementRowUsesSixFourTwoDecimalsAndCrlf() throws IOException {
         ResultsWriter results = new ResultsWriter(dir);
-        results.saveMeasurement(new Measurement("tokenize_books", Duration.ofSeconds(2), 12.5, 33.333));
+        results.saveMeasurement(new Measurement("tokenize_books", Duration.ofSeconds(2), 12.5, 20.0, 33.333));
 
         String content = Files.readString(dir.resolve("benchmarks.csv"), StandardCharsets.UTF_8);
         List<String> lines = Files.readAllLines(dir.resolve("benchmarks.csv"), StandardCharsets.UTF_8);
@@ -34,8 +34,8 @@ class ResultsWriterTest {
     @Test
     void secondRowAppendsWithoutHeader() throws IOException {
         ResultsWriter results = new ResultsWriter(dir);
-        results.saveMeasurement(new Measurement("first", Duration.ofSeconds(1), 1.0, 1.0));
-        results.saveMeasurement(new Measurement("second", Duration.ofSeconds(3), 2.0, 2.0));
+        results.saveMeasurement(new Measurement("first", Duration.ofSeconds(1), 1.0, 1.0, 1.0));
+        results.saveMeasurement(new Measurement("second", Duration.ofSeconds(3), 2.0, 2.0, 2.0));
 
         List<String> lines = Files.readAllLines(dir.resolve("benchmarks.csv"), StandardCharsets.UTF_8);
         assertEquals(3, lines.size());
@@ -72,8 +72,8 @@ class ResultsWriterTest {
             new RecoveryReport(100, 50, 50, 0, 0, Duration.ofMillis(5), Duration.ofMillis(7),
                 Duration.ofMillis(12)));
         results.saveThroughput("write_throughput_book_based", 100, Duration.ofSeconds(5), 20.5);
-        results.saveScalability("build_json_index", 25, new Measurement("build_json_index",
-            Duration.ofSeconds(1), 2.0, 10.0));
+        results.saveScalability("build_json_index", 25,
+            new BuildAggregate(1.0, 0.25, 5, 2.0, 10.0, 40.125));
 
         String recovery = Files.readString(dir.resolve("recovery.csv"), StandardCharsets.UTF_8);
         assertTrue(recovery.contains(
@@ -81,6 +81,6 @@ class ResultsWriterTest {
         String throughput = Files.readString(dir.resolve("throughput.csv"), StandardCharsets.UTF_8);
         assertTrue(throughput.contains("write_throughput_book_based,100,5.000000,20.5000,"));
         String scalability = Files.readString(dir.resolve("scalability.csv"), StandardCharsets.UTF_8);
-        assertTrue(scalability.contains("build_json_index,25,1.000000,2.0000,10.00,"));
+        assertTrue(scalability.contains("build_json_index,25,1.000000,0.250000,5,2.0000,10.00,40.1250,"));
     }
 }

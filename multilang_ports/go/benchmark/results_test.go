@@ -10,19 +10,23 @@ import (
 
 func TestResultsWriterWritesPythonCompatibleScalabilityRow(t *testing.T) {
 	writer := ResultsWriter{Dir: t.TempDir()}
-	measurement := Measurement{Name: "build_json_index", Elapsed: 1500 * time.Millisecond, MemoryMB: 1.5, CPUPercent: 99.456}
-	if err := writer.SaveScalability("build_json_index", 25, measurement); err != nil {
+	aggregate := BuildAggregate{
+		ElapsedSeconds: 1.5, StdevSeconds: 0.1, Repetitions: 5,
+		MemoryMB: 1.5, CPUPercent: 99.456, PeakRSSMB: 20.125,
+	}
+	if err := writer.SaveScalability("build_json_index", 25, aggregate); err != nil {
 		t.Fatal(err)
 	}
-	if err := writer.SaveScalability("build_json_index", 50, measurement); err != nil {
+	if err := writer.SaveScalability("build_json_index", 50, aggregate); err != nil {
 		t.Fatal(err)
 	}
 	content, _ := os.ReadFile(filepath.Join(writer.Dir, "scalability.csv"))
 	lines := strings.Split(strings.TrimSuffix(string(content), "\r\n"), "\r\n")
-	if len(lines) != 3 || lines[0] != "test_name,batch_size,elapsed_seconds,memory_mb,cpu_percent,timestamp" {
+	if len(lines) != 3 ||
+		lines[0] != "test_name,batch_size,elapsed_seconds,stdev_seconds,repetitions,memory_mb,cpu_percent,peak_rss_mb,timestamp" {
 		t.Fatalf("unexpected CSV:\n%s", content)
 	}
-	if !strings.HasPrefix(lines[1], "build_json_index,25,1.500000,1.5000,99.46,") {
+	if !strings.HasPrefix(lines[1], "build_json_index,25,1.500000,0.100000,5,1.5000,99.46,20.1250,") {
 		t.Fatalf("unexpected row %q", lines[1])
 	}
 }

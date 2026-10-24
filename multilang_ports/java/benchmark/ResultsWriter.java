@@ -52,11 +52,14 @@ public final class ResultsWriter {
                 format(statistics.minSeconds(), 6), format(statistics.maxSeconds(), 6)));
     }
 
-    public void saveScalability(String testName, int batchSize, Measurement measurement) throws IOException {
+    public void saveScalability(String testName, int batchSize, BuildAggregate aggregate) throws IOException {
         appendTimestampedRow("scalability.csv",
-            List.of("test_name", "batch_size", "elapsed_seconds", "memory_mb", "cpu_percent"),
-            List.of(testName, Integer.toString(batchSize), format(measurement.seconds(), 6),
-                format(measurement.memoryMb(), 4), format(measurement.cpuPercent(), 2)));
+            List.of("test_name", "batch_size", "elapsed_seconds", "stdev_seconds", "repetitions",
+                "memory_mb", "cpu_percent", "peak_rss_mb"),
+            List.of(testName, Integer.toString(batchSize), format(aggregate.elapsedSeconds(), 6),
+                format(aggregate.stdevSeconds(), 6), Integer.toString(aggregate.repetitions()),
+                format(aggregate.memoryMb(), 4), format(aggregate.cpuPercent(), 2),
+                format(aggregate.peakRssMb(), 4)));
     }
 
     public void saveRecovery(String testName, RecoveryReport report) throws IOException {

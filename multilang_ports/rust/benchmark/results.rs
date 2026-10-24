@@ -1,5 +1,5 @@
 use super::disk::DiskUsage;
-use super::measure::Measurement;
+use super::measure::{BuildAggregate, Measurement};
 use super::recovery::RecoveryReport;
 use super::statistics::Statistics;
 use super::BenchResult;
@@ -94,7 +94,7 @@ impl ResultsWriter {
         &self,
         test_name: &str,
         batch_size: usize,
-        measurement: &Measurement,
+        aggregate: &BuildAggregate,
     ) -> BenchResult<()> {
         self.append_timestamped_row(
             "scalability.csv",
@@ -102,15 +102,21 @@ impl ResultsWriter {
                 "test_name",
                 "batch_size",
                 "elapsed_seconds",
+                "stdev_seconds",
+                "repetitions",
                 "memory_mb",
                 "cpu_percent",
+                "peak_rss_mb",
             ],
             vec![
                 test_name.to_string(),
                 batch_size.to_string(),
-                format!("{:.6}", measurement.seconds()),
-                format!("{:.4}", measurement.memory_mb),
-                format!("{:.2}", measurement.cpu_percent),
+                format!("{:.6}", aggregate.elapsed_seconds),
+                format!("{:.6}", aggregate.stdev_seconds),
+                aggregate.repetitions.to_string(),
+                format!("{:.4}", aggregate.memory_mb),
+                format!("{:.2}", aggregate.cpu_percent),
+                format!("{:.4}", aggregate.peak_rss_mb),
             ],
         )
     }
@@ -204,7 +210,19 @@ mod tests {
             name: name.to_string(),
             elapsed: Duration::from_secs(seconds),
             memory_mb: 12.5,
+            peak_rss_mb: 25.0,
             cpu_percent: 33.333,
+        }
+    }
+
+    fn build_aggregate() -> BuildAggregate {
+        BuildAggregate {
+            elapsed_seconds: 1.0,
+            stdev_seconds: 0.25,
+            repetitions: 5,
+            memory_mb: 12.5,
+            cpu_percent: 33.333,
+            peak_rss_mb: 40.125,
         }
     }
 
@@ -276,7 +294,7 @@ mod tests {
             .save_throughput("write_throughput_book_based", 100, Duration::from_secs(5), 20.5)
             .unwrap();
         writer
-            .save_scalability("build_json_index", 25, &measurement("build", 1))
+            .save_scalability("build_json_index", 25, &build_aggregate())
             .unwrap();
         writer
             .save_recovery(
@@ -298,7 +316,8 @@ mod tests {
         let throughput = fs::read_to_string(dir.join("throughput.csv")).unwrap();
         assert!(throughput.contains("write_throughput_book_based,100,5.000000,20.5000,"));
         let scalability = fs::read_to_string(dir.join("scalability.csv")).unwrap();
-        assert!(scalability.contains("build_json_index,25,1.000000,12.5000,33.33,"));
+        assert!(scalability
+            .contains("build_json_index,25,1.000000,0.250000,5,12.5000,33.33,40.1250,"));
         let recovery = fs::read_to_string(dir.join("recovery.csv")).unwrap();
         assert!(recovery.contains("recovery_book_based,100,50,50,0,0,0.005000,0.007000,0.012000,"));
         fs::remove_dir_all(&dir).unwrap();

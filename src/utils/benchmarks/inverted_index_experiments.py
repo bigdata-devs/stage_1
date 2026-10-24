@@ -5,6 +5,7 @@ from pathlib import Path
 
 from src.utils.benchmarks import (
     BYTES_PER_MB,
+    aggregate_scalability,
     measure_operation,
     measure_disk_usage,
     calculate_statistics,
@@ -25,6 +26,8 @@ JSON_INDEX_PATH = INDEX_OUTPUT_DIRECTORY / "inverted_index.json"
 FOLDER_INDEX_PATH = INDEX_OUTPUT_DIRECTORY / "inverted_index"
 QUERIES_PATH = Path(__file__).with_name("queries.txt")
 BUILD_BATCH_SIZES = (25, 50, 250, 500, 1000, 5000, 10000)
+BUILD_REPETITIONS_SCHEDULE = ((1000, 5), (5000, 3))
+DEFAULT_BUILD_REPETITIONS = 2
 QUERY_SAMPLE_TARGET = 100
 SYNTHETIC_BOOK_ID_BASE = 900000
 
@@ -55,14 +58,21 @@ def run_structure_experiments(structure, books, queries):
 
 def measure_build(structure, books, batch_size):
     subset = build_subset(books, batch_size)
-    measurement = measure_operation(lambda: structure.build_and_save(subset))
+    samples = [
+        measure_operation(lambda: structure.build_and_save(subset))
+        for _ in range(build_repetitions(batch_size))
+    ]
     save_scalability({
         "test_name": f"build_{structure.name}",
         "batch_size": batch_size,
-        "elapsed_seconds": measurement.elapsed_seconds,
-        "memory_mb": measurement.memory_mb,
-        "cpu_percent": measurement.cpu_percent,
+        **aggregate_scalability(samples),
     })
+
+def build_repetitions(batch_size):
+    for threshold, repetitions in BUILD_REPETITIONS_SCHEDULE:
+        if batch_size <= threshold:
+            return repetitions
+    return DEFAULT_BUILD_REPETITIONS
 
 def build_subset(books, batch_size):
     subset = dict(list(books.items())[:batch_size])

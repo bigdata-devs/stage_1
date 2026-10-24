@@ -42,4 +42,12 @@ class IndexBenchmarkTest {
         assertEquals(1, IndexBenchmark.buildSubset(books, 1).size());
         assertTrue(IndexBenchmark.buildSubset(books, 1).get(0).id() == 1);
     }
+
+    @Test
+    void repetitionsShrinkForLargeBatches() {
+        assertEquals(5, IndexBenchmark.buildRepetitions(25));
+        assertEquals(5, IndexBenchmark.buildRepetitions(1000));
+        assertEquals(3, IndexBenchmark.buildRepetitions(5000));
+        assertEquals(2, IndexBenchmark.buildRepetitions(10000));
+    }
 }

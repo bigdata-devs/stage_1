@@ -58,11 +58,33 @@ final class IndexBenchmark {
         measureStructureStorage(structure);
     }
 
+    /**
+     * measureBuildBatch stores one scalability.csv row per batch size, mirroring
+     * measure_build() in the Python suite: the build is repeated buildRepetitions()
+     * times and the row reports mean, deviation and peak.
+     */
     private void measureBuildBatch(IndexStructure structure, List<TokenizedBook> batch, int batchSize)
             throws IOException {
-        Measurement measurement = Measure.measure("build_" + structure.name(), () -> structure.build(batch));
-        Log.line("[build_%s] batch %d: %.4fs", structure.name(), batchSize, measurement.seconds());
-        suite.results().saveScalability("build_" + structure.name(), batchSize, measurement);
+        List<Measurement> samples = new ArrayList<>(buildRepetitions(batchSize));
+        for (int repetition = 0; repetition < buildRepetitions(batchSize); repetition++) {
+            samples.add(Measure.measure("build_" + structure.name(), () -> structure.build(batch)));
+        }
+        BuildAggregate aggregate = BuildAggregate.of(samples);
+        Log.line("[build_%s] batch %d: %.4fs mean over %d repetitions (stdev %.4fs, peak RSS %.1f MB)",
+            structure.name(), batchSize, aggregate.elapsedSeconds(), aggregate.repetitions(),
+            aggregate.stdevSeconds(), aggregate.peakRssMb());
+        suite.results().saveScalability("build_" + structure.name(), batchSize, aggregate);
+    }
+
+    /**
+     * buildRepetitions bounds the runtime of the scalability sweep: small
+     * batches are repeated five times, the two largest ones only twice.
+     */
+    static int buildRepetitions(int batchSize) {
+        if (batchSize <= 1000) {
+            return 5;
+        }
+        return batchSize <= 5000 ? 3 : 2;
     }
 
     private void measureStructureUpdate(IndexStructure structure, List<TokenizedBook> books) throws IOException {

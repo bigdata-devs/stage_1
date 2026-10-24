@@ -30,8 +30,10 @@ DECIMALS = {
     ("statistics", "min_seconds"): 6,
     ("statistics", "max_seconds"): 6,
     ("scalability", "elapsed_seconds"): 6,
+    ("scalability", "stdev_seconds"): 6,
     ("scalability", "memory_mb"): 4,
     ("scalability", "cpu_percent"): 2,
+    ("scalability", "peak_rss_mb"): 4,
     ("recovery", "detection_time"): 6,
     ("recovery", "processing_time"): 6,
     ("recovery", "elapsed_seconds"): 6,
@@ -42,6 +44,7 @@ DECIMALS = {
 INTEGERS = {
     ("statistics", "iterations"),
     ("scalability", "batch_size"),
+    ("scalability", "repetitions"),
     ("throughput", "item_count"),
     ("recovery", "total_books"),
     ("recovery", "processed_before_interruption"),
