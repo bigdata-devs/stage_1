@@ -55,3 +55,6 @@ multilang_ports/**/*.o
 multilang_ports/go/output/
 /bin
 
+
+# Local AI agent instructions: used locally, never tracked
+AGENTS.md
