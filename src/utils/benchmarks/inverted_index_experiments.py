@@ -30,7 +30,7 @@ QUERIES_PATH = Path(__file__).with_name("queries.txt")
 BUILD_BATCH_SIZES = (25, 50, 250, 500, 1000, 5000, 10000)
 BUILD_REPETITIONS_SCHEDULE = ((1000, 5), (5000, 3))
 DEFAULT_BUILD_REPETITIONS = 2
-QUERY_SAMPLE_TARGET = 100
+QUERY_REPETITIONS = 5
 SYNTHETIC_BOOK_ID_BASE = 900000
 UPDATE_BASE_SIZES = (25, 50, 250, 500, 1000)
 UPDATE_REPETITIONS = 5
@@ -93,7 +93,7 @@ def synthetic_books(books, count):
 
 def measure_query_performance(structure, queries):
     durations = []
-    for _ in range(query_rounds(queries)):
+    for _ in range(QUERY_REPETITIONS):
         for terms in queries:
             start_time = time.perf_counter()
             matching_documents(structure, terms)
@@ -101,9 +101,6 @@ def measure_query_performance(structure, queries):
     stats = calculate_statistics(durations)
     stats["test_name"] = f"query_{structure.name}"
     save_statistics(stats)
-
-def query_rounds(queries):
-    return max(1, QUERY_SAMPLE_TARGET // len(queries))
 
 def matching_documents(structure, terms):
     matched = set(structure.query_postings(terms[0]))
