@@ -27,7 +27,8 @@ and a revision.
         Python & 3.14.4 (+ \texttt{psutil} for RSS/CPU) \\
         Go & 1.27.2 (\texttt{linux/amd64}) \\
         Rust & 1.99.0 (\texttt{rustc}/\texttt{cargo}, stable) \\
-        Java (harness) & OpenJDK 17.0.20.1, executed via \texttt{mvn exec:java} \\
+        Java (harness) & OpenJDK 17.0.20.1, executed via \texttt{mvn exec:java},
+        \texttt{MAVEN\_OPTS=-Xmx5g} (set by the tournament) \\
         Java (JMH) & OpenJDK 21.0.12.1, shaded jar \\
         Maven & 3.9.12 \\
         MongoDB & 8.0.13, \texttt{mongod} on \texttt{localhost:27017} \\
