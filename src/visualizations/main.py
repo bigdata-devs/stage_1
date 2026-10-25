@@ -302,7 +302,8 @@ def report_recovery_integrity(results: BenchmarkResults) -> None:
 
 # --------------------------------------------------------------------------- orchestration
 CHART_MODULES: tuple[BenchmarkChart, ...] = (
-    ScalabilityCharts(), ThroughputChart(), LatencyChart(), StorageSankey(), ExecutiveRadar(),
+    ScalabilityCharts(), ScalabilityCharts.for_updates(), ThroughputChart(), LatencyChart(), StorageSankey(),
+    ExecutiveRadar(),
 )
 
 
