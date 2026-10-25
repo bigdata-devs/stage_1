@@ -28,10 +28,10 @@ Two series are shown (\cref{fig:scalability-elapsed,fig:scalability-memory}).
     delta per batch}: the resident set size of the benchmark process after
     the build minus before it, sampled from \texttt{/proc/self/status}
     (Go/Rust/Java) or \texttt{psutil} (Python) --- see
-    \cref{tab:metrics}. The callout ``Peak'' marks the \emph{largest plotted
-    RSS delta} among the batch sizes, \emph{not} the peak resident memory of
-    the process; that series is reported separately as
-    \texttt{peak\_rss\_mb}.}
+    \cref{tab:metrics}. The callout ``Largest RSS delta'' marks the
+    \emph{largest plotted RSS delta} among the batch sizes, \emph{not} the
+    peak resident memory of the process; that series is reported separately
+    as \texttt{peak\_rss\_mb}.}
     \label{fig:scalability-memory}
 \end{figure}
 

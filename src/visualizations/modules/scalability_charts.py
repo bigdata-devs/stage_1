@@ -40,9 +40,10 @@ def annotate_speed_spread(axis: plt.Axes, test_rows: pd.DataFrame, x_column: str
 
 
 def annotate_peak_memory(axis: plt.Axes, test_rows: pd.DataFrame, x_column: str) -> None:
-    """Upper-left callout: which language peaked, how high, at which batch size."""
+    """Upper-left callout: which language grew the most (RSS delta), how high, at which size."""
     peak = test_rows.loc[test_rows["memory_mb"].idxmax()]
-    text = f"Peak: {language_label(peak['language'])} {peak['memory_mb']:,.0f} MB\nat {format_count(peak[x_column])} books"
+    text = (f"Largest RSS delta: {language_label(peak['language'])} {peak['memory_mb']:,.0f} MB\n"
+            f"at {format_count(peak[x_column])} books")
     axis.text(0.04, 0.95, text, transform=axis.transAxes, ha="left", va="top", fontsize=CALLOUT_FONT_SIZE,
               color=INK, bbox=note_box(), zorder=6)
 

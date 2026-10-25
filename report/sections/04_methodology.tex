@@ -94,8 +94,9 @@ MongoDB structure, the server's own memory and disk are reported separately
         Parameter & Value \\
         \midrule
         Corpus & \fixed{100} Project Gutenberg books, tracked in
-        \texttt{data\_source/} (bodies $\approx$\fixed{59} MB, headers
-        $\approx$0.4 MB); book IDs listed in
+        \texttt{data\_source/} (bodies \fixed{61.4} MB total, headers
+        \fixed{81} KB); body sizes from \fixed{2} KB to \fixed{4{,}517} KB
+        (median \fixed{371} KB, mean \fixed{600} KB); book IDs listed in
         \texttt{benchmarks\_results/equivalence\_report.json}. \\
         Query workload & \fixed{30} active queries from the shared file
         \texttt{src/utils/benchmarks/queries.txt} (one query per line,
