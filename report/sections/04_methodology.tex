@@ -1,0 +1,228 @@
+\section{Measurement Methodology}
+\label{sec:methodology}
+
+Every number in this report was produced by one command
+(\texttt{scripts/run\_tournament.sh}, \cref{sec:reproducibility}) on one
+host, in one continuous run, after the equivalence gate passed. This section
+documents the host, the runtimes, the metrics, the workload, and the timing
+boundaries, so that each figure can be traced to a script, a configuration
+and a revision.
+
+\subsection{Host and runtimes}
+\label{sec:host}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Host and runtime versions of the run that produced the committed
+    snapshot. The full record, including the filesystem and the MongoDB
+    build, is \texttt{benchmarks\_results/environment.txt}.}
+    \label{tab:host}
+    \begin{tabular}{@{}ll@{}}
+        \toprule
+        Component & Value \\
+        \midrule
+        CPU & Intel Core i7-10750H @ 2.60 GHz, 12 logical cores \\
+        RAM & 8 GB \\
+        OS / kernel & WSL2 (Ubuntu userland), Linux 6.18.33.2-microsoft-standard-WSL2 \\
+        Python & 3.14.4 (+ \texttt{psutil} for RSS/CPU) \\
+        Go & 1.27.2 (\texttt{linux/amd64}) \\
+        Rust & 1.99.0 (\texttt{rustc}/\texttt{cargo}, stable) \\
+        Java (harness) & OpenJDK 17.0.20.1, executed via \texttt{mvn exec:java} \\
+        Java (JMH) & OpenJDK 21.0.12.1, shaded jar \\
+        Maven & 3.9.12 \\
+        MongoDB & 8.0.13, \texttt{mongod} on \texttt{localhost:27017} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+All implementations run single-threaded and synchronous
+(\cref{sec:architecture}); no benchmark phase uses worker pools, async I/O or
+parallel iterators. The only other process involved is \texttt{mongod}, a
+separate server whose CPU and memory are \emph{not} part of the client
+measurements (\cref{sec:index-memory}).
+
+\subsection{Metric definitions}
+\label{tab:metrics}
+
+\begin{table}[htbp]
+    \centering
+    \caption{What each column of the result CSVs means. Identical in all four
+    languages; the harness enforces the schema
+    (\texttt{scripts/verify\_format.py}).}
+    \label{tab:metrics}
+    \begin{tabularx}{\textwidth}{@{}lX@{}}
+        \toprule
+        Column & Definition \\
+        \midrule
+        \texttt{elapsed\_seconds} & wall-clock time of one operation, from a
+        monotonic clock (\texttt{time.perf\_counter}, \texttt{time.Now},
+        \texttt{Instant::now}, \texttt{System.nanoTime}); per-repetition
+        builds report the arithmetic mean. \\
+        \texttt{stdev\_seconds} & sample standard deviation of the per-operation
+        elapsed times across repetitions (query latency: across all samples). \\
+        \texttt{repetitions} / \texttt{iterations} & number of timed samples
+        behind the row. \\
+        \texttt{memory\_mb} & \textbf{RSS delta}: resident set size of the
+        benchmark process \emph{after} minus \emph{before} the operation, in
+        MB, read from \texttt{/proc/self/status} (Go/Rust/Java) or
+        \texttt{psutil} (Python). It measures growth caused by the operation,
+        not the total footprint of the process. \\
+        \texttt{peak\_rss\_mb} & largest resident set size of the benchmark
+        process observed while the operation ran, sampled every
+        \fixed{50} ms by a background thread plus one final sample; across
+        repetitions the maximum is reported. \\
+        \texttt{cpu\_percent} & process CPU time (user + system) divided by
+        wall-clock time, $\times 100$; above 100 means more than one core was
+        saturated. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+Both memory series describe the \emph{benchmark client process only}. For the
+MongoDB structure, the server's own memory and disk are reported separately
+(\cref{sec:index-memory}); they are never folded into the client's RSS.
+
+\subsection{Corpus and workload}
+\label{sec:workload}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Workload actually executed by every language.}
+    \label{tab:workload}
+    \begin{tabularx}{\textwidth}{@{}lX@{}}
+        \toprule
+        Parameter & Value \\
+        \midrule
+        Corpus & \fixed{100} Project Gutenberg books, tracked in
+        \texttt{data\_source/} (bodies $\approx$\fixed{59} MB, headers
+        $\approx$0.4 MB); book IDs listed in
+        \texttt{benchmarks\_results/equivalence\_report.json}. \\
+        Query workload & \fixed{30} active queries from the shared file
+        \texttt{src/utils/benchmarks/queries.txt} (one query per line,
+        terms separated by a single space; comments start with \texttt{\#}).
+        Semantics: a document matches when it contains every term; an unknown
+        term yields an empty result. \\
+        Query samples & \fixed{5} repetitions $\times$ \fixed{30} queries =
+        \fixed{150} timed samples per structure per language. \\
+        Datalake lookup & \fixed{100} books located once per layout (header
+        and body read). \\
+        Download probe & \fixed{10} books downloaded sequentially over one
+        connection; no concurrency anywhere in the pipeline. \\
+        Build batches & \fixed{25, 50, 250, 500, 1000, 5000, 10000} books;
+        5 repetitions up to 1000, 3 for 5000, 2 for 10000. \\
+        Update batches & base indexes of \fixed{25, 50, 250, 500, 1000}
+        books, each extended with \fixed{5} new books, \fixed{5}
+        repetitions per base size (\cref{sec:index-updates}). \\
+        Recovery & interrupt after \fixed{50} of \fixed{100} books, then
+        resume; report processed, duplicated and lost IDs plus detection and
+        processing time. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+The scalability builds reuse the corpus by repetition: a ``10{,}000-book
+batch'' is the \fixed{100}-book corpus indexed repeatedly until the batch
+size is reached, so batch size measures index size, not corpus diversity.
+The update experiment is the exception: it uses fresh synthetic book IDs
+(\texttt{base\_size}$\times$100 + offset), so added books are genuinely new
+terms and never collide with the base.
+
+\subsection{Warm-up}
+\label{sec:warmup}
+
+Only the Java harness warms up, because Java is the only runtime with a JIT
+compiler: before timing, each Java structure performs one unmeasured build of
+the smallest batch and discards its artifacts, so the measured builds run on
+already-compiled code. Python, Go and Rust are measured exactly as they
+start: no warm-up, no discarded round. JMH numbers
+(\cref{sec:jmh}) use JMH's own warm-up iterations and are reported
+separately; they are never mixed with the cross-language figures.
+
+\subsection{Cache, disk and network state}
+\label{sec:environment-state}
+
+\begin{itemize}
+    \item \textbf{Artifact directories.} Every timed phase starts from a
+    freshly cleaned artifact tree: the previous run's datalake, index and
+    result files are deleted before the phase begins, so no phase reads a
+    cache written by another.
+    \item \textbf{OS page cache.} The tournament does not drop the system
+    page cache (that requires root and would perturb the host). Files read
+    twice within one phase may therefore be served from RAM. This affects all
+    languages equally within a phase and is listed as a limitation
+    (\cref{sec:limitations}).
+    \item \textbf{Disk.} All artifacts live on the same filesystem as the
+    repository (WSL2 / NTFS-backed). \texttt{disk\_usage.csv} reports file
+    counts, directory counts and bytes for each layout and each index
+    structure after storing the same corpus.
+    \item \textbf{Network.} Only the download probe touches the network: ten
+    sequential GETs, one connection at a time, measured with the same clock
+    as everything else. Every other phase is fully offline and reads the
+    tracked corpus from disk.
+\end{itemize}
+
+\subsection{Timing boundaries}
+\label{sec:timing-boundaries}
+
+\begin{itemize}
+    \item \textbf{Write throughput} times the storage call itself: split
+    header+body written to the layout (the download is timed separately), one
+    book per iteration, \fixed{100} iterations per layout.
+    \item \textbf{Download throughput} starts before the HTTP request and
+    stops after the response body is fully read and written to disk.
+    \item \textbf{Lookup} starts before locating the book's files under the
+    layout and stops after both files are read into memory.
+    \item \textbf{Index build} starts before the first token is produced and
+    stops after the structure is fully written (JSON flushed, per-term files
+    closed, or MongoDB insert acknowledged).
+    \item \textbf{Query} starts before the postings lookup of the first term
+    and stops after the intersection of all terms is computed.
+    \item \textbf{Incremental update} starts before the first of the five new
+    books is tokenized and stops after the structure is durably updated.
+\end{itemize}
+
+\subsection{Repetition and uncertainty}
+\label{sec:uncertainty}
+
+Each timed operation is repeated as specified in \cref{tab:workload}; plots
+show the mean and, where a deviation band appears, it is the sample standard
+deviation across those repetitions (\texttt{stdev\_seconds}). Readers can
+assess uncertainty from the raw \texttt{repetitions} and \texttt{stdev}
+columns committed next to every chart. No result is discarded, no outlier is
+trimmed, and no phase is run twice to pick the better run: the committed
+snapshot is a single continuous tournament.
+
+\subsection{Coverage: what was compared with what}
+\label{sec:coverage}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Language $\times$ structure coverage of the timed workload
+    (D=datalake layouts, J=JSON index, F=folder index, M=MongoDB index,
+    S=SQLite metadata).}
+    \label{tab:coverage}
+    \begin{tabular}{@{}lcccc@{}}
+        \toprule
+        Language & Datalake & JSON & Folder & MongoDB \\
+        \midrule
+        Python & D, S & J, F, M & & \\
+        Go & D, S & J, F, M & & \\
+        Rust & D, S & J, F, M & & \\
+        Java & D, S & J, F, M & & \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Every language runs the full matrix: three datalake layouts plus the three
+index structures, with identical parameters. MongoDB is skipped consistently
+and identically by all four ports when the server is unreachable, so no
+figure silently compares a MongoDB-less run with a MongoDB run.
+
+\subsection{Revisions and provenance}
+\label{sec:provenance}
+
+Each chart in this report maps to (i) the script that produced it, (ii) the
+raw CSVs in \texttt{benchmarks\_results/}, (iii) the configuration constants
+listed in \cref{tab:workload}, and (iv) the Git revision recorded in
+\texttt{benchmarks\_results/environment.txt} at run time. The mapping is
+tabulated in \cref{sec:reproducibility}.

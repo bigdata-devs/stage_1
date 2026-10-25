@@ -1,0 +1,61 @@
+\section{Conclusions and Final Architecture Selection}
+\label{sec:conclusions}
+
+\paragraph{What the measurements support.}
+On the host of \cref{tab:host}, over the \fixed{100}-book corpus and the
+\fixed{30}-query workload, the tournament measured the following:
+
+\begin{itemize}
+    \item The four implementations are behaviourally identical on this
+    workload (byte-identical canonical outputs, \cref{sec:equivalence}), so
+    the cross-language differences below compare the same work.
+    \item On write throughput and datalake lookup, the measured spread
+    between implementations is \pending{throughput/lookup summary}.
+    \item On index build time and query latency, \pending{build/query
+    summary}; on incremental updates over the measured base sizes,
+    \pending{update summary}.
+    \item On-disk footprint is dominated by the corpus itself; the storage
+    overhead of the three index structures over the same corpus is
+    \pending{index storage summary} (\cref{sec:index-memory}).
+    \item Recovery after a documented interruption resumed with
+    \pending{0} duplicated and \pending{0} lost books in every layout
+    (\cref{tab:recovery}).
+\end{itemize}
+
+\paragraph{Selection for Stage 2.}
+Within the tested corpus, workload and host, the group selects
+\textbf{Java with the MongoDB index structure} for Stage 2. The reasoning is
+scoped to the evidence: MongoDB showed \pending{measured update and space
+behaviour} at the measured sizes, its server-side footprint was measured
+separately (\texttt{collStats}), and the Java port's end-to-end numbers were
+supported by JMH attribution. This is a choice \emph{for the Stage 2
+workload}, not a claim that Java is universally faster or that MongoDB is
+the only scalable storage: at the measured scale, the file-based structures
+were competitive on several axes, and behaviours that matter at larger
+scale --- sharding, replication, concurrency, multi-gigabyte indexes ---
+were \emph{not measured here} and remain open questions
+(\cref{sec:limitations}).
+
+\paragraph{Language-wide claims.}
+Nothing in this report supports a statement of the form ``language X is
+faster than language Y''. The measured objects are four implementations,
+written by this team, of one pipeline, on one corpus, on one machine, in one
+continuous run. Statements such as ``Go's allocator showed the lowest RSS
+growth in this workload'' are observations; ``Go uses less memory'' is a
+hypothesis this experiment cannot test. Where the data was ambiguous, the
+report says so rather than picking a narrative.
+
+\subsection{Future Improvements}
+\label{sec:future}
+
+\begin{itemize}
+    \item Repeat the tournament on bare metal and on Linux natively to
+    separate runtime effects from WSL2's virtualisation.
+    \item Extend the corpus by an order of magnitude to observe where the
+    measured curves bend (the current 10{,}000-book batch reuses a
+    100-book corpus, \cref{sec:workload}).
+    \item Measure concurrency (multiple query clients) for the Stage 2
+    serving layer, where it will actually be used.
+    \item Add a memory-profiled MongoDB run that accounts the server's RSS
+    alongside the client's, for a true capacity figure.
+\end{itemize}

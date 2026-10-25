@@ -1,0 +1,76 @@
+\section{Design Decisions}
+\label{sec:design}
+
+\subsection{Text normalisation (shared contract)}
+\label{sec:normalisation}
+
+All four implementations apply the same normalisation, in the same order, to
+every body:
+
+\begin{enumerate}
+    \item lowercase the text;
+    \item drop accents/diacritics (Unicode NFD decomposition, combining marks
+    removed) --- \texttt{café} $\rightarrow$ \texttt{cafe};
+    \item split on any run of non-alphanumeric characters, so punctuation and
+    whitespace are separators;
+    \item drop tokens that contain a digit (\texttt{chapter3} is discarded);
+    \item drop a small stop-word list and tokens shorter than a minimum
+    length, and keep the remaining tokens in document order.
+\end{enumerate}
+
+A term's postings list is the sorted list of IDs of the documents that
+contain it. Serialised, one line of the canonical form is
+\texttt{postings\textbackslash ttime\textbackslash t11\textbackslash t84\textbackslash t1342}:
+the term \texttt{time} appears in books 11, 84 and 1342.
+
+\subsection{Metadata contract}
+\label{sec:metadata-contract}
+
+Headers are parsed with the same rules in the Python pipeline: fields
+\texttt{Title:}, \texttt{Author:} and \texttt{Language:} are read from the
+Gutenberg header; the language name is mirrored to its ISO~639 code through a
+shared table (\texttt{English} $\rightarrow$ \texttt{en}); multiple authors
+are split on commas, \texttt{and} and semicolons. The extracted records drive
+the SQLite metadata store that the index builders read
+(\cref{fig:pipeline}), so indexing goes through the same metadata contract
+the production pipeline uses.
+
+The ports mirror the parts of the contract they need: all four split header
+and body at the same Gutenberg markers (the Go splitter test pins the same
+fixtures as the Python one), and all four apply the identical tokenisation
+and postings rules --- which is exactly what the equivalence gate verifies
+per language (\cref{sec:equivalence-languages}). Metadata-field extraction
+into SQLite is exercised by the Python baseline; the ports consume the
+resulting bodies, so the contract they must share is the token/postings one,
+and it is byte-verified.
+
+\subsection{Storage choices under evaluation}
+\label{sec:storage-choices}
+
+\paragraph{Datalake layouts.}
+Time-based layouts favour append-heavy ingestion along a timeline;
+book-based layouts favour per-book lookup; batch layouts favour bulk
+operations over ID ranges. All three store the same bytes, so the benchmark
+can attribute every difference to directory structure alone
+(\cref{sec:datalake}).
+
+\paragraph{Index structures.}
+The JSON index is a single serialised dictionary (simple, one file, whole
+file must be parsed to answer any query). The folder index stores one file
+per term (small reads, but one file handle per lookup). MongoDB stores one
+document per term with the postings array (server-backed, queried over a
+connection). None of these is declared ``best'' a priori: builds, queries,
+incremental updates and on-disk footprint are measured for each
+(\cref{sec:index}).
+
+\paragraph{Language ports.}
+Each port uses its ecosystem's idiomatic tools (for example
+\texttt{serde}/\texttt{std::fs} in Rust, \texttt{encoding/json} and
+\texttt{os} in Go, \texttt{jakarta.json} plus the driver in Java,
+\texttt{json}/\texttt{pathlib}/\texttt{pymongo} in Python). The
+\emph{algorithms} are held constant: the same tokenizer semantics, the same
+postings construction, the same intersection query, the same synchronous
+single-threaded driver. Where a runtime differs by nature (a JIT in Java),
+the protocol compensates explicitly (\cref{sec:warmup}); where it cannot
+compensate, the difference is reported as a limitation
+(\cref{sec:limitations}).

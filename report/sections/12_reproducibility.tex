@@ -1,0 +1,61 @@
+\section{Reproducibility}
+\label{sec:reproducibility}
+
+Every figure in this report is reproducible from the repository at a single
+identified revision. The full protocol is documented in
+\texttt{REPRODUCING.md}; the short version follows.
+
+\paragraph{One command.}
+\begin{verbatim}
+./scripts/run_tournament.sh
+\end{verbatim}
+runs five phases in order and refuses to time anything before equivalence
+passes:
+
+\begin{enumerate}
+    \item \textbf{equivalence} --- cross-language canonical files, compared
+    byte for byte (\texttt{equivalence\_report.json});
+    \item \textbf{benchmarks} --- Go, Rust, Java (+JMH) and Python suites,
+    each writing its CSVs under \texttt{benchmarks\_results/<language>/};
+    \item \textbf{verify} --- schema check of every CSV
+    (\texttt{scripts/verify\_format.py});
+    \item \textbf{environment} --- host, runtimes and the Git revision
+    recorded in \texttt{benchmarks\_results/environment.txt};
+    \item \textbf{charts} --- \texttt{src/visualizations/main.py} renders
+    \texttt{charts/} from the CSVs.
+\end{enumerate}
+
+There is no resume: a failed run restarts clean, so the committed snapshot
+always comes from one continuous execution.
+
+\paragraph{Chart-to-artifact map.}
+\Cref{tab:chart-map} links every figure to its script, its raw results and
+its configuration.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Where each figure comes from.}
+    \label{tab:chart-map}
+    \begin{tabularx}{\textwidth}{@{}llX@{}}
+        \toprule
+        Figure & Script & Raw results \\
+        \midrule
+        \cref{fig:radar} & \texttt{src/visualizations/modules/radar\_chart.py} & all of \texttt{benchmarks\_results/} \\
+        \cref{fig:throughput} & \texttt{.../throughput\_charts.py} & \texttt{\*/throughput.csv}, \texttt{\*/benchmarks.csv} \\
+        \cref{fig:latency} & \texttt{.../latency\_charts.py} & \texttt{\*/statistics.csv} \\
+        \cref{fig:scalability-elapsed} & \texttt{.../scalability\_charts.py} & \texttt{\*/scalability.csv} \\
+        \cref{fig:scalability-memory} & \texttt{.../scalability\_charts.py} & \texttt{\*/scalability.csv} \\
+        \cref{fig:updates} & \texttt{.../scalability\_charts.py} & \texttt{\*/updates.csv} \\
+        Sankey (interactive HTML) & \texttt{.../storage\_sankey.py} & \texttt{\*/disk\_usage.csv} \\
+        \cref{tab:jmh} & \texttt{multilang\_ports/java/run\_jmh.sh} & \texttt{java/jmh\_results.json} \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\paragraph{Revision.}
+The Git commit that produced the committed snapshot is recorded inside
+\texttt{benchmarks\_results/environment.txt} together with the host and
+runtime versions of \cref{tab:host}. Checking out that commit and re-running
+the command above reproduces the pipeline; the raw numbers will differ in
+their last digits (shared-host jitter, \cref{sec:limitations}), but the
+ordering and the equivalence digests are stable.

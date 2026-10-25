@@ -1,0 +1,44 @@
+\section{JMH Micro-Benchmarks (Java only)}
+\label{sec:jmh}
+
+The end-to-end harness measures whole operations. To see where the Java
+implementation spends its time inside those operations, the port carries
+four JMH micro-benchmarks over its hot paths
+(\texttt{multilang\_ports/java/src/main/java/microbench/}).
+
+\paragraph{Configuration.}
+JMH 1.37 on OpenJDK 21.0.12.1, average-time mode, 1 thread, 1 fork, 5 warm-up
+iterations of 1~s and 5 measurement iterations of 1~s per benchmark, with the
+GC profiler enabled. The harness itself runs on OpenJDK 17 via
+\texttt{mvn exec:java}; only the shaded JMH jar targets 21. Raw JSON in
+\texttt{benchmarks\_results/java/jmh\_results.json}, produced by
+\texttt{multilang\_ports/java/run\_jmh.sh}.
+
+\begin{table}[htbp]
+    \centering
+    \caption{JMH results (average time, 1 fork, 5+5 iterations of 1 s).}
+    \label{tab:jmh}
+    \begin{tabular}{@{}llr@{}}
+        \toprule
+        Micro-benchmark & Workload & Score \\
+        \midrule
+        \texttt{TokenizeBenchmark.tokenizeBook} & one sample book & \pending{593.0} $\mu$s/op \\
+        \texttt{PostingsBenchmark.buildPostings} & 10 books & \pending{171.1} ms/op \\
+        \texttt{PostingsBenchmark.buildPostings} & 100 books & \pending{2476.1} ms/op \\
+        \texttt{JsonIndexBenchmark.serializeIndex} & 100-book index & \pending{612.2} ms/op \\
+        \texttt{JsonIndexBenchmark.parseIndex} & 100-book index & \pending{137.2} ms/op \\
+        \texttt{QueryBenchmark.intersectQuery} & two-term intersection & \pending{3.3} $\mu$s/op \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\paragraph{How these numbers may be used.}
+They explain the \emph{internal} split of one Java operation (for example,
+serialising the JSON index dominates parsing it by roughly
+\pending{4.5}$\times$), which helps attribute the end-to-end Java bars of
+\cref{sec:index}. They are \textbf{evidence about the Java port only}: JMH's
+forked-JVM warm-up protocol is deliberately \emph{not} applied to the other
+languages, so no JMH number is ever placed next to a Python, Go or Rust
+measurement in this report. The cross-language figures of
+\cref{sec:language-performance} all come from the common harness of
+\cref{sec:methodology}.

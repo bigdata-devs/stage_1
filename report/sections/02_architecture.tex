@@ -1,0 +1,99 @@
+\section{System Architecture}
+\label{sec:architecture}
+
+The pipeline has three layers. \Cref{fig:pipeline} shows them, the data that
+moves between them, and the two points where state is durably written: the
+\emph{datalake write} (header and body files, one of three directory layouts)
+and the \emph{index write} (postings lists, one of three structures). Nothing
+is cached in between: the index layer reads the bodies the datalake layer
+just wrote, synchronously, in a single process.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[
+        font=\small,
+        layer/.style={draw, rounded corners, align=center, minimum height=2.2cm},
+        state/.style={draw=black!60, dashed, rounded corners, align=center, inner sep=3pt},
+        flow/.style={-{Stealth}, thick},
+        label/.style={font=\footnotesize\itshape, text=black!70},
+    ]
+        % Layer 1: ingestion
+        \node[layer, fill=blue!8, minimum width=4.6cm] (lake) {
+            \textbf{Layer 1 --- Datalake}\\[2pt]
+            download (sequential)\\
+            header/body split\\
+            layout: time / book / batch
+        };
+        % Layer 2: datamart
+        \node[layer, fill=green!8, minimum width=4.6cm, right=1.6cm of lake] (mart) {
+            \textbf{Layer 2 --- Datamart}\\[2pt]
+            tokenize (shared rules)\\
+            metadata (SQLite)\\
+            inverted index builds
+        };
+        % Layer 3: serving
+        \node[layer, fill=orange!10, minimum width=4.6cm, right=1.6cm of mart] (serve) {
+            \textbf{Layer 3 --- Querying}\\[2pt]
+            term lookup\\
+            postings intersection\\
+            document IDs returned
+        };
+        % Durable state
+        \node[state, below=0.9cm of lake] (lakestate) {
+            written state:\\
+            \texttt{headers/\_, bodies/} (one layout)\\
+            raw probe books (download test)
+        };
+        \node[state, below=0.9cm of mart] (martstate) {
+            written state:\\
+            \texttt{inverted\_index.json} $\mid$\\
+            \texttt{inverted\_index/} (per-term files) $\mid$\\
+            MongoDB collection \texttt{inverted\_index}
+        };
+        % Flows
+        \draw[flow] (lake) -- node[label, above]{books (header, body)} (mart);
+        \draw[flow] (mart) -- node[label, above]{loaded index, query terms} (serve);
+        \draw[flow] (lake) -- (lakestate);
+        \draw[flow] (mart) -- (martstate);
+        \draw[flow, dashed] (lakestate.east) -- node[label, below]{re-read for indexing} (martstate.west);
+    \end{tikzpicture}
+    \caption{Stage 1 pipeline: three layers, the data that moves between them,
+    and the durable state each layer writes. Downloads are sequential (one
+    connection at a time); indexing reads the datalake from disk; querying
+    only reads an already-built index.}
+    \label{fig:pipeline}
+\end{figure}
+
+\paragraph{Layer 1 --- Datalake.}
+For each book ID the engine downloads the raw Gutenberg text (or reads it
+from the local corpus when offline), splits it at the official
+\texttt{*** START/END OF THE PROJECT GUTENBERG EBOOK} markers, and stores the
+licence header and the body as two files under one of three layouts:
+\emph{time-based} (\texttt{year/month/day}), \emph{book-based}
+(\texttt{book\_id/}), or \emph{batch/range-based}
+(\texttt{batch\_start-batch\_end/}). The layout is a directory-structure
+decision only; the stored bytes are identical.
+
+\paragraph{Layer 2 --- Datamart.}
+Bodies are tokenized with the shared rules of \cref{sec:design} and fed to
+the inverted-index builders. Three structures are supported: a single JSON
+file, a folder of per-term files, and a MongoDB collection. Metadata
+(Title, Author, Language, paths) is extracted from the headers and persisted
+in SQLite; the index builders read the corpus \emph{through} those metadata
+records, which is the same path the production pipeline uses.
+
+\paragraph{Layer 3 --- Querying.}
+A query is a list of terms; a document matches when it contains \emph{every}
+term. Each structure answers a term lookup with its postings list, and the
+caller intersects those lists. This layer is exercised by the benchmark
+workload; a user-facing search interface belongs to Stage 2 (see
+\cref{sec:comment-matrix}, comments 32--33).
+
+\paragraph{Synchronous by construction.}
+The pipeline runs in one process, one book at a time: download, split, write,
+tokenize, index. No step overlaps another, so every timed region in
+\cref{sec:methodology} has an unambiguous start and stop. The only
+concurrency anywhere in the measurement is the background thread that samples
+the resident set size (\cref{tab:metrics}), and the MongoDB server process,
+whose resources are explicitly excluded from client measurements
+(\cref{sec:index-memory}).

@@ -1,0 +1,54 @@
+\section{Limitations}
+\label{sec:limitations}
+
+Every observed difference could partly be an artefact of the following
+factors. They are listed so readers can weigh the results accordingly.
+
+\paragraph{Machine.}
+One laptop-class host (i7-10750H, 8 GB RAM), under WSL2 virtualisation, with
+an NTFS-backed filesystem. CPU frequency scaling, thermal throttling and the
+hypervisor layer affect all languages, but not necessarily equally. No
+isolation (no \texttt{taskset}, no performance governor, no bare metal) was
+used.
+
+\paragraph{Runtime.}
+The Java harness runs on OpenJDK 17 through \texttt{mvn exec:java} (Maven's
+own JVM overhead is outside the timed regions but shares the machine), while
+JMH runs on 21. Python runs on 3.14, Go 1.27, Rust 1.99: these are current
+versions, not long-term-stability comparisons. Only Java receives warm-up
+(\cref{sec:warmup}); the other languages are measured from cold start, which
+is the honest default for them but is itself a protocol choice.
+
+\paragraph{Cache state.}
+The OS page cache is never dropped between phases, so a file read twice in
+one phase may be served from RAM. All languages in a phase share the same
+state, but phases are not independent of the ones before them. MongoDB's
+internal cache (WiredTiger) is likewise warm after the first build.
+
+\paragraph{Workload.}
+The corpus is \fixed{100} books ($\approx$\fixed{59} MB); the scalability
+builds reach 10{,}000 ``books'' by repeating that corpus, so index size
+grows but term diversity does not. Queries are \fixed{30} fixed lines; they
+are representative of the assignment but not sampled from a query log.
+Results may reorder on corpora with different term distributions.
+
+\paragraph{Timing and statistics.}
+Elapsed times are wall-clock in a shared, unisolated host: neighbouring
+processes (including \texttt{mongod} and the sampling threads) inject
+jitter, visible as non-zero \texttt{stdev\_seconds}. One tournament run
+produces the committed snapshot; there is no second run to quantify
+run-to-run variance. No outliers are trimmed and no phase is repeated for a
+better result.
+
+\paragraph{Measurement boundaries.}
+Client RSS excludes the MongoDB server by construction
+(\cref{sec:index-memory}); its storage is measured via \texttt{collStats},
+its memory is not. The download probe is ten sequential requests, so its
+rate reflects latency more than bandwidth. CPU percentage is process CPU
+over wall clock and can exceed 100 on multi-core bursts.
+
+\paragraph{Unmeasured behaviours.}
+Not exercised at all: concurrent readers and writers, indexes far beyond the
+measured batches, MongoDB replication/sharding, crash recovery of the
+database itself, and the Stage 2 serving path. Conclusions in
+\cref{sec:conclusions} do not extend to them.

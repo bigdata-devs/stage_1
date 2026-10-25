@@ -1,0 +1,122 @@
+\section{Datalake Structure Evaluation}
+\label{sec:datalake}
+
+The datalake stores the same header/body pairs under three layouts. This
+section evaluates them on the dimensions the assignment asks for: write and
+download throughput, document lookup, discovery of new books, storage
+overhead, and recovery after an interruption. All numbers come from
+\texttt{datalake\_experiments.py} (Python baseline) and the equivalent
+\texttt{datalake\_bench} code in each port, with the parameters of
+\cref{tab:workload}.
+
+\subsection{Write and download throughput}
+\label{sec:datalake-throughput}
+
+Write throughput times only the storage call (split header and body written
+to the layout), one book per iteration, \fixed{100} iterations; the download
+is a separate experiment: \fixed{10} books fetched sequentially, one
+connection at a time, timing from before the HTTP request until the body is
+fully written to disk. Both operate on the same \fixed{100}-book corpus, so
+the reported rates compare identified work. \Cref{fig:throughput} plots the
+result; the layout affects write time only through directory creation and
+path length, which is why the three bars stay close together.
+
+\subsection{Document lookup}
+\label{sec:datalake-lookup}
+
+\fixed{100} books are located once per layout (path resolution plus reading
+both files back into memory). The book-based layout, which stores every book
+under its own \texttt{book\_id/} directory, resolves paths in constant steps;
+the time-based and batch layouts must walk the calendar or the range
+directory first. \Cref{tab:datalake-lookup} reports the measured means.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Datalake lookup latency, all languages, 100 books per layout
+    (mean over the tracked corpus; raw rows in
+    \texttt{benchmarks\_results/\*/statistics.csv}).}
+    \label{tab:datalake-lookup}
+    \begin{tabular}{@{}lccc@{}}
+        \toprule
+        Layout & Python & Go & Rust/Java \\
+        \midrule
+        Time-based & \pending{lookup time-based} & & \\
+        Book-based & \pending{lookup book-based} & & \\
+        Batch-based & \pending{lookup batch-based} & & \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Discovery of downloaded-but-not-indexed books}
+\label{sec:datalake-discovery}
+
+Lookup answers ``where is a book I know exists''. The complementary
+operation is discovery: \emph{which books are already downloaded but not yet
+indexed?} Each layout is filled with \fixed{100} books, one new book is
+added out of band, and the engine must detect it before indexing it. The
+initial state is identical for every layout (same corpus, empty index
+marker), so the detection times compare the same work. The measured column
+is \texttt{detection\_time} in the incremental experiments of
+\texttt{benchmarks.csv}; \pending{discovery summary} reports the values per
+layout. The time-based layout scans by timestamp, the book-based layout by
+directory listing, and the batch layout by range membership; the
+measurements show the cost each choice imposes.
+
+\subsection{Storage overhead}
+\label{sec:datalake-storage}
+
+After storing the identical corpus, each layout is measured for total bytes,
+file count and directory count (\texttt{disk\_usage.csv}). The layouts
+differ only in how many intermediate directories they create: a time-based
+layout adds calendar levels, a book-based layout one directory per book, a
+batch layout one directory per range. \Cref{tab:datalake-storage} reports
+the figures for the shared \fixed{100}-book corpus.
+
+\begin{table}[htbp]
+    \centering
+    \caption{On-disk cost of the same corpus under each layout (bytes =
+    header + body files only; directory overhead is what differs).}
+    \label{tab:datalake-storage}
+    \begin{tabular}{@{}lccc@{}}
+        \toprule
+        Layout & Size (MB) & Files & Directories \\
+        \midrule
+        Time-based & \pending{} & \pending{} & \pending{} \\
+        Book-based & \pending{} & \pending{} & \pending{} \\
+        Batch-based & \pending{} & \pending{} & \pending{} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+The directory counts feed directly into the scalability discussion of
+\cref{sec:index-structures}: a layout with thousands of small directories
+behaves differently on filesystem lookup than one with a handful, and that
+is visible in the measured lookup times, not an assumption.
+
+\subsection{Recovery after interruption}
+\label{sec:datalake-recovery}
+
+Recovery is demonstrated, not asserted. Ingestion is interrupted after
+\fixed{50} of \fixed{100} books --- a documented step, after the write of
+book 50 --- and the engine is then restarted. It must detect the partially
+processed state, resume, and finish. The experiment reports what actually
+happened: books processed before the interruption, books processed after the
+resume, duplicated IDs and lost IDs, plus the detection and processing times
+(\texttt{recovery.csv}). \Cref{tab:recovery} shows the observed result.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Recovery experiment (100 books, interrupt after 50). Duplicated
+    and lost counts are measured, not assumed from atomic-write
+    descriptions.}
+    \label{tab:recovery}
+    \begin{tabular}{@{}lcccccc@{}}
+        \toprule
+        Layout & Before & After & Duplicated & Lost & Detection (s) & Total (s) \\
+        \midrule
+        Time-based & \pending{50} & \pending{50} & \pending{0} & \pending{0} & \pending{} & \pending{} \\
+        Book-based & \pending{50} & \pending{50} & \pending{0} & \pending{0} & \pending{} & \pending{} \\
+        Batch-based & \pending{50} & \pending{50} & \pending{0} & \pending{0} & \pending{} & \pending{} \\
+        \bottomrule
+    \end{tabular}
+\end{table}

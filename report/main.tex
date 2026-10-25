@@ -1,0 +1,70 @@
+% Stage 1 report — compile with: tectonic main.tex (or any LaTeX distribution).
+% Figures resolve from the repository's charts/ directory; on Overleaf, upload
+% the charts/ tree next to main.tex (figures/ is also searched).
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
+\usepackage{cleveref}
+
+\graphicspath{{../charts/}{figures/}}
+
+% Placeholder for numbers produced by the final tournament run; every
+% occurrence is red in the compiled PDF so nothing ships unfilled.
+\newcommand{\pending}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+% Numbers already fixed by code or by a completed run.
+\newcommand{\fixed}[1]{\textcolor{black}{#1}}
+
+\title{Big Data Project --- Stage 1: Building the Data Layer\\
+\large Benchmarking report (resubmission)}
+\author{BigData-Devs}
+\date{October 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This report documents the design and the controlled evaluation of the Stage 1
+data layer: a synchronous ingestion pipeline (datalake), metadata extraction,
+and three inverted-index structures, implemented in Python and ported to Go,
+Rust and Java. The evaluation answers one question: \emph{which language and
+storage combination behaves best for this corpus and this workload}, under a
+single measurement protocol. Before any timing is interpreted, the four
+implementations are shown to be behaviourally equivalent (byte-identical
+canonical outputs, SHA-256
+\fixed{cdaa9369cbd91c4f89550efdcdd7c5c21e61adc97bd49f6e415b8e57d65ce2e4}).
+All results come from one reproducible tournament
+(\texttt{scripts/run\_tournament.sh}) whose raw CSVs, environment record and
+revision identifier are committed next to this document. Claims are
+deliberately scoped to the tested corpus, host and workload; unmeasured
+behaviours are listed in \cref{sec:limitations}.
+\end{abstract}
+
+\tableofcontents
+
+\input{sections/01_introduction}
+\input{sections/02_architecture}
+\input{sections/03_design_decisions}
+\input{sections/04_methodology}
+\input{sections/05_equivalence}
+\input{sections/06_language_performance}
+\input{sections/07_datalake}
+\input{sections/08_inverted_index}
+\input{sections/09_jmh}
+\input{sections/10_conclusions}
+\input{sections/11_limitations}
+\input{sections/12_reproducibility}
+\input{sections/13_comment_matrix}
+
+\end{document}
