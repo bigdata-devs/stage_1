@@ -12,7 +12,7 @@ can also be run alone.
 | Python 3.11+ | baseline suite, checker, charts | `pip install -r requirements.txt` |
 | Go 1.22+ | Go port | `go build ./...` must succeed |
 | Rust (stable) + Cargo | Rust port | `cargo build --release` must succeed |
-| Java 21 + Maven | Java port and JMH | `mvn -q compile` must succeed |
+| Java 21 + Maven | Java port and JMH | `mvn -q compile` must succeed; the harness needs a heap that fits the largest batch (the tournament defaults `MAVEN_OPTS` to `-Xmx5g`) |
 | MongoDB (optional) | mongo index structure | every port skips it consistently when unreachable |
 
 The exact versions of the run that produced the committed snapshot are

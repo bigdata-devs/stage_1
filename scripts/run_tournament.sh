@@ -51,6 +51,10 @@ run_rust_benchmark() {
 
 run_java_benchmark() {
     phase "java"
+    # exec:java runs inside Maven's JVM, whose ergonomic default (~2 GB on an
+    # 8 GB host) is too small for the 10000-book JSON build; 5 GB leaves room
+    # for mongod and the operating system on the same machine.
+    export MAVEN_OPTS="${MAVEN_OPTS:--Xmx5g}"
     (cd multilang_ports/java && mvn -q compile exec:java \
         "-Dexec.mainClass=benchmark.Main" \
         "-Dexec.args=bench -results ../../benchmarks_results/java") \
