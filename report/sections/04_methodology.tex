@@ -13,6 +13,7 @@ and a revision.
 
 \begin{table}[htbp]
     \centering
+    \small
     \caption{Host and runtime versions of the run that produced the committed
     snapshot. The full record, including the filesystem and the MongoDB
     build, is \texttt{benchmarks\_results/environment.txt}.}
@@ -47,6 +48,7 @@ measurements (\cref{sec:index-memory}).
 
 \begin{table}[htbp]
     \centering
+    \small
     \caption{What each column of the result CSVs means. Identical in all four
     languages; the harness enforces the schema
     (\texttt{scripts/verify\_format.py}).}
@@ -88,6 +90,7 @@ MongoDB structure, the server's own memory and disk are reported separately
 
 \begin{table}[htbp]
     \centering
+    \small
     \caption{Workload actually executed by every language.}
     \label{tab:workload}
     \begin{tabularx}{\textwidth}{@{}lX@{}}
@@ -145,22 +148,19 @@ separately; they are never mixed with the cross-language figures.
 
 \begin{itemize}
     \item \textbf{Artifact directories.} Every timed phase starts from a
-    freshly cleaned artifact tree: the previous run's datalake, index and
-    result files are deleted before the phase begins, so no phase reads a
-    cache written by another.
-    \item \textbf{OS page cache.} The tournament does not drop the system
-    page cache (that requires root and would perturb the host). Files read
-    twice within one phase may therefore be served from RAM. This affects all
-    languages equally within a phase and is listed as a limitation
+    freshly cleaned artifact tree, so no phase reads a cache written by
+    another.
+    \item \textbf{OS page cache.} The tournament does not drop the system page
+    cache (that requires root and would perturb the host), so files read twice
+    within one phase may be served from RAM; this affects all languages
+    equally within a phase and is listed as a limitation
     (\cref{sec:limitations}).
     \item \textbf{Disk.} All artifacts live on the same filesystem as the
-    repository (WSL2 / NTFS-backed). \texttt{disk\_usage.csv} reports file
-    counts, directory counts and bytes for each layout and each index
-    structure after storing the same corpus.
-    \item \textbf{Network.} Only the download probe touches the network: ten
-    sequential GETs, one connection at a time, measured with the same clock
-    as everything else. Every other phase is fully offline and reads the
-    tracked corpus from disk.
+    repository (WSL2 / NTFS-backed); \texttt{disk\_usage.csv} reports files,
+    directories and bytes per layout and per structure.
+    \item \textbf{Network.} Only the download probe touches the network (ten
+    sequential GETs, one connection at a time); every other phase is offline
+    and reads the tracked corpus from disk.
 \end{itemize}
 
 \subsection{Timing boundaries}

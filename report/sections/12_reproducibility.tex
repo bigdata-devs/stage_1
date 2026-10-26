@@ -19,8 +19,8 @@ passes:
     each writing its CSVs under \texttt{benchmarks\_results/<language>/};
     \item \textbf{verify} --- schema check of every CSV
     (\texttt{scripts/verify\_format.py});
-    \item \textbf{environment} --- host, runtimes and the Git revision
-    recorded in \texttt{benchmarks\_results/environment.txt};
+    \item \textbf{environment} --- host, runtimes and Git revision in
+    \texttt{benchmarks\_results/environment.txt};
     \item \textbf{charts} --- \texttt{src/visualizations/main.py} renders
     \texttt{charts/} from the CSVs.
 \end{enumerate}
@@ -29,24 +29,24 @@ There is no resume: a failed run restarts clean, so the committed snapshot
 always comes from one continuous execution.
 
 \paragraph{Chart-to-artifact map.}
-\Cref{tab:chart-map} links every figure to its script, its raw results and
-its configuration.
+\Cref{tab:chart-map} links every figure to its script (all chart scripts
+live under \texttt{src/visualizations/modules/}), its raw results and its
+configuration.
 
 \begin{table}[htbp]
     \centering
+    \small
     \caption{Where each figure comes from.}
     \label{tab:chart-map}
     \begin{tabularx}{\textwidth}{@{}llX@{}}
         \toprule
         Figure & Script & Raw results \\
         \midrule
-        \cref{fig:radar} & \texttt{src/visualizations/modules/radar\_chart.py} & all of \texttt{benchmarks\_results/} \\
-        \cref{fig:throughput} & \texttt{.../throughput\_charts.py} & \texttt{\*/throughput.csv}, \texttt{\*/benchmarks.csv} \\
-        \cref{fig:latency} & \texttt{.../latency\_charts.py} & \texttt{\*/statistics.csv} \\
-        \cref{fig:scalability-elapsed} & \texttt{.../scalability\_charts.py} & \texttt{\*/scalability.csv} \\
-        \cref{fig:scalability-memory} & \texttt{.../scalability\_charts.py} & \texttt{\*/scalability.csv} \\
-        \cref{fig:updates} & \texttt{.../scalability\_charts.py} & \texttt{\*/updates.csv} \\
-        Sankey (interactive HTML) & \texttt{.../storage\_sankey.py} & \texttt{\*/disk\_usage.csv} \\
+        \cref{fig:radar} & \texttt{radar\_chart.py} & all of \texttt{benchmarks\_results/} \\
+        \cref{fig:throughput} & \texttt{throughput\_charts.py} & \texttt{\*/throughput.csv}, \texttt{\*/benchmarks.csv} \\
+        \cref{fig:latency} & \texttt{latency\_charts.py} & \texttt{\*/statistics.csv} \\
+        \cref{fig:scalability-elapsed,fig:scalability-memory,fig:updates} & \texttt{scalability\_charts.py} & \texttt{\*/scalability.csv}, \texttt{\*/updates.csv} \\
+        Sankey (interactive HTML) & \texttt{storage\_sankey.py} & \texttt{\*/disk\_usage.csv} \\
         \cref{tab:jmh} & \texttt{multilang\_ports/java/run\_jmh.sh} & \texttt{java/jmh\_results.json} \\
         \bottomrule
     \end{tabularx}
