@@ -9,59 +9,65 @@ On the host of \cref{tab:host}, over the \fixed{100}-book corpus and the
     \item The four implementations are behaviourally identical on this
     workload (byte-identical canonical outputs, \cref{sec:equivalence}), so
     the cross-language differences below compare the same work.
-    \item On write throughput and datalake lookup, the measured spread
-    between implementations is 2.6--2.8$\times$ in write throughput
-    (27.3--82.8 items/s across layouts) and 6--13$\times$ in lookup
-    latency, though every lookup stays below 0.3 ms.
-    \item On index build time and query latency, Go built the 10{,}000-book
-    JSON index in 66.0 s against Java's 947.0 s, while query latency stayed
-    between 0.6 and 5.0 ms across structures and languages; on incremental
-    updates over the measured base sizes, the JSON update grew 16--23$\times$
-    with the base size while the folder and MongoDB updates grew only
-    1.4--2.8$\times$.
-    \item On-disk footprint is dominated by the corpus itself; the storage
-    overhead of the three index structures over the same corpus is 75.9 MB
-    as a single JSON file, 42.1 MB across 106{,}479 files for the folder
-    structure, and 38.2--558.9 MB server-side for MongoDB
-    (\texttt{collStats}) (\cref{sec:index-memory}).
-    \item Recovery after a documented interruption resumed with
-    0 duplicated and 0 lost books in every layout
-    (\cref{tab:recovery}).
+    \item On write throughput and datalake lookup the measured spread is
+    2.6--2.8$\times$ in write throughput (27.3--82.8 items/s) and
+    6--13$\times$ in lookup latency, though every lookup stays below 0.3 ms.
+    \item On index build, Go built the 10{,}000-book JSON index in 66.0 s
+    against 167.1 s (Python), 196.4 s (Rust) and 947.0 s (Java); query
+    latency stayed between 0.6 and 5.0 ms across structures and languages.
+    \item On-disk footprint is corpus-dominated; the three index structures
+    over the same corpus cost 75.9 MB as a single JSON file, 42.1 MB across
+    106{,}479 files for the folder structure, and 38.2--558.9 MB server-side
+    for MongoDB (\texttt{collStats}) (\cref{sec:index-memory}).
+    \item Recovery after a documented interruption resumed with 0 duplicated
+    and 0 lost books in every layout (\cref{tab:recovery}).
 \end{itemize}
 
 \paragraph{Selection for Stage 2.}
 Within the tested corpus, workload and host, the group selects
-\textbf{Java with the MongoDB index structure} for Stage 2. The reasoning is
-scoped to the evidence: MongoDB showed near-flat update scaling
-(1.4--2.8$\times$ growth while the base index grew 40$\times$) and a
-footprint of several hundred megabytes at the measured sizes, its
-server-side footprint was measured separately (\texttt{collStats}), and the Java port's end-to-end numbers were
-supported by JMH attribution. This is a choice \emph{for the Stage 2
-workload}, not a claim that Java is universally faster or that MongoDB is
-the only scalable storage: at the measured scale, the file-based structures
-were competitive on several axes, and behaviours that matter at larger
-scale --- sharding, replication, concurrency, multi-gigabyte indexes ---
-were \emph{not measured here} and remain open questions
-(\cref{sec:limitations}).
+\textbf{Go with the MongoDB index structure} for Stage 2, because:
+
+\begin{itemize}
+    \item \textbf{Go leads the radar's throughput axis} (geometric mean of
+    the tests all four languages run: 65.3--69.8 items/s writing, 3.3
+    items/s downloading) and is the fastest builder of the JSON index
+    (\cref{fig:radar,fig:scalability-elapsed});
+    \item \textbf{MongoDB showed near-flat update scaling} (1.4--2.8$\times$
+    while the base index grew 40$\times$, against 16--23$\times$ for the
+    single JSON file), and its server footprint was measured separately
+    (\texttt{collStats});
+    \item \textbf{the batch-based datalake} matches the book-based lookup
+    (5--38 $\mu$s against 6--38 $\mu$s) with 3 directories instead of 100 for
+    the same bytes; the time-based layout is the slowest to look up
+    (21--268 $\mu$s) (\cref{tab:datalake-lookup}).
+\end{itemize}
+
+The choice is balanced: Rust leads write throughput (77.0--82.8 items/s),
+query latency and CPU efficiency, and the developer-productivity axis is a
+qualitative team score, not a measurement (\cref{sec:radar}). This is a
+choice \emph{for the Stage 2 workload}, not a claim that Go is universally
+faster or that MongoDB is the only scalable storage: at the measured scale
+the file-based structures were competitive, and behaviours that matter at
+larger scale --- sharding, replication, concurrency, multi-gigabyte indexes
+--- were \emph{not measured here} (\cref{sec:limitations}).
 
 \paragraph{Language-wide claims.}
 Nothing in this report supports a statement of the form ``language X is
-faster than language Y''. The measured objects are four implementations,
-written by this team, of one pipeline, on one corpus, on one machine, in one
-continuous run. Statements such as ``Go's allocator showed the lowest RSS
-growth in this workload'' are observations; ``Go uses less memory'' is a
-hypothesis this experiment cannot test. Where the data was ambiguous, the
-report says so rather than picking a narrative.
+faster than language Y''. The measured objects are four implementations of
+one pipeline, by this team, on one corpus, one machine, one continuous run:
+``Go's allocator showed the lowest RSS growth in this workload'' is an
+observation, while ``Go uses less memory'' is a hypothesis this experiment
+cannot test. Ambiguous data is reported as such, not as a narrative.
 
 \subsection{Future Improvements}
 \label{sec:future}
 
 \begin{itemize}
-    \item Repeat the tournament on bare metal and on Linux natively to
-    separate runtime effects from WSL2's virtualisation.
-    \item Extend the corpus by an order of magnitude to observe where the
-    measured curves bend (the current 10{,}000-book batch reuses a
-    100-book corpus, \cref{sec:workload}).
+    \item Repeat the tournament on bare metal and Linux natively, to separate
+    runtime effects from WSL2's virtualisation.
+    \item Extend the corpus by an order of magnitude, to observe where the
+    measured curves bend (the current batch reuses a 100-book corpus,
+    \cref{sec:workload}).
     \item Measure concurrency (multiple query clients) for the Stage 2
     serving layer, where it will actually be used.
     \item Add a memory-profiled MongoDB run that accounts the server's RSS

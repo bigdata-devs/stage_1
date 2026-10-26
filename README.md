@@ -184,7 +184,7 @@ Stage 2 moves the system onto the stack selected by the Stage 1 benchmarks and a
 crawling, indexing and querying modules:
 
 - **Go** replaces Python as the main language, with concurrent downloaders and indexers.
-  In the published run, Go built the JSON index for 10,000 books in 77 s, against 252 s for Rust and 1,181 s for Java.
+  In the published run, Go built the JSON index for 10,000 books in 66 s, against 196 s for Rust and 947 s for Java.
 - **Batch-based datalake** (`datalake/batch_<LOW>_<HIGH>/`) replaces the time-based layout.
 - **MongoDB** stores the inverted index as one document per term, replacing the monolithic JSON
   file.
