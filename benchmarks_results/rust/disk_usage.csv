@@ -1,7 +1,7 @@
 path,size_mb,file_count,dir_count,timestamp
-/home/aythami/.cache/stage_1_benchmarks/rust/datalake/time_based,58.6691,200,2,2026-10-02T13:02:59.053099
-/home/aythami/.cache/stage_1_benchmarks/rust/datalake/book_based,58.6691,200,100,2026-10-02T13:03:00.547546
-/home/aythami/.cache/stage_1_benchmarks/rust/datalake/batch_based,58.6691,200,3,2026-10-02T13:03:01.941880
-/home/aythami/.cache/stage_1_benchmarks/rust/datamarts/inverted_index.json,762.0826,1,0,2026-10-02T13:09:50.741216
-/home/aythami/.cache/stage_1_benchmarks/rust/datamarts/inverted_index,442.3936,106479,26,2026-10-02T13:16:35.419891
-mongodb://localhost:27017/search_engine_benchmark.inverted_index,547.0508,0,0,2026-10-02T13:23:06.862559
+/home/aythami/.cache/stage_1_benchmarks/rust/datalake/time_based,58.6691,200,2,2026-10-25T18:40:29.369307
+/home/aythami/.cache/stage_1_benchmarks/rust/datalake/book_based,58.6691,200,100,2026-10-25T18:40:30.775597
+/home/aythami/.cache/stage_1_benchmarks/rust/datalake/batch_based,58.6691,200,3,2026-10-25T18:40:32.065047
+/home/aythami/.cache/stage_1_benchmarks/rust/datamarts/inverted_index.json,75.9185,1,0,2026-10-25T18:54:11.408293
+/home/aythami/.cache/stage_1_benchmarks/rust/datamarts/inverted_index,42.1329,106479,26,2026-10-25T19:10:22.939132
+mongodb://localhost:27017/search_engine_benchmark.inverted_index,324.6484,0,0,2026-10-25T19:26:03.389134
