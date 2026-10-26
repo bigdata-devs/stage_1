@@ -18,7 +18,7 @@ and a revision.
     snapshot. The full record, including the filesystem and the MongoDB
     build, is \texttt{benchmarks\_results/environment.txt}.}
     \label{tab:host}
-    \begin{tabular}{@{}ll@{}}
+    \begin{tabular}{@{}lp{12cm}@{}}
         \toprule
         Component & Value \\
         \midrule
@@ -44,7 +44,7 @@ separate server whose CPU and memory are \emph{not} part of the client
 measurements (\cref{sec:index-memory}).
 
 \subsection{Metric definitions}
-\label{tab:metrics}
+\label{sec:metric-definitions}
 
 \begin{table}[htbp]
     \centering
@@ -129,8 +129,9 @@ The scalability builds reuse the corpus by repetition: a ``10{,}000-book
 batch'' is the \fixed{100}-book corpus indexed repeatedly until the batch
 size is reached, so batch size measures index size, not corpus diversity.
 The update experiment is the exception: it uses fresh synthetic book IDs
-(\texttt{base\_size}$\times$100 + offset), so added books are genuinely new
-terms and never collide with the base.
+(\texttt{base\_size}$\times$100 + offset), so an added book never collides
+with the base; its tokens come from the corpus, so the update merges new IDs
+into the existing postings instead of creating new terms.
 
 \subsection{Warm-up}
 \label{sec:warmup}
@@ -224,7 +225,7 @@ figure silently compares a MongoDB-less run with a MongoDB run.
 \label{sec:provenance}
 
 Each chart in this report maps to (i) the script that produced it, (ii) the
-raw CSVs in \texttt{benchmarks\_results/}, (iii) the configuration constants
-listed in \cref{tab:workload}, and (iv) the Git revision recorded in
-\texttt{benchmarks\_results/environment.txt} at run time. The mapping is
+raw CSVs in \texttt{benchmarks\_\allowbreak results/}, (iii) the constants listed in
+\cref{tab:workload}, and (iv) the Git revision recorded in
+\texttt{benchmarks\_\allowbreak results\_\allowbreak environment.txt} at run time; the mapping is
 tabulated in \cref{sec:reproducibility}.

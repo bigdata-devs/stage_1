@@ -28,8 +28,12 @@ internal cache (WiredTiger) is likewise warm after the first build.
 \paragraph{Workload.}
 The corpus is \fixed{100} books (\fixed{61.4} MB); the scalability
 builds reach 10{,}000 ``books'' by repeating that corpus, so index size
-grows but term diversity does not. Queries are \fixed{30} fixed lines; they
-are representative of the assignment but not sampled from a query log.
+grows but term diversity does not. The datalake experiments stay at the same \fixed{100} books: they compare
+directory structures on identical work, and growing them would mean
+downloading thousands more books (breaking the frozen artifact) or
+duplicating files (measuring nothing new) --- no datalake scaling curve was
+measured. Queries are \fixed{30} fixed lines; they are
+representative of the assignment but not sampled from a query log.
 Results may reorder on corpora with different term distributions.
 
 \paragraph{Timing and statistics.}
