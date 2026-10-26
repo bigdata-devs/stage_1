@@ -6,8 +6,9 @@ place in this report (or in the repository) that answers it.
 
 \begin{center}
 \small
-\begin{longtable}{@{}clp{9.2cm}@{}}
-    \label{tab:comment-matrix}
+\begin{longtable}{@{}lp{4.2cm}p{10.8cm}@{}}
+    \caption{Correction comments mapped to the place in this report (or in
+    the repository) that answers each one.}\label{tab:comment-matrix}\\
     \toprule
     \# & Topic & Where it is addressed \\
     \midrule
@@ -24,8 +25,9 @@ place in this report (or in the repository) that answers it.
     \cref{tab:host,tab:workload,sec:environment-state}: host and versions;
     downloads are sequential, one connection, no concurrency anywhere. \\
     3 & RSS-delta definition, 1{,}601 MB, O(1) MongoDB &
-    \cref{sec:index-scalability}: delta sampling explained; 1{,}601 MB
-    re-stated as largest plotted delta, not a requirement or peak;
+    \cref{sec:index-scalability}: delta sampling explained; the old
+    1{,}601 MB figure is re-stated as the largest plotted delta
+    (1{,}028.5 MB in the committed snapshot), not a requirement or a peak;
     \cref{sec:index-updates} replaces the O(1) claim with the measured curve. \\
     4 & Pipeline diagram of the three layers &
     \cref{fig:pipeline}: TikZ diagram with layers, data movement and the

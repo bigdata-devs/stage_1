@@ -22,12 +22,12 @@ GC profiler enabled. The harness itself runs on OpenJDK 17 via
         \toprule
         Micro-benchmark & Workload & Score \\
         \midrule
-        \texttt{TokenizeBenchmark.tokenizeBook} & one sample book & \pending{593.0} $\mu$s/op \\
-        \texttt{PostingsBenchmark.buildPostings} & 10 books & \pending{171.1} ms/op \\
-        \texttt{PostingsBenchmark.buildPostings} & 100 books & \pending{2476.1} ms/op \\
-        \texttt{JsonIndexBenchmark.serializeIndex} & 100-book index & \pending{612.2} ms/op \\
-        \texttt{JsonIndexBenchmark.parseIndex} & 100-book index & \pending{137.2} ms/op \\
-        \texttt{QueryBenchmark.intersectQuery} & two-term intersection & \pending{3.3} $\mu$s/op \\
+        \texttt{TokenizeBenchmark.tokenizeBook} & one sample book & 580.6 $\mu$s/op \\
+        \texttt{PostingsBenchmark.buildPostings} & 10 books & 133.5 ms/op \\
+        \texttt{PostingsBenchmark.buildPostings} & 100 books & 1853.0 ms/op \\
+        \texttt{JsonIndexBenchmark.serializeIndex} & 100-book index & 500.6 ms/op \\
+        \texttt{JsonIndexBenchmark.parseIndex} & 100-book index & 114.3 ms/op \\
+        \texttt{QueryBenchmark.intersectQuery} & two-term intersection & 2.8 $\mu$s/op \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -35,7 +35,7 @@ GC profiler enabled. The harness itself runs on OpenJDK 17 via
 \paragraph{How these numbers may be used.}
 They explain the \emph{internal} split of one Java operation (for example,
 serialising the JSON index dominates parsing it by roughly
-\pending{4.5}$\times$), which helps attribute the end-to-end Java bars of
+4.4$\times$), which helps attribute the end-to-end Java bars of
 \cref{sec:index}. They are \textbf{evidence about the Java port only}: JMH's
 forked-JVM warm-up protocol is deliberately \emph{not} applied to the other
 languages, so no JMH number is ever placed next to a Python, Go or Rust

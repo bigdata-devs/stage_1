@@ -32,16 +32,16 @@ directory first. \Cref{tab:datalake-lookup} reports the measured means.
 
 \begin{table}[htbp]
     \centering
-    \caption{Datalake lookup latency, 100 books per layout (mean per
-    language; raw rows in \texttt{benchmarks\_results/\*/statistics.csv}).}
+    \caption{Datalake lookup latency, 100 books per layout, in $\mu$s (mean
+    per language; raw rows in \texttt{benchmarks\_results/\*/statistics.csv}).}
     \label{tab:datalake-lookup}
     \begin{tabular}{@{}lcccc@{}}
         \toprule
         Layout & Python & Go & Rust & Java \\
         \midrule
-        Time-based & \pending{} & \pending{} & \pending{} & \pending{} \\
-        Book-based & \pending{} & \pending{} & \pending{} & \pending{} \\
-        Batch-based & \pending{} & \pending{} & \pending{} & \pending{} \\
+        Time-based & 93.0 & 27.0 & 21.0 & 268.0 \\
+        Book-based & 38.0 & 8.0 & 6.0 & 19.0 \\
+        Batch-based & 38.0 & 8.0 & 5.0 & 21.0 \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -56,8 +56,10 @@ added out of band, and the engine must detect it before indexing it. The
 initial state is identical for every layout (same corpus, empty index
 marker), so the detection times compare the same work. The measured column
 is \texttt{detection\_time} in the incremental experiments of
-\texttt{benchmarks.csv}; \pending{discovery summary} reports the values per
-layout. The time-based layout scans by timestamp, the book-based layout by
+\texttt{benchmarks.csv}; the observed detection took 0.7--10.1~ms across
+layouts and languages, with no layout dominating (time-based is fastest in
+Python and Go, batch-based in Rust and Java). The time-based layout scans by
+timestamp, the book-based layout by
 directory listing, and the batch layout by range membership; the
 measurements show the cost each choice imposes.
 
@@ -74,15 +76,17 @@ the figures for the shared \fixed{100}-book corpus.
 \begin{table}[htbp]
     \centering
     \caption{On-disk cost of the same corpus under each layout (bytes =
-    header + body files only; directory overhead is what differs).}
+    header + body files only; directory overhead is what differs). Ranges
+    span the four implementations: Python writes slightly fewer bytes and
+    adds a \texttt{metadata.json} per book in the book-based layout.}
     \label{tab:datalake-storage}
     \begin{tabular}{@{}lccc@{}}
         \toprule
         Layout & Size (MB) & Files & Directories \\
         \midrule
-        Time-based & \pending{} & \pending{} & \pending{} \\
-        Book-based & \pending{} & \pending{} & \pending{} \\
-        Batch-based & \pending{} & \pending{} & \pending{} \\
+        Time-based & 57.4--58.7 & 200 & 2 \\
+        Book-based & 57.4--58.7 & 200--300 & 100 \\
+        Batch-based & 57.4--58.7 & 200 & 3 \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -107,15 +111,16 @@ resume, duplicated IDs and lost IDs, plus the detection and processing times
     \centering
     \caption{Recovery experiment (100 books, interrupt after 50). Duplicated
     and lost counts are measured, not assumed from atomic-write
-    descriptions.}
+    descriptions. Detection and total times are min--max across the four
+    implementations.}
     \label{tab:recovery}
     \begin{tabular}{@{}lcccccc@{}}
         \toprule
         Layout & Before & After & Duplicated & Lost & Detection (s) & Total (s) \\
         \midrule
-        Time-based & \pending{50} & \pending{50} & \pending{0} & \pending{0} & \pending{} & \pending{} \\
-        Book-based & \pending{50} & \pending{50} & \pending{0} & \pending{0} & \pending{} & \pending{} \\
-        Batch-based & \pending{50} & \pending{50} & \pending{0} & \pending{0} & \pending{} & \pending{} \\
+        Time-based & 50 & 50 & 0 & 0 & 0.0007--0.0064 & 0.017--0.100 \\
+        Book-based & 50 & 50 & 0 & 0 & 0.0018--0.0079 & 0.016--0.088 \\
+        Batch-based & 50 & 50 & 0 & 0 & 0.0009--0.0034 & 0.016--0.083 \\
         \bottomrule
     \end{tabular}
 \end{table}
