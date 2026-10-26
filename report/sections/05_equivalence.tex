@@ -23,13 +23,9 @@ file with three sections:
 \end{enumerate}
 
 The four files are compared byte for byte. The run recorded in
-\texttt{benchmarks\_results/equivalence\_report.json} produced the same
+\texttt{benchmarks\_\allowbreak results/\allowbreak equivalence\_\allowbreak report.json} produced the same
 SHA-256 digest in all four languages,
-
-\begin{center}
-    \texttt{cdaa9369cbd91c4f89550efdcdd7c5c21e61adc97bd49f6e415b8e57d65ce2e4},
-\end{center}
-
+\par\noindent\texttt{cdaa9369cbd91c4f89550efdcdd7c5c2\allowbreak 1e61adc97bd49f6e415b8e57d65ce2e4},
 with \texttt{all\_equal: true}. Identical bytes imply identical tokens,
 identical postings and identical query answers: the cross-language latency
 comparison in \cref{sec:language-performance} compares the same work
@@ -39,7 +35,7 @@ everywhere. The tournament refuses to run any timed phase if this gate fails.
 \label{sec:equivalence-structures}
 
 Within a language, the latency chart compares three index structures. The
-test \texttt{tests/test\_datamarts/test\_structure\_equivalence.py} builds
+test \texttt{tests/\allowbreak test\_\allowbreak datamarts/\allowbreak test\_\allowbreak structure\_\allowbreak equivalence.py} builds
 the same corpus into the JSON file, the folder index and MongoDB, then
 queries \emph{every} term of the corpus plus absent terms on each structure
 and asserts that all answers are identical. A second case repeats the check

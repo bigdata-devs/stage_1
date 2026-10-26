@@ -17,18 +17,18 @@ Two series are shown (\cref{fig:scalability-elapsed,fig:scalability-memory}).
     \centering
     \begin{minipage}[t]{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{scalability/scalability_elapsed.png}
+        \includegraphics[width=0.94\textwidth]{scalability/scalability_elapsed.png}
         \caption{Build elapsed time versus batch size, mean of the
         repetitions listed in \texttt{scalability.csv}.}
         \label{fig:scalability-elapsed}
     \end{minipage}\hfill
     \begin{minipage}[t]{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{scalability/scalability_memory.png}
+        \includegraphics[width=0.94\textwidth]{scalability/scalability_memory.png}
         \caption{Memory growth versus batch size: \textbf{memory\_mb is the
-        RSS delta per batch} (see \cref{tab:metrics}). The callout ``Largest
-        RSS delta'' is the largest plotted delta, \emph{not} a process peak ---
-        that series is \texttt{peak\_rss\_mb}.}
+        RSS delta per batch} (\cref{tab:metrics}); the callout ``Largest RSS
+        delta'' is the largest plotted delta, \emph{not} a process peak
+        (\texttt{peak\_rss\_mb}).}
         \label{fig:scalability-memory}
     \end{minipage}
 \end{figure}
@@ -86,7 +86,7 @@ repetitions per base size. The plotted time is the update only.
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.88\textwidth]{scalability/scalability_updates.png}
+    \includegraphics[width=0.72\textwidth]{scalability/scalability_updates.png}
     \caption{Incremental update time versus base index size, isolated from
     construction (\texttt{updates.csv}).}
     \label{fig:updates}
@@ -95,18 +95,15 @@ repetitions per base size. The plotted time is the update only.
 \paragraph{The O(1) claim.}
 The earlier report said MongoDB updates were ``O(1)''. The operation behind
 the claim is \texttt{update\_book}: for each distinct term of the added book
-it upserts one document, merging the book ID into that term's postings
-array; the variable is the number of \emph{terms in the added book}, not the
-size of the index. Whether the cost stays flat as the base grows is an
-empirical question, and \texttt{updates.csv} answers it for the measured
-sizes: the JSON index's update cost grew 16--23$\times$ as the base grew
-from 25 to 1000 books, while the folder index grew 1.6--2.2$\times$ and
-MongoDB only 1.4--2.8$\times$ --- the single-file rewrite is the structure
-whose update cost tracks index size, whereas the per-term files and the
-database collection stay far flatter. The claim is therefore replaced
-by the observed curve; no constant-update behaviour is asserted beyond the
-measured range, and larger bases remain unmeasured
-(\cref{sec:limitations}).
+it upserts one document, merging the book ID into that term's postings array
+--- so the variable is the number of \emph{terms in the added book}, not the
+size of the index. Whether the cost stays flat as the base grows is
+empirical, and \texttt{updates.csv} answers it for the measured sizes: the
+JSON index grew 16--23$\times$ (base 25 to 1000 books), the folder index
+1.6--2.2$\times$ and MongoDB 1.4--2.8$\times$ --- the single-file rewrite
+tracks index size, the per-term files and the collection stay far flatter.
+The claim is replaced by that curve; no constant-update behaviour is
+asserted beyond the measured range (\cref{sec:limitations}).
 
 \subsection{Memory and disk of the MongoDB structure}
 \label{sec:index-memory}

@@ -7,12 +7,11 @@ four JMH micro-benchmarks over its hot paths
 (\texttt{multilang\_ports/java/src/main/java/microbench/}).
 
 \paragraph{Configuration.}
-JMH 1.37 on OpenJDK 21.0.12.1, average-time mode, 1 thread, 1 fork, 5 warm-up
-iterations of 1~s and 5 measurement iterations of 1~s per benchmark, with the
-GC profiler enabled. The harness itself runs on OpenJDK 17 via
-\texttt{mvn exec:java}; only the shaded JMH jar targets 21. Raw JSON in
-\texttt{benchmarks\_results/java/jmh\_results.json}, produced by
-\texttt{multilang\_ports/java/run\_jmh.sh}.
+JMH 1.37 on OpenJDK 21.0.12.1, average-time mode, 1 thread, 1 fork, 5+5
+iterations of 1~s (warm-up and measurement), GC profiler enabled; the harness
+runs on OpenJDK 17 via \texttt{mvn exec:java} --- only the shaded jar targets
+21. Raw JSON: \texttt{benchmarks\_\allowbreak results/java/\allowbreak jmh\_\allowbreak results.json},
+produced by \texttt{multilang\_\allowbreak ports/java/\allowbreak run\_\allowbreak jmh.sh}.
 
 \begin{table}[htbp]
     \centering
