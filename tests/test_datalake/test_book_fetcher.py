@@ -9,7 +9,7 @@ from tests.test_datalake.fakes import BODY, GUTENBERG_TEXT, HEADER, FakeGutenber
 
 def serve(monkeypatch, response: FakeResponse) -> FakeGutenberg:
     fake_get = FakeGutenberg(response)
-    monkeypatch.setattr(book_fetcher.requests, "get", fake_get)
+    monkeypatch.setattr(book_fetcher._SESSION, "get", fake_get)
     return fake_get
 
 
@@ -17,7 +17,7 @@ def raise_on_get(monkeypatch, error: Exception) -> None:
     def failing_get(url, **kwargs):
         raise error
 
-    monkeypatch.setattr(book_fetcher.requests, "get", failing_get)
+    monkeypatch.setattr(book_fetcher._SESSION, "get", failing_get)
 
 
 class TestSplitBookText:
