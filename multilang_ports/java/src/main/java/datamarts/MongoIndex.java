@@ -59,8 +59,13 @@ public final class MongoIndex implements AutoCloseable {
         MongoClient client = MongoClients.create(settings(uri));
         MongoDatabase database = client.getDatabase(databaseName);
         MongoCollection<Document> collection = database.getCollection(collectionName);
-        collection.createIndex(Indexes.ascending("term"), new IndexOptions().unique(true));
+        ensureTermIndex(collection);
         return new MongoIndex(client, database, collection, collectionName);
+    }
+
+    /** Mirrors get_collection(): a unique ascending index on "term". */
+    private static void ensureTermIndex(MongoCollection<Document> collection) {
+        collection.createIndex(Indexes.ascending("term"), new IndexOptions().unique(true));
     }
 
     private static MongoClientSettings settings(String uri) {
@@ -70,8 +75,16 @@ public final class MongoIndex implements AutoCloseable {
             .build();
     }
 
+    /**
+     * Drops and re-creates the collection, the reset phase of the Python suite.
+     *
+     * <p>Dropping instead of deleting every document gives each build the same fresh collection,
+     * so {@code collStats storageSize} is measured on an identical state in all four languages
+     * rather than on the free space a document wipe leaves behind.
+     */
     public void clear() {
-        collection.deleteMany(new BsonDocument());
+        collection.drop();
+        ensureTermIndex(collection);
     }
 
     public void save(Map<String, List<Integer>> index) {
