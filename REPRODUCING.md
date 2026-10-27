@@ -12,8 +12,9 @@ can also be run alone.
 | Python 3.11+ | baseline suite, checker, charts | `pip install -r requirements.txt` |
 | Go 1.22+ | Go port | `go build ./...` must succeed |
 | Rust (stable) + Cargo | Rust port | `cargo build --release` must succeed |
-| Java 21 + Maven | Java port and JMH | `mvn -q compile` must succeed; the harness needs a heap that fits the largest batch (the tournament defaults `MAVEN_OPTS` to `-Xmx5g`) |
-| MongoDB (optional) | mongo index structure | every port skips it consistently when unreachable |
+| Java 21 + Maven | Java port and JMH | `mvn -q compile` must succeed; the harness needs a heap that fits the largest batch (the tournament defaults `MAVEN_OPTS` to `-Xmx5g -XX:ActiveProcessorCount=1`) |
+| MongoDB (optional) | mongo index structure | every port skips it consistently when unreachable; the snapshot run uses the `stage1-mongodb` Docker container |
+| `taskset` (util-linux) | CPU pinning | every timed phase runs on one logical core (`BENCH_CPU_CORE`, default 4) |
 
 The exact versions of the run that produced the committed snapshot are
 recorded in `benchmarks_results/environment.txt`. Run the toolchains from the
@@ -39,17 +40,24 @@ The script runs the phases in this order and aborts on the first failure:
    checker compares the four files byte for byte and writes
    `benchmarks_results/equivalence_report.json`. Timings are meaningless
    without this check, so it always runs first.
-1. **Benchmarks** — Go, Rust and Java write their CSVs directly into
+1. **Download probe** — `BENCH_DOWNLOAD_ROUNDS` rounds (default 5) in which
+   every language downloads the same 10 books, interleaved round-robin
+   (go, rust, java, python) and pinned to one core, so no language downloads
+   at a systematically different hour of the run. Each round appends one
+   `download_write_throughput` row per language.
+2. **Benchmarks** — Go, Rust and Java write their CSVs directly into
    `benchmarks_results/<language>/`; the Python baseline writes to
-   `src/utils/benchmarks/results/` and is copied afterwards. Java additionally
+   `src/utils/benchmarks/results/` and is copied afterwards. Every phase runs
+   under `taskset` (plus `GOMAXPROCS=1` for Go and
+   `-XX:ActiveProcessorCount=1` for Java). Java additionally
    runs the JMH suite (`multilang_ports/java/run_jmh.sh`), which refreshes
    `benchmarks_results/java/jmh_results.json`.
-2. **Verify** — `verify_format.py` checks CRLF endings, columns, decimals and
+3. **Verify** — `verify_format.py` checks CRLF endings, columns, decimals and
    timestamps for every snapshot (`--format-only` for Python and Go, full row
    parity against the Go reference for Rust and Java).
-3. **Environment** — `benchmarks_results/environment.txt` records kernel, CPU,
+4. **Environment** — `benchmarks_results/environment.txt` records kernel, CPU,
    memory, dataset size and toolchain versions of the run.
-4. **Charts** — `python3 -m src.visualizations.main --output-dir charts`
+5. **Charts** — `python3 -m src.visualizations.main --output-dir charts`
    renders the shared chart suite from the fresh snapshot.
 
 Logs land in `$BENCH_LOG_DIR` (default
@@ -68,7 +76,14 @@ Logs land in `$BENCH_LOG_DIR` (default
 - **Memory**: resident-set-size delta plus a peak sampler (every 50 ms);
   the peak is the maximum over repetitions.
 - **CPU**: process CPU time divided by wall clock, so a slow disk shows up
-  as low CPU instead of inflating the figure.
+  as low CPU instead of inflating the figure. Every timed phase is pinned to
+  one logical core with `taskset`, with `GOMAXPROCS=1` (Go) and
+  `-XX:ActiveProcessorCount=1` (Java), so the four runtimes share a
+  single-core budget and `cpu_percent` cannot exceed 100.
+- **Downloads**: one pooled HTTP connection per language (Python
+  `requests.Session`, Go `http.Client`, Rust `reqwest::Client`, Java
+  `HttpClient`), 10 sequential books per round, rounds interleaved across
+  languages; the charts average the rounds per language and test.
 - **Disk/cache**: the phases run sequentially on the same working set; caches
   are not dropped (no root required) and every language faces the same cache
   state because each one starts after the previous finished.
@@ -85,7 +100,13 @@ Logs land in `$BENCH_LOG_DIR` (default
 # Phase 0: equivalence only
 python3 -m src.utils.benchmarks.equivalence_check
 
-# Phase 1: one language (same commands the script uses)
+# Phase 1: one download round for one language
+(cd multilang_ports/go && go run . bench -download-only -results ../../benchmarks_results/go)
+(cd multilang_ports/rust && cargo run --release --bin bench -- bench -download-only -results ../../benchmarks_results/rust)
+(cd multilang_ports/java && mvn -q compile exec:java "-Dexec.mainClass=benchmark.Main" "-Dexec.args=bench -download-only -results ../../benchmarks_results/java")
+python3 -m src.utils.benchmarks.download_probe
+
+# Phase 2: one language (same commands the script uses, minus the taskset pinning)
 (cd multilang_ports/go && go run . bench -results ../../benchmarks_results/go)
 (cd multilang_ports/rust && cargo run --release --bin bench -- bench -results ../../benchmarks_results/rust)
 (cd multilang_ports/java && mvn -q compile exec:java "-Dexec.mainClass=benchmark.Main" "-Dexec.args=bench -results ../../benchmarks_results/java")
@@ -95,13 +116,13 @@ cp src/utils/benchmarks/results/*.csv benchmarks_results/python/
 # JMH micro-benchmarks (Java protocol only)
 ./multilang_ports/java/run_jmh.sh
 
-# Phase 2: verification
+# Phase 3: verification
 python3 src/utils/benchmarks/verify_format.py benchmarks_results/go --format-only
 python3 src/utils/benchmarks/verify_format.py benchmarks_results/python --format-only
 python3 src/utils/benchmarks/verify_format.py benchmarks_results/rust
 python3 src/utils/benchmarks/verify_format.py benchmarks_results/java
 
-# Phase 4: charts
+# Phase 5: charts
 python3 -m src.visualizations.main --output-dir charts
 ```
 

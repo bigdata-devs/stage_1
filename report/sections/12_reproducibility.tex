@@ -6,14 +6,17 @@ identified revision. The full protocol is documented in
 \texttt{REPRODUCING.md}; the short version follows.
 
 \paragraph{One command.}
-\texttt{./scripts/run\_tournament.sh} runs five phases in order and refuses
+\texttt{./scripts/run\_tournament.sh} runs six phases in order and refuses
 to time anything before equivalence passes:
 
 \begin{enumerate}
     \item \textbf{equivalence} --- cross-language canonical files, compared
     byte for byte (\texttt{equivalence\_\allowbreak report.json});
+    \item \textbf{download} --- \fixed{5} probe rounds per language, run
+    round-robin on one pinned core, so the network sample of the four
+    languages is interleaved;
     \item \textbf{benchmarks} --- Go, Rust, Java (+JMH) and Python suites,
-    each writing its CSVs under
+    each pinned to one logical core, writing its CSVs under
     \texttt{benchmarks\_\allowbreak results/\allowbreak <language>/};
     \item \textbf{verify} --- schema check of every CSV
     (\texttt{scripts/\allowbreak verify\_\allowbreak format.py});
