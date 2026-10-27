@@ -7,14 +7,16 @@ factors. They are listed so readers can weigh the results accordingly.
 \paragraph{Machine.}
 One laptop-class host (i7-10750H, 8 GB RAM), under WSL2 virtualisation, with
 an NTFS-backed filesystem. CPU frequency scaling, thermal throttling and the
-hypervisor layer affect all languages, but not necessarily equally. No
-isolation (no \texttt{taskset}, no performance governor, no bare metal) was
-used.
+hypervisor layer affect all languages, but not necessarily equally. Every
+timed harness phase is pinned to a single logical core with \texttt{taskset}
+(\cref{sec:host}), which bounds the CPU budget but is no performance governor
+and no bare metal: neighbouring work still shares that core.
 
 \paragraph{Runtime.}
-The Java harness runs on OpenJDK 17 through \texttt{mvn exec:java} (Maven's
-own JVM overhead is outside the timed regions but shares the machine), while
-JMH runs on 21. Python runs on 3.14, Go 1.27, Rust 1.99: these are current
+The Java harness and JMH both run on OpenJDK 21 (the harness through
+\texttt{mvn exec:java}, whose own JVM overhead is outside the timed regions
+but shares the machine; JMH in a shaded jar). Python runs on 3.14, Go 1.27,
+Rust 1.99: these are current
 versions, not long-term-stability comparisons. Only Java receives warm-up
 (\cref{sec:warmup}); the other languages are measured from cold start, which
 is the honest default for them but is itself a protocol choice.
@@ -37,7 +39,8 @@ representative of the assignment but not sampled from a query log.
 Results may reorder on corpora with different term distributions.
 
 \paragraph{Timing and statistics.}
-Elapsed times are wall-clock in a shared, unisolated host: neighbouring
+Elapsed times are wall-clock on a shared host where only the CPU budget is
+pinned (\cref{sec:host}): neighbouring
 processes (including \texttt{mongod} and the sampling threads) inject
 jitter, visible as non-zero \texttt{stdev\_seconds}. One tournament run
 produces the committed snapshot; there is no second run to quantify
@@ -47,9 +50,10 @@ better result.
 \paragraph{Measurement boundaries.}
 Client RSS excludes the MongoDB server by construction
 (\cref{sec:index-memory}); its storage is measured via \texttt{collStats},
-its memory is not. The download probe is ten sequential requests, so its
+its memory is not. The download probe is ten sequential requests per round
+over one pooled connection, repeated in five interleaved rounds, so its
 rate reflects latency more than bandwidth. CPU percentage is process CPU
-over wall clock and can exceed 100 on multi-core bursts.
+over wall clock; the pinned harness phases cannot exceed 100.
 
 \paragraph{Unmeasured behaviours.}
 Not exercised at all: concurrent readers and writers, indexes far beyond the
