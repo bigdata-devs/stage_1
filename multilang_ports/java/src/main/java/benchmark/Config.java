@@ -12,7 +12,7 @@ import inverted_index.Corpus;
 public record Config(List<Integer> bookIds, String rawBooksDir, String gutenbergUrl, Path bodiesDir,
         Path headersDir, Path outputDir, Path resultsDir, String mongoUri, String mongoDatabase,
         String mongoCollection, List<List<String>> queries, int queryRepetitions, boolean skipDatalake,
-        boolean skipIndex, boolean skipMongo) {
+        boolean skipIndex, boolean skipMongo, boolean downloadOnly) {
 
     public static final String DEFAULT_BODIES_DIR = "../../data_source/bodies";
     public static final String DEFAULT_HEADERS_DIR = "../../data_source/headers";
@@ -22,7 +22,8 @@ public record Config(List<Integer> bookIds, String rawBooksDir, String gutenberg
     public static final String DEFAULT_MONGO_DATABASE = "search_engine_benchmark";
     public static final String DEFAULT_MONGO_COLLECTION = "inverted_index";
 
-    private static final Set<String> BOOLEAN_FLAGS = Set.of("-skip-datalake", "-skip-index", "-skip-mongo");
+    private static final Set<String> BOOLEAN_FLAGS =
+        Set.of("-skip-datalake", "-skip-index", "-skip-mongo", "-download-only");
     private static final String BOOLEAN_FLAG_VALUE = "true";
 
     public static Config parse(String[] args) throws IOException {
@@ -48,7 +49,8 @@ public record Config(List<Integer> bookIds, String rawBooksDir, String gutenberg
             queryRepetitions,
             flags.containsKey("-skip-datalake"),
             flags.containsKey("-skip-index"),
-            flags.containsKey("-skip-mongo"));
+            flags.containsKey("-skip-mongo"),
+            flags.containsKey("-download-only"));
     }
 
     private static Map<String, String> parseFlags(String[] args) {

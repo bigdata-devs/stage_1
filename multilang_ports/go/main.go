@@ -105,6 +105,7 @@ func parseBenchmarkFlags(args []string) (benchmark.Config, error) {
 	flags.BoolVar(&config.SkipDatalake, "skip-datalake", false, "skip the datalake benchmark")
 	flags.BoolVar(&config.SkipIndex, "skip-index", false, "skip the inverted index benchmark")
 	flags.BoolVar(&config.SkipMongo, "skip-mongo", false, "skip the MongoDB index")
+	flags.BoolVar(&config.DownloadOnly, "download-only", false, "run one download-probe round and nothing else")
 	if err := flags.Parse(args); err != nil {
 		return config, err
 	}

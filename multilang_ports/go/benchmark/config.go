@@ -42,4 +42,9 @@ type Config struct {
 	SkipDatalake bool
 	SkipIndex    bool
 	SkipMongo    bool
+
+	// DownloadOnly runs a single download-probe round and nothing else; the
+	// tournament calls it once per language per round so the network sample
+	// is interleaved instead of being taken at four different hours.
+	DownloadOnly bool
 }

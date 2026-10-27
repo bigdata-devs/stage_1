@@ -33,6 +33,9 @@ impl Suite {
     }
 
     pub fn run(&self) -> BenchResult<()> {
+        if self.config.download_only {
+            return super::datalake_bench::run_download_probe_only(self);
+        }
         if !self.config.skip_datalake {
             super::datalake_bench::run(self).map_err(|error| format!("datalake benchmark: {error}"))?;
         }

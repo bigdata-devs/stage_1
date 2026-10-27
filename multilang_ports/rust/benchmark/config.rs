@@ -12,7 +12,7 @@ pub const DEFAULT_MONGO_URI: &str = "mongodb://localhost:27017";
 pub const DEFAULT_MONGO_DATABASE: &str = "search_engine_benchmark";
 pub const DEFAULT_MONGO_COLLECTION: &str = "inverted_index";
 
-const BOOLEAN_FLAGS: [&str; 3] = ["-skip-datalake", "-skip-index", "-skip-mongo"];
+const BOOLEAN_FLAGS: [&str; 4] = ["-skip-datalake", "-skip-index", "-skip-mongo", "-download-only"];
 
 pub struct Config {
     pub book_ids: Vec<i32>,
@@ -30,6 +30,9 @@ pub struct Config {
     pub skip_datalake: bool,
     pub skip_index: bool,
     pub skip_mongo: bool,
+    /// Runs one download-probe round and nothing else; the tournament calls it
+    /// once per language per round so the network sample is interleaved.
+    pub download_only: bool,
 }
 
 impl Config {
@@ -94,6 +97,7 @@ impl Config {
             skip_datalake: flags.contains_key("-skip-datalake"),
             skip_index: flags.contains_key("-skip-index"),
             skip_mongo: flags.contains_key("-skip-mongo"),
+            download_only: flags.contains_key("-download-only"),
         })
     }
 }
