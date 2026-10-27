@@ -1,12 +1,12 @@
 package datalake;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import java.util.TreeSet;
+import utils.AtomicFile;
 
 public final class Datalake {
 
@@ -21,8 +21,8 @@ public final class Datalake {
     public Path store(int bookId, String header, String body) throws IOException {
         Path directory = layout.directory(root, bookId);
         Files.createDirectories(directory);
-        Files.writeString(directory.resolve(bookId + Layout.BODY_SUFFIX), body, StandardCharsets.UTF_8);
-        Files.writeString(directory.resolve(bookId + Layout.HEADER_SUFFIX), header, StandardCharsets.UTF_8);
+        AtomicFile.writeText(directory.resolve(bookId + Layout.BODY_SUFFIX), body);
+        AtomicFile.writeText(directory.resolve(bookId + Layout.HEADER_SUFFIX), header);
         return directory;
     }
 

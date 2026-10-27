@@ -5,11 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
+
+	"search_engine_bench/utils"
 )
 
 // SaveJSON writes the monolithic index file. The output is byte-for-byte what
@@ -53,21 +56,17 @@ func loadOrCreateJSON(outputPath string) (map[string][]int, error) {
 	return nil, err
 }
 
+// writeJSONEntries streams the index into a temporary sibling that is
+// fsync-ed and renamed, the JSON counterpart of write_text_atomically().
 func writeJSONEntries(entries []IndexEntry, outputPath string) error {
 	if err := os.MkdirAll(filepath.Dir(outputPath), directoryPermissions); err != nil {
 		return fmt.Errorf("create index directory: %w", err)
 	}
-	file, err := os.Create(outputPath)
-	if err != nil {
-		return fmt.Errorf("create index file: %w", err)
-	}
-	defer file.Close()
-	writer := bufio.NewWriter(file)
-	writeJSONObject(writer, entries)
-	if err := writer.Flush(); err != nil {
-		return fmt.Errorf("write index file: %w", err)
-	}
-	return file.Close()
+	return utils.WriteAtomically(outputPath, func(destination io.Writer) error {
+		writer := bufio.NewWriter(destination)
+		writeJSONObject(writer, entries)
+		return writer.Flush()
+	})
 }
 
 func writeJSONObject(writer *bufio.Writer, entries []IndexEntry) {
