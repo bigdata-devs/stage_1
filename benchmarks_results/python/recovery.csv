@@ -1,4 +1,4 @@
 test_name,total_books,processed_before_interruption,processed_after_resume,duplicated,lost,detection_time,processing_time,elapsed_seconds,timestamp
-recovery_time_based,100,50,50,0,0,0.002826,0.042424,0.045281,2026-10-25T22:30:18.160783
-recovery_book_based,100,50,50,0,0,0.005141,0.039101,0.044272,2026-10-25T22:30:21.998453
-recovery_batch_based,100,50,50,0,0,0.002839,0.037931,0.040797,2026-10-25T22:30:25.411968
+recovery_time_based,100,50,50,0,0,0.002756,0.042750,0.045534,2026-10-28T15:10:12.431724
+recovery_book_based,100,50,50,0,0,0.004741,0.041994,0.046765,2026-10-28T15:10:16.422696
+recovery_batch_based,100,50,50,0,0,0.003063,0.038246,0.041335,2026-10-28T15:10:20.019145
