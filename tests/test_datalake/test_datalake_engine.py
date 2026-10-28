@@ -31,7 +31,7 @@ BOOK = GutenbergBook(1342, "Title: Pride", "It is a truth\r\nuniversally acknowl
 
 @pytest.fixture
 def fake_gutenberg(monkeypatch):
-    monkeypatch.setattr(book_fetcher.requests, "get", FakeGutenberg(FakeResponse(GUTENBERG_TEXT)))
+    monkeypatch.setattr(book_fetcher._SESSION, "get", FakeGutenberg(FakeResponse(GUTENBERG_TEXT)))
 
 
 class TestLayoutDirectories:
@@ -97,7 +97,7 @@ class TestDownloadLayouts:
         assert (tmp_path / "batch_1000_1999" / "1500_body.txt").exists()
 
     def test_failed_download_creates_no_folders(self, monkeypatch, tmp_path):
-        monkeypatch.setattr(book_fetcher.requests, "get", FakeGutenberg(FakeResponse("", 404)))
+        monkeypatch.setattr(book_fetcher._SESSION, "get", FakeGutenberg(FakeResponse("", 404)))
         with pytest.raises(BookUnavailableError):
             datalake_engine.download_time_based(1, tmp_path)
         assert list(tmp_path.iterdir()) == []

@@ -13,6 +13,13 @@ pub fn run(suite: &Suite) -> BenchResult<()> {
     for layout in super::suite::layouts() {
         benchmark_layout(suite, layout.as_ref())?;
     }
+    Ok(())
+}
+
+/// Runs one download-probe round and nothing else. The tournament calls it once
+/// per language per round, so the network sample is interleaved across languages
+/// instead of being taken at four different hours of the run.
+pub fn run_download_probe_only(suite: &Suite) -> BenchResult<()> {
     measure_download_probe(suite)
 }
 

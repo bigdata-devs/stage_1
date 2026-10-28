@@ -1,5 +1,6 @@
 use super::fetcher::Fetcher;
 use super::layout::{Layout, LocatedBook, BODY_SUFFIX, HEADER_SUFFIX};
+use crate::utils::atomic_file;
 use std::collections::{BTreeSet, HashSet};
 use std::fs;
 use std::io;
@@ -25,8 +26,8 @@ impl<'a> Datalake<'a> {
     pub fn store(&self, book_id: i32, header: &str, body: &str) -> io::Result<PathBuf> {
         let directory = self.layout.directory(&self.root, book_id);
         fs::create_dir_all(&directory)?;
-        fs::write(directory.join(format!("{book_id}{BODY_SUFFIX}")), body)?;
-        fs::write(directory.join(format!("{book_id}{HEADER_SUFFIX}")), header)?;
+        atomic_file::write_text(&directory.join(format!("{book_id}{BODY_SUFFIX}")), body)?;
+        atomic_file::write_text(&directory.join(format!("{book_id}{HEADER_SUFFIX}")), header)?;
         Ok(directory)
     }
 

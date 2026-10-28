@@ -213,7 +213,7 @@ class MongoIndexStructure:
         self.collection = backend.get_collection(database_name=BENCHMARK_MONGO_DATABASE)
 
     def reset(self):
-        self.collection.delete_many({})
+        self.backend.clear(self.collection)
 
     def build_and_save(self, books):
         self.backend.save_index(self.backend.build_index(books), self.collection)

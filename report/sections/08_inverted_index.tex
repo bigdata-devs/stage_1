@@ -73,7 +73,10 @@ network/IPC round trip per term (\cref{fig:latency}).
 \texttt{disk\_usage.csv} reports bytes, files and directories per structure
 after indexing the identical corpus. For MongoDB the client-side file scan
 is meaningless, so the server's own \texttt{collStats storageSize} is read
-from the database itself and reported in the same table.
+from the database itself and reported in the same table; the collection is
+dropped and re-created before every build, in every language, so the
+reported size is that of an identically fresh collection rather than of the
+free space a document wipe leaves behind.
 
 \subsection{Incremental updates}
 \label{sec:index-updates}
@@ -96,7 +99,9 @@ repetitions per base size. The plotted time is the update only.
 The earlier report said MongoDB updates were ``O(1)''. The operation behind
 the claim is \texttt{update\_book}: for each distinct term of the added book
 it upserts one document, merging the book ID into that term's postings array
---- so the variable is the number of \emph{terms in the added book}, not the
+--- all of those statements are sent as a single unordered bulk write, so one
+book costs one round trip to the server and the variable is the number of
+\emph{terms in the added book}, not the
 size of the index. Whether the cost stays flat as the base grows is
 empirical, and \texttt{updates.csv} answers it for the measured sizes: the
 JSON index grew 16--23$\times$ (base 25 to 1000 books), the folder index

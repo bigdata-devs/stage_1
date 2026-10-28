@@ -1,7 +1,6 @@
 package inverted_index;
 
 import java.io.IOException;
-import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -9,6 +8,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import utils.AtomicFile;
 
 public final class JsonIndex {
 
@@ -20,12 +20,7 @@ public final class JsonIndex {
     }
 
     public static void saveIndex(Map<String, List<Integer>> index, Path outputPath) throws IOException {
-        if (outputPath.getParent() != null) {
-            Files.createDirectories(outputPath.getParent());
-        }
-        try (Writer writer = Files.newBufferedWriter(outputPath, StandardCharsets.UTF_8)) {
-            serialize(index, writer);
-        }
+        AtomicFile.write(outputPath, writer -> serialize(index, writer));
     }
 
     public static Map<String, List<Integer>> loadIndex(Path indexPath) throws IOException {

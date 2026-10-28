@@ -28,6 +28,14 @@ final class DatalakeBenchmark {
         for (Layout layout : Suite.standardLayouts()) {
             benchmarkLayout(layout);
         }
+    }
+
+    /**
+     * Runs one download-probe round and nothing else. The tournament calls it once per language
+     * per round, so the network sample is interleaved across languages instead of being taken at
+     * four different hours of the run.
+     */
+    void runDownloadProbeOnly() throws IOException {
         measureDownloadProbe();
     }
 

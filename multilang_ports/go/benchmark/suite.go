@@ -28,6 +28,9 @@ func NewSuite(config Config) Suite {
 
 // Run executes every enabled benchmark phase.
 func (suite Suite) Run() error {
+	if suite.config.DownloadOnly {
+		return suite.measureDownloadProbe()
+	}
 	if !suite.config.SkipDatalake {
 		if err := suite.runDatalakeBenchmark(); err != nil {
 			return fmt.Errorf("datalake benchmark: %w", err)

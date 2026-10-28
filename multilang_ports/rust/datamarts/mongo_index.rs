@@ -1,7 +1,7 @@
 use crate::inverted_index::json_index::InvertedIndex;
 use crate::inverted_index::postings::unique_terms;
 use mongodb::bson::{doc, Bson, Document};
-use mongodb::options::{ClientOptions, IndexOptions, InsertManyOptions, UpdateOptions};
+use mongodb::options::{ClientOptions, IndexOptions, InsertManyOptions};
 use mongodb::sync::{Client, Collection, Database};
 use mongodb::IndexModel;
 use std::error::Error;
@@ -45,8 +45,14 @@ impl MongoIndex {
         })
     }
 
+    /// Drops and re-creates the collection, the reset phase of the Python suite.
+    ///
+    /// Dropping instead of deleting every document gives each build the same fresh collection, so
+    /// `collStats storageSize` is measured on an identical state in all four languages rather than
+    /// on the free space a document wipe leaves behind.
     pub fn clear(&self) -> MongoResult<()> {
-        self.collection.delete_many(Document::new(), None)?;
+        self.collection.drop(None)?;
+        self.collection.create_index(term_index_model(), None)?;
         Ok(())
     }
 
@@ -84,16 +90,26 @@ impl MongoIndex {
             .unwrap_or_default())
     }
 
+    /// Merges one book into every posting list it belongs to with a single unordered bulk
+    /// write, the round-trip pattern of the Python, Go and Java ports: one upserting pipeline
+    /// update per distinct term, all of them in one command instead of one command per term.
     pub fn update_book(&self, book_id: i32, tokens: &[String]) -> MongoResult<()> {
-        let options = UpdateOptions::builder().upsert(true).build();
-        for term in unique_terms(tokens) {
-            self.collection.update_one(
-                doc! { "term": term },
-                vec![book_update_pipeline(book_id)],
-                options.clone(),
-            )?;
+        let updates: Vec<Document> = unique_terms(tokens)
+            .iter()
+            .map(|term| upsert_operation(term, book_id))
+            .collect();
+        if updates.is_empty() {
+            return Ok(());
         }
-        Ok(())
+        let response = self.database.run_command(
+            doc! {
+                "update": &self.collection_name,
+                "updates": updates,
+                "ordered": false,
+            },
+            None,
+        )?;
+        report_write_errors(&response)
     }
 
     pub fn storage_stats(&self) -> MongoResult<MongoStorageStats> {
@@ -144,6 +160,26 @@ fn book_update_pipeline(book_id: i32) -> Document {
             }
         }
     }
+}
+
+/// One statement of the bulk write: upsert `{"term": ...}` with the merge pipeline.
+fn upsert_operation(term: &str, book_id: i32) -> Document {
+    doc! {
+        "q": { "term": term },
+        "u": [book_update_pipeline(book_id)],
+        "multi": false,
+        "upsert": true,
+    }
+}
+
+/// A bulk write answers `ok: 1` and reports per-statement failures in `writeErrors`.
+fn report_write_errors(response: &Document) -> MongoResult<()> {
+    if let Some(Bson::Array(errors)) = response.get("writeErrors") {
+        if let Some(first_error) = errors.first() {
+            return Err(format!("update book failed: {first_error}").into());
+        }
+    }
+    Ok(())
 }
 
 fn as_book_id(bson: &Bson) -> Option<i32> {

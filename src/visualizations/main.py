@@ -190,11 +190,22 @@ def select_comparable_tests(metrics: Mapping[str, pd.DataFrame]) -> dict[str, pd
     """Charts compare languages, so tests measured by fewer than 2 languages (e.g. Python-only
     metadata inserts) are left out of every chart. They stay in the appendix CSV."""
     comparable = {metric: rows_of_multi_language_tests(frame) for metric, frame in metrics.items()}
+    if "throughput" in comparable:
+        comparable["throughput"] = average_repeated_rounds(comparable["throughput"])
     for metric, frame in metrics.items():
         excluded = sorted(set(frame["test_name"]) - set(comparable[metric]["test_name"]))
         if excluded:
             LOGGER.info("%s: single-language tests left out of the charts: %s", metric, ", ".join(excluded))
     return comparable
+
+
+def average_repeated_rounds(frame: pd.DataFrame) -> pd.DataFrame:
+    """Collapses the repeated rounds of one test (the interleaved download probe) to a single row
+    per language and test. Without this the radar's geometric mean would weight a test by its
+    number of rounds, and the panel bars would show only the last round."""
+    if frame.empty:
+        return frame
+    return frame.groupby(["language", "test_name"], as_index=False).mean(numeric_only=True)
 
 
 # --------------------------------------------------------------------------- loading

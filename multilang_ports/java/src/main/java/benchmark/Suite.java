@@ -35,6 +35,10 @@ public final class Suite {
     }
 
     public void run() throws IOException {
+        if (config.downloadOnly()) {
+            new DatalakeBenchmark(this).runDownloadProbeOnly();
+            return;
+        }
         if (!config.skipDatalake()) {
             try {
                 new DatalakeBenchmark(this).run();

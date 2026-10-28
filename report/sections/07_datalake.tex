@@ -5,7 +5,8 @@ The datalake stores the same header/body pairs under three layouts. This
 section evaluates them on the dimensions the assignment asks for: write and
 download throughput, document lookup, discovery of new books, storage
 overhead, and recovery after an interruption. All numbers come from
-\texttt{datalake\_experiments.py} (Python baseline) and the equivalent
+\texttt{datalake\_experiments.py} (Python baseline; the network probe from
+\texttt{download\_probe.py}) and the equivalent
 \texttt{datalake\_bench} code in each port, with the parameters of
 \cref{tab:workload}.
 
@@ -14,9 +15,12 @@ overhead, and recovery after an interruption. All numbers come from
 
 Write throughput times only the storage call (split header and body written
 to the layout), one book per iteration, \fixed{100} iterations; the download
-is a separate experiment: \fixed{10} books fetched sequentially, one
-connection at a time, timing from before the HTTP request until the body is
-fully written to disk. Both operate on the same \fixed{100}-book corpus, so
+is a separate experiment: \fixed{10} books fetched sequentially in each of
+\fixed{5} rounds through one pooled connection per language, timing from
+before the HTTP request until the body is fully written to disk. The rounds
+interleave the languages round-robin, so no language downloads at a
+systematically different hour of the run, and the charts show the mean of the
+rounds. Both experiments operate on the same \fixed{100}-book corpus, so
 the reported rates compare identified work. \Cref{fig:throughput} plots the
 result; the layout affects write time only through directory creation and
 path length, which is why the three bars stay close together.

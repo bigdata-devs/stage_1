@@ -1,5 +1,5 @@
 language,"raw Throughput [items/s, geometric mean]","raw Low latency [s per operation, geometric mean]",raw CPU efficiency [mean CPU %],raw Transactional reliability [books processed exactly once],raw Developer productivity [qualitative score],score Throughput,score Low latency,score CPU efficiency,score Transactional reliability,score Developer productivity
-python,13.8421,0.000326315,87.6525,1,1,0.433174,0.331895,0.979845,1,1
-java,29.6342,0.000377667,94.5367,1,0.7,0.92737,0.286768,0.908492,1,0.7
-go,31.955,0.000161255,88.8225,1,0.8,1,0.671622,0.966938,1,0.8
-rust,28.452,0.000108303,85.8858,1,0.4,0.890376,1,1,1,0.4
+python,16.7131,0.000329019,90.9362,1,1,0.721724,0.354133,0.938954,1,1
+java,16.798,0.000543908,90.9242,1,0.7,0.725393,0.214221,0.939079,1,0.7
+go,23.1572,0.000156678,85.385,1,0.8,1,0.74367,1,1,0.8
+rust,20.359,0.000116517,86.7538,1,0.4,0.879165,1,0.984223,1,0.4

@@ -18,6 +18,11 @@ REQUEST_TIMEOUT_SECONDS = 10
 
 _RETRYABLE_CLIENT_ERRORS = frozenset({HTTPStatus.REQUEST_TIMEOUT, HTTPStatus.TOO_MANY_REQUESTS})
 
+# One pooled session for every download: the first book pays the TLS handshake and the rest
+# reuse the connection, which is what the Go (http.Client), Java (HttpClient) and Rust
+# (reqwest::Client) ports do. A per-book requests.get() would measure the handshake instead.
+_SESSION = requests.Session()
+
 
 @dataclass(frozen=True)
 class GutenbergBook:
@@ -69,7 +74,7 @@ def split_book_text(book_id: int, text: str) -> tuple[str, str]:
 def _download_text(book_id: int, source_url: str) -> str:
     """Performs the HTTP request and returns the response text of a successful download."""
     try:
-        response = requests.get(source_url, timeout=REQUEST_TIMEOUT_SECONDS)
+        response = _SESSION.get(source_url, timeout=REQUEST_TIMEOUT_SECONDS)
     except requests.RequestException as network_error:
         raise TransientDownloadError(f"Book {book_id} could not be downloaded: {network_error}") from network_error
     _raise_for_failed_status(book_id, response.status_code)

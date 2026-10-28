@@ -28,11 +28,13 @@ and a revision.
         Python & 3.14.4 (+ \texttt{psutil} for RSS/CPU) \\
         Go & 1.27.2 (\texttt{linux/amd64}) \\
         Rust & 1.99.0 (\texttt{rustc}/\texttt{cargo}, stable) \\
-        Java (harness) & OpenJDK 17.0.20.1, executed via \texttt{mvn exec:java},
-        \texttt{MAVEN\_OPTS=-Xmx5g} (set by the tournament) \\
-        Java (JMH) & OpenJDK 21.0.12.1, shaded jar \\
+        Java (harness) & OpenJDK 21.0.12.1, executed via \texttt{mvn exec:java},
+        \texttt{MAVEN\_OPTS=-Xmx5g -XX:ActiveProcessorCount=1} (set by the
+        tournament) \\
+        Java (JMH) & same OpenJDK 21.0.12.1, shaded jar \\
         Maven & 3.9.12 \\
-        MongoDB & 8.0.13, \texttt{mongod} on \texttt{localhost:27017} \\
+        MongoDB & 7.0.45, \texttt{mongod} in the Docker container
+        \texttt{stage1-mongodb} on \texttt{localhost:27017} \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -42,6 +44,15 @@ All implementations run single-threaded and synchronous
 parallel iterators. The only other process involved is \texttt{mongod}, a
 separate server whose CPU and memory are \emph{not} part of the client
 measurements (\cref{sec:index-memory}).
+
+\paragraph{CPU isolation.}
+Every timed language phase runs pinned to one logical core
+(\texttt{taskset -c 4}), with \texttt{GOMAXPROCS=1} for Go and
+\texttt{-XX:ActiveProcessorCount=1} for the Java harness, so each runtime sees
+the same single-core budget and \texttt{cpu\_percent} cannot exceed 100 by
+spawning scheduler or GC threads on other cores. The pinning covers the four
+harness phases and the download rounds; JMH keeps its own standard setup and
+is reported separately (\cref{sec:jmh}).
 
 \subsection{Metric definitions}
 \label{sec:metric-definitions}
@@ -76,7 +87,8 @@ measurements (\cref{sec:index-memory}).
         repetitions the maximum is reported. \\
         \texttt{cpu\_percent} & process CPU time (user + system) divided by
         wall-clock time, $\times 100$; above 100 means more than one core was
-        saturated. \\
+        saturated (the pinned harness phases cannot exceed 100,
+        \cref{sec:host}). \\
         \bottomrule
     \end{tabularx}
 \end{table}
@@ -111,8 +123,10 @@ MongoDB structure, the server's own memory and disk are reported separately
         \fixed{150} timed samples per structure per language. \\
         Datalake lookup & \fixed{100} books located once per layout (header
         and body read). \\
-        Download probe & \fixed{10} books downloaded sequentially over one
-        connection; no concurrency anywhere in the pipeline. \\
+        Download probe & \fixed{10} books downloaded sequentially in each of
+        \fixed{5} rounds; the rounds interleave the languages round-robin and
+        every book reuses one pooled connection, so no concurrency anywhere in
+        the pipeline. \\
         Build batches & \fixed{25, 50, 250, 500, 1000, 5000, 10000} books;
         5 repetitions up to 1000, 3 for 5000, 2 for 10000. \\
         Update batches & base indexes of \fixed{25, 50, 250, 500, 1000}
@@ -160,8 +174,9 @@ separately; they are never mixed with the cross-language figures.
     repository (WSL2 / NTFS-backed); \texttt{disk\_usage.csv} reports files,
     directories and bytes per layout and per structure.
     \item \textbf{Network.} Only the download probe touches the network (ten
-    sequential GETs, one connection at a time); every other phase is offline
-    and reads the tracked corpus from disk.
+    sequential GETs per round over one pooled connection per language, five
+    rounds interleaved round-robin across languages); every other phase is
+    offline and reads the tracked corpus from disk.
 \end{itemize}
 
 \subsection{Timing boundaries}

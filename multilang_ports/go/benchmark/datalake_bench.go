@@ -14,15 +14,16 @@ const downloadProbeCount = 10
 
 // runDatalakeBenchmark fills every hierarchy from the tracked corpus and
 // measures write, lookup, incremental detection, recovery and disk usage per
-// layout; the network download benchmark runs last so that Gutenberg
-// latency never contaminates the local measurements.
+// layout. The network download benchmark is a separate phase (see
+// measureDownloadProbe), so Gutenberg latency never contaminates these
+// local measurements and every language can be interleaved on the wire.
 func (suite Suite) runDatalakeBenchmark() error {
 	for _, layout := range datalake.StandardLayouts() {
 		if err := suite.benchmarkLayout(layout); err != nil {
 			return err
 		}
 	}
-	return suite.measureDownloadProbe()
+	return nil
 }
 
 func (suite Suite) benchmarkLayout(layout datalake.Layout) error {
