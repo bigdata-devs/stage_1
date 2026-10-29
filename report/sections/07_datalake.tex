@@ -13,118 +13,208 @@ overhead, and recovery after an interruption. All numbers come from
 \subsection{Write and download throughput}
 \label{sec:datalake-throughput}
 
-Write throughput times only the storage call (split header and body written
-to the layout), one book per iteration, \fixed{100} iterations; the download
-is a separate experiment: \fixed{10} books fetched sequentially in each of
-\fixed{5} rounds through one pooled connection per language, timing from
-before the HTTP request until the body is fully written to disk. The rounds
-interleave the languages round-robin, so no language downloads at a
-systematically different hour of the run, and the charts show the mean of the
-rounds. Both experiments operate on the same \fixed{100}-book corpus, so
-the reported rates compare identified work. \Cref{fig:throughput} plots the
-result; the layout affects write time only through directory creation and
-path length, which is why the three bars stay close together.
+Write throughput is one timed run per layout that reads each of the
+\fixed{100} tracked headers and bodies from \texttt{data\_source/} and stores
+them through the layout's storage path. Since the current snapshot every
+implementation writes each file to a temporary sibling, forces it to stable
+storage with \texttt{fsync} and renames it into place
+(\cref{sec:refactor-effect}). The download is a separate experiment:
+\fixed{10} books fetched sequentially in each of \fixed{5} rounds through one
+pooled connection per language, timed from before the HTTP request until the
+body is written to disk. The rounds interleave the languages round-robin, so
+no language downloads at a systematically different hour of the run. Both
+experiments operate on the same \fixed{100}-book corpus.
+
+\paragraph{Writes.}
+Go stored the corpus at 46.9--48.1 items/s, Rust at 38.3--39.0, Java at
+30.5--35.1 and Python at 26.4--29.0 (\cref{fig:throughput}a): 21~ms per book
+for Go and 36~ms for Python, each book being two synchronised files. The
+layout matters little. Within each implementation the three layouts differ
+by at most 3\% in Go and Rust, 10\% in Python and 15\% in Java, and the
+book-based layout, which creates one directory per book (plus, in Python, a
+\texttt{metadata.json} per book), is the slowest in Python, Go and Rust.
+Client CPU utilisation during the writes is 10--13\% (Rust), 17--18\% (Go)
+and 27--37\% (Java): the phase is bound by storage synchronisation, not by
+computation. The remaining ordering of the ports (Go, Rust, Java) is not
+explained by the data collected.
+
+\paragraph{Downloads.}
+\Cref{tab:download} summarises the five rounds. The probe is network-bound
+(client CPU 1.5--6.3\% in Go and Rust), so it characterises the HTTP clients
+and the path to Project Gutenberg rather than computation. Python
+(3.24~items/s) and Go (3.12) overlap within one standard deviation; Rust is
+lower (2.60) and Java lowest (1.88). Java's mean is pulled down by a first
+round of 11.2~s (0.89~items/s; median 2.13), and its client uses 25--44\% CPU;
+since every round starts a fresh JVM through Maven, start-up and JIT cost is
+a plausible cause, which we did not isolate. Panel~(b) of
+\cref{fig:throughput} shows the fifth round only, not these means
+(\cref{sec:radar}).
+
+\begin{table}[htbp]
+    \centering
+    \caption{Download + write throughput, \fixed{10} books per round,
+    \fixed{5} interleaved rounds per language (\texttt{throughput.csv}).
+    The previous snapshot had a single round per language, taken at
+    different hours and without connection pooling in Python and Rust.}
+    \label{tab:download}
+    \begin{tabular}{@{}lcccc@{}}
+        \toprule
+        Language & Mean $\pm$ SD (items/s) & Min--max & Median & Previous ($n=1$) \\
+        \midrule
+        Python & 3.24 $\pm$ 0.29 & 2.90--3.52 & 3.39 & 1.48 \\
+        Go & 3.12 $\pm$ 0.37 & 2.67--3.47 & 3.31 & 3.32 \\
+        Rust & 2.60 $\pm$ 0.25 & 2.25--2.96 & 2.64 & 1.32 \\
+        Java & 1.88 $\pm$ 0.56 & 0.89--2.22 & 2.13 & 2.87 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
 \subsection{Document lookup}
 \label{sec:datalake-lookup}
 
-\fixed{100} books are located once per layout (path resolution plus reading
-both files back into memory). The book-based layout, which stores every book
-under its own \texttt{book\_id/} directory, resolves paths in constant steps;
-the time-based and batch layouts must walk the calendar or the range
-directory first. \Cref{tab:datalake-lookup} reports the measured means.
+\fixed{100} books are located once per layout: the harness resolves the
+book's directory and checks that both its header and its body exist; the
+files are not read. The book-based and batch-based layouts derive the
+directory arithmetically from the ID, whereas the time-based layout must list
+its hour directories, newest first, and probe each until it finds the book.
+\Cref{tab:datalake-lookup} reports the mean and, because several series are
+right-skewed, the minimum.
 
 \begin{table}[htbp]
     \centering
-    \caption{Datalake lookup latency, 100 books per layout, in $\mu$s (mean
-    per language; raw rows in \texttt{benchmarks\_results/\*/statistics.csv}).}
+    \caption{Datalake lookup latency, 100 books per layout, in $\mu$s: mean
+    (minimum) per language; raw rows in
+    \texttt{benchmarks\_results/<language>/statistics.csv}.}
     \label{tab:datalake-lookup}
     \begin{tabular}{@{}lcccc@{}}
         \toprule
         Layout & Python & Go & Rust & Java \\
         \midrule
-        Time-based & 93.0 & 27.0 & 21.0 & 268.0 \\
-        Book-based & 38.0 & 8.0 & 6.0 & 19.0 \\
-        Batch-based & 38.0 & 8.0 & 5.0 & 21.0 \\
+        Time-based & 90 (76) & 25 (20) & 19 (17) & 433 (103) \\
+        Book-based & 39 (32) & 7 (6) & 7 (5) & 14 (8) \\
+        Batch-based & 35 (30) & 7 (6) & 6 (5) & 50 (9) \\
         \bottomrule
     \end{tabular}
 \end{table}
+
+The time-based layout is the slowest in every implementation (19--433~$\mu$s
+mean, 17--103~$\mu$s minimum), as its directory listing predicts. Book- and
+batch-based lookups are indistinguishable in Python, Go and Rust (means
+within 4~$\mu$s, minima within 2~$\mu$s). Java's means are dominated by a few
+slow samples (standard deviations of 44--1{,}294~$\mu$s, maxima up to
+11.7~ms): this phase runs without warm-up (\cref{sec:warmup}), so its first
+lookups include interpretation and JIT compilation; on the minima Java
+follows the same pattern as the other three. Every mean stays below
+0.5~ms.
 
 \subsection{Discovery of downloaded-but-not-indexed books}
 \label{sec:datalake-discovery}
 
 Lookup answers ``where is a book I know exists''. The complementary
-operation is discovery: \emph{which books are already downloaded but not yet
-indexed?} Each layout is filled with \fixed{100} books, one new book is
-added out of band, and the engine must detect it before indexing it. The
-initial state is identical for every layout (same corpus, empty index
-marker), so the detection times compare the same work. The measured column
-is \texttt{detection\_time} in the incremental experiments of
-\texttt{benchmarks.csv}; the observed detection took 0.7--10.1~ms across
-layouts and languages, with no layout dominating (time-based is fastest in
-Python and Go, batch-based in Rust and Java). The time-based layout scans by
-timestamp, the book-based layout by
-directory listing, and the batch layout by range membership; the
-measurements show the cost each choice imposes.
-
-\subsection{Storage overhead}
-\label{sec:datalake-storage}
-
-After storing the identical corpus, each layout is measured for total bytes,
-file count and directory count (\texttt{disk\_usage.csv}). The layouts
-differ only in how many intermediate directories they create: a time-based
-layout adds calendar levels, a book-based layout one directory per book, a
-batch layout one directory per range. \Cref{tab:datalake-storage} reports
-the figures for the shared \fixed{100}-book corpus.
+operation is discovery: \emph{which books are stored but not yet indexed?}
+The experiment marks the first \fixed{50} of the \fixed{100} stored IDs as
+already indexed, in an in-memory set, and times one scan per layout that
+lists the stored IDs and returns the 50 that are not in the set
+(\texttt{incremental\_<layout>} in \texttt{benchmarks.csv}). The initial
+state is identical across layouts and languages; the control files of
+\cref{sec:architecture} are not involved and no book is added out of band.
+\Cref{tab:discovery} lists the single sample per layout and language.
 
 \begin{table}[htbp]
     \centering
-    \caption{On-disk cost of the same corpus under each layout (bytes =
-    header + body files only; directory overhead is what differs). Ranges
-    span the four implementations: Python writes slightly fewer bytes and
-    adds a \texttt{metadata.json} per book in the book-based layout.}
-    \label{tab:datalake-storage}
-    \begin{tabular}{@{}lccc@{}}
+    \caption{Discovery scan, 100 stored books of which 50 are marked
+    indexed, in ms (one sample per cell).}
+    \label{tab:discovery}
+    \begin{tabular}{@{}lcccc@{}}
         \toprule
-        Layout & Size (MB) & Files & Directories \\
+        Layout & Python & Go & Rust & Java \\
         \midrule
-        Time-based & 57.4--58.7 & 200 & 2 \\
-        Book-based & 57.4--58.7 & 200--300 & 100 \\
-        Batch-based & 57.4--58.7 & 200 & 3 \\
+        Time-based & 2.80 & 0.76 & 2.04 & 22.55 \\
+        Book-based & 5.39 & 1.98 & 3.23 & 18.48 \\
+        Batch-based & 2.94 & 0.76 & 0.91 & 3.38 \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-The directory counts feed directly into the scalability discussion of
-\cref{sec:index-structures}: a layout with thousands of small directories
-behaves differently on filesystem lookup than one with a handful, and that
-is visible in the measured lookup times, not an assumption.
+The scan took 0.76--22.6~ms. The batch-based layout is the fastest or tied
+in all four implementations, and the book-based layout, whose scan lists 100
+directories instead of 2--3, is the slowest in Python, Go and Rust. With one
+sample per cell these are observations, not a ranking. The CPU figures
+recorded for these few-millisecond rows reach 489\% despite single-core
+pinning, which shows that process CPU time is accounted at a coarser
+resolution than the operation lasts; \texttt{cpu\_percent} is therefore not
+interpreted for operations shorter than about 10~ms.
+
+\subsection{Storage overhead}
+\label{sec:datalake-storage}
+
+After storing the identical corpus, each layout is measured for apparent
+bytes (the sum of file sizes), file count and directory count
+(\texttt{disk\_usage.csv}; the harness's ``MB'' are MiB, $2^{20}$ bytes).
+The layouts differ only in how many intermediate directories they create: a
+time-based layout adds a day and an hour level, a book-based layout one
+directory per book, a batch layout one directory per range of 1{,}000 IDs.
+\Cref{tab:datalake-storage} reports the figures for the shared
+\fixed{100}-book corpus.
+
+\begin{table}[htbp]
+    \centering
+    \caption{On-disk cost of the same corpus under each layout (apparent
+    size of the header and body files; allocated blocks were not measured).
+    Ranges span the four implementations: Python stores 1.29~MiB less
+    because it reads the corpus with universal newlines and drops carriage
+    returns, and adds a \texttt{metadata.json} per book in the book-based
+    layout.}
+    \label{tab:datalake-storage}
+    \begin{tabular}{@{}lccc@{}}
+        \toprule
+        Layout & Size (MiB) & Files & Directories \\
+        \midrule
+        Time-based & 57.38--58.67 & 200 & 2 \\
+        Book-based & 57.40--58.67 & 200--300 & 100 \\
+        Batch-based & 57.38--58.67 & 200 & 3 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+The directory counts are consistent with the two measured differences
+between layouts: the book-based layout's 100 directories go with the slowest
+discovery scan (\cref{tab:discovery}), and the time-based layout's directory
+listing with the slowest lookup (\cref{tab:datalake-lookup}). The counts grow
+differently with the corpus (one directory per book, per 1{,}000 IDs, or per
+ingestion hour), but only the 100-book state was measured.
 
 \subsection{Recovery after interruption}
 \label{sec:datalake-recovery}
 
-Recovery is demonstrated, not asserted. Ingestion is interrupted after
-\fixed{50} of \fixed{100} books --- a documented step, after the write of
-book 50 --- and the engine is then restarted. It must detect the partially
-processed state, resume, and finish. The experiment reports what actually
-happened: books processed before the interruption, books processed after the
-resume, duplicated IDs and lost IDs, plus the detection and processing times
-(\texttt{recovery.csv}). \Cref{tab:recovery} shows the observed result.
+What the harness measures is a \emph{resume-detection check}, not a crash
+test. With all \fixed{100} books already stored by the write phase, the first
+\fixed{50} IDs are marked as processed in memory; the harness then times
+(i)~the detection of the 50 pending books, with the same scan as discovery,
+and (ii)~locating and reading back their headers and bodies
+(\texttt{recovery.csv}). No process is killed, the control files are not
+used and no partial write can occur, so the reported 0 duplicated and 0 lost
+books follow from the design and are \emph{not} evidence of crash safety.
+The durable-write path now shared by all four implementations (temporary
+file, \texttt{fsync}, rename) means a crashed writer leaves at most a
+leftover temporary file, never a truncated book, but this experiment does
+not exercise that property; a kill-and-restart test is listed as future work
+(\cref{sec:future}).
 
 \begin{table}[htbp]
     \centering
-    \caption{Recovery experiment (100 books, interrupt after 50). Duplicated
-    and lost counts are measured, not assumed from atomic-write
-    descriptions. Detection and total times are min--max across the four
-    implementations.}
+    \caption{Resume-detection check: 100 books stored, the first 50 marked
+    processed in memory, one sample per layout and language. Duplicated and
+    lost counts are zero by construction. Times are min--max across the four
+    implementations, in ms.}
     \label{tab:recovery}
     \begin{tabular}{@{}lcccccc@{}}
         \toprule
-        Layout & Before & After & Duplicated & Lost & Detection (s) & Total (s) \\
+        Layout & Before & After & Duplicated & Lost & Detection (ms) & Total (ms) \\
         \midrule
-        Time-based & 50 & 50 & 0 & 0 & 0.0007--0.0064 & 0.017--0.100 \\
-        Book-based & 50 & 50 & 0 & 0 & 0.0018--0.0079 & 0.016--0.088 \\
-        Batch-based & 50 & 50 & 0 & 0 & 0.0009--0.0034 & 0.016--0.083 \\
+        Time-based & 50 & 50 & 0 & 0 & 0.70--10.79 & 15.9--96.7 \\
+        Book-based & 50 & 50 & 0 & 0 & 1.61--14.72 & 18.1--102.5 \\
+        Batch-based & 50 & 50 & 0 & 0 & 0.81--4.07 & 15.7--80.2 \\
         \bottomrule
     \end{tabular}
 \end{table}

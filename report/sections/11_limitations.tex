@@ -5,8 +5,11 @@ Every observed difference could partly be an artefact of the following
 factors. They are listed so readers can weigh the results accordingly.
 
 \paragraph{Machine.}
-One laptop-class host (i7-10750H, 8 GB RAM), under WSL2 virtualisation, with
-an NTFS-backed filesystem. CPU frequency scaling, thermal throttling and the
+One laptop-class host (i7-10750H; 9.7~GiB of memory visible to the WSL2
+virtual machine in the current run, 7.7~GiB in the previous one), under WSL2
+virtualisation; the benchmark artefacts live inside the virtual machine's own
+disk, whose filesystem type was not recorded. CPU frequency scaling, thermal
+throttling and the
 hypervisor layer affect all languages, but not necessarily equally. Every
 timed harness phase is pinned to a single logical core with \texttt{taskset}
 (\cref{sec:host}), which bounds the CPU budget but is no performance governor
@@ -45,7 +48,13 @@ processes (including \texttt{mongod} and the sampling threads) inject
 jitter, visible as non-zero \texttt{stdev\_seconds}. One tournament run
 produces the committed snapshot; there is no second run to quantify
 run-to-run variance. No outliers are trimmed and no phase is repeated for a
-better result.
+better result. Several results rest on one sample per cell: discovery, the
+resume check, the base-10{,}000 updates and the Python metadata inserts; the
+datalake write phase is one timed run of 100 books per layout. The
+comparison between snapshots (\cref{sec:refactor-effect}) is one run against
+one run, with host and toolchain changes in between. Query and lookup
+latencies are right-skewed, with standard deviations close to their means,
+so the means used here summarise mixed workloads.
 
 \paragraph{Measurement boundaries.}
 Client RSS excludes the MongoDB server by construction
@@ -53,7 +62,13 @@ Client RSS excludes the MongoDB server by construction
 its memory is not. The download probe is ten sequential requests per round
 over one pooled connection, repeated in five interleaved rounds, so its
 rate reflects latency more than bandwidth. CPU percentage is process CPU
-over wall clock; the pinned harness phases cannot exceed 100.
+over wall clock; with one pinned core it should not exceed 100, yet
+operations shorter than about 10~ms report up to 489\%, an accounting
+artefact, and those values are not interpreted. The MongoDB server's
+container is neither pinned nor CPU-limited. Durability differs across index
+structures: datalake files and the JSON index are synchronised, folder term
+files are not, and MongoDB uses its default write concern
+(\cref{sec:index-updates}). Disk sizes are apparent, not allocated.
 
 \paragraph{Unmeasured behaviours.}
 Not exercised at all: concurrent readers and writers, indexes far beyond the

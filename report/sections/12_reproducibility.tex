@@ -19,7 +19,7 @@ to time anything before equivalence passes:
     each pinned to one logical core, writing its CSVs under
     \texttt{benchmarks\_\allowbreak results/\allowbreak <language>/};
     \item \textbf{verify} --- schema check of every CSV
-    (\texttt{scripts/\allowbreak verify\_\allowbreak format.py});
+    (\texttt{src/\allowbreak utils/\allowbreak benchmarks/\allowbreak verify\_\allowbreak format.py});
     \item \textbf{environment} --- host, runtimes and Git revision in
     \texttt{benchmarks\_\allowbreak results/\allowbreak environment.txt};
     \item \textbf{charts} --- \texttt{src/\allowbreak visualizations/\allowbreak main.py} renders \texttt{charts/}.
@@ -43,19 +43,24 @@ configuration.
         Figure & Script & Raw results \\
         \midrule
         \cref{fig:radar} & \texttt{radar\_chart.py} & all of \texttt{benchmarks\_results/} \\
-        \cref{fig:throughput} & \texttt{throughput\_charts.py} & \texttt{\*/throughput.csv}, \texttt{\*/benchmarks.csv} \\
-        \cref{fig:latency} & \texttt{latency\_charts.py} & \texttt{\*/statistics.csv} \\
-        \cref{fig:scalability-elapsed,fig:scalability-memory,fig:updates} & \texttt{scalability\_charts.py} & \texttt{\*/scalability.csv}, \texttt{\*/updates.csv} \\
-        Sankey (interactive HTML) & \texttt{storage\_sankey.py} & \texttt{\*/disk\_usage.csv} \\
+        \cref{fig:throughput} & \texttt{throughput\_charts.py} & \texttt{<language>/throughput.csv}, \texttt{<language>/benchmarks.csv} \\
+        \cref{fig:latency} & \texttt{latency\_charts.py} & \texttt{<language>/statistics.csv} \\
+        \cref{fig:scalability-elapsed,fig:scalability-memory,fig:updates} & \texttt{scalability\_charts.py} & \texttt{<language>/scalability.csv}, \texttt{<language>/updates.csv} \\
+        Sankey (interactive HTML) & \texttt{storage\_sankey.py} & \texttt{<language>/disk\_usage.csv} \\
         \cref{tab:jmh} & \texttt{multilang\_ports/java/run\_jmh.sh} & \texttt{java/jmh\_results.json} \\
+        \cref{tab:refactor-effect} & computed from the CSVs & \texttt{<language>/*.csv} at commits \texttt{28d4c3f} and \texttt{9e53348} \\
         \bottomrule
     \end{tabularx}
 \end{table}
 
 \paragraph{Revision.}
 The Git commit that produced the committed snapshot is recorded inside
-\texttt{benchmarks\_\allowbreak results\_\allowbreak environment.txt} together with the host and
-runtime versions of \cref{tab:host}. Checking out that commit and re-running
-the command above reproduces the pipeline; the raw numbers will differ in
-their last digits (shared-host jitter, \cref{sec:limitations}), but the
-ordering and the equivalence digests are stable.
+\texttt{benchmarks\_\allowbreak results/\allowbreak environment.txt} together with the host and
+runtime versions of \cref{tab:host}: \texttt{0482a5e} for the current
+snapshot, whose results were committed in \texttt{9e53348}; the previous
+snapshot compared in \cref{sec:refactor-effect} is \texttt{28d4c3f}, produced
+by \texttt{b104a9a}. Checking out a commit and re-running the command above
+reproduces the pipeline; the raw numbers will differ (shared-host jitter,
+\cref{sec:limitations}) while the equivalence digests stay fixed. Whether the
+orderings reported here are stable across runs has not yet been tested with a
+second run (\cref{sec:future}).

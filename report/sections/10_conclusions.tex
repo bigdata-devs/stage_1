@@ -3,73 +3,146 @@
 
 \paragraph{What the measurements support.}
 On the host of \cref{tab:host}, over the \fixed{100}-book corpus and the
-\fixed{30}-query workload, the tournament measured the following:
+\fixed{30}-query workload, the current tournament measured the following:
 
 \begin{itemize}
     \item The four implementations are behaviourally identical on this
     workload (byte-identical canonical outputs, \cref{sec:equivalence}), so
     the cross-language differences below compare the same work.
-    \item On write throughput and datalake lookup the measured spread is
-    2.6--2.8$\times$ in write throughput (27.3--82.8 items/s) and
-    6--13$\times$ in lookup latency, though every lookup stays below 0.3 ms.
-    \item On index build, Go built the 10{,}000-book JSON index in 66.0 s
-    against 167.1 s (Python), 196.4 s (Rust) and 947.0 s (Java); query
-    latency stayed between 0.6 and 5.0 ms across structures and languages.
-    \item On-disk footprint is corpus-dominated; the three index structures
-    over the same corpus cost 75.9 MB as a single JSON file, 42.1 MB across
-    106{,}479 files for the folder structure, and 38.2--558.9 MB server-side
-    for MongoDB (\texttt{collStats}) (\cref{sec:index-memory}).
-    \item Recovery after a documented interruption resumed with 0 duplicated
-    and 0 lost books in every layout (\cref{tab:recovery}).
+    \item With durable writes in all four implementations, datalake write
+    throughput spans 26.4--48.1 items/s ($1.8\times$; Go highest, Python
+    lowest), down from a $3.0\times$ spread that was mostly a difference in
+    durability (\cref{sec:refactor-effect}); the phase is storage-bound.
+    Lookups stay below 0.5~ms on average; the time-based layout is the
+    slowest to look up in every implementation.
+    \item Index builds are dominated by the in-memory postings construction
+    that the three structures share. Go built every structure fastest at
+    10{,}000 books (71.4--83.8~s), Python and Rust took 170.9--215.3~s, and
+    Java 1{,}130--1{,}185~s with super-linear growth that the source code
+    links to its boxed \texttt{TreeSet} postings builder
+    (\cref{sec:index-scalability}; a hypothesis).
+    \item Query latency on the 10{,}000-book index ranks JSON $<$ folder $<$
+    MongoDB in all four implementations (means 0.64--2.68, 1.01--3.84 and
+    4.25--8.31~ms).
+    \item No structure has constant update cost. The folder index updated
+    fastest in 18 of 20 measured points, with weaker durability than the
+    other two; MongoDB's update time grew 2.1--3.1$\times$ from a base of 25
+    to 1{,}000 books and a further 7.3--9.2$\times$ at 10{,}000, close to
+    linear in the base (\cref{sec:index-updates}).
+    \item The JSON file holds 75.9~MiB and the folder index 42.1~MiB of file
+    content in 106{,}479 files (apparent size; at least 415.9~MiB allocated
+    at 4~KiB blocks); the MongoDB \texttt{storageSize} (5.4--29.6~MiB) is
+    not yet a reliable footprint measure (\cref{sec:index-structures}).
+    \item The resume check returned 0 duplicated and 0 lost books by
+    construction; crash safety was not tested (\cref{sec:datalake-recovery}).
 \end{itemize}
 
 \paragraph{Selection for Stage 2.}
-Within the tested corpus, workload and host, the group selects
-\textbf{Go with the MongoDB index structure} for Stage 2, because:
+Within the tested corpus, workload and host, the group selects \textbf{Go
+with the MongoDB index structure and the batch-based datalake} for Stage~2.
+The three parts of the choice rest on different kinds of evidence:
 
 \begin{itemize}
-    \item \textbf{Go leads the radar's throughput axis} (geometric mean of
-    the tests all four languages run: 65.3--69.8 items/s writing, 3.3
-    items/s downloading) and is the fastest builder of the JSON index
-    (\cref{fig:radar,fig:scalability-elapsed});
-    \item \textbf{MongoDB showed near-flat update scaling} (1.4--2.8$\times$
-    while the base index grew 40$\times$, against 16--23$\times$ for the
-    single JSON file), and its server footprint was measured separately
-    (\texttt{collStats});
-    \item \textbf{the batch-based datalake} matches the book-based lookup
-    (5--38 $\mu$s against 6--38 $\mu$s) with 3 directories instead of 100 for
-    the same bytes; the time-based layout is the slowest to look up
-    (21--268 $\mu$s) (\cref{tab:datalake-lookup}).
+    \item \textbf{Go} is supported by the measurements. It had the highest
+    write throughput (46.9--48.1 items/s), the fastest builds of all three
+    structures from 500 books upward, and the second-best latency score
+    behind Rust (\cref{fig:radar}). Rust leads lookup and query latency and
+    tokenisation, so the choice trades lower latency for higher write and
+    build throughput and, by the team's qualitative assessment, faster
+    development.
+    \item \textbf{MongoDB} is \emph{not} the structure the Stage~1
+    measurements favour: in all four implementations the folder index
+    updated faster than MongoDB (19 of 20 measured points), and both the JSON
+    and the folder index answered queries faster. MongoDB is
+    selected for requirements of the Stage~2 service-oriented architecture
+    that this study did not measure. Several independent services
+    (ingestion, indexing and search) will read and update one index over the
+    network; MongoDB applies each per-term upsert atomically and acknowledges
+    it from a server, whereas the folder index rewrites term files without
+    synchronisation and the JSON file must be rewritten whole on every
+    update; and an index held by a database server can be shared, replicated
+    and backed up without every service owning a copy of the files. These
+    are design requirements, not benchmark results, and Stage~2 must measure
+    MongoDB under concurrent access before the choice is confirmed.
+    \item \textbf{The batch-based datalake} matched the book-based layout on
+    lookup (minima of 5--32~$\mu$s for both in Python, Go and Rust) with 3
+    directories instead of 100 for the same bytes, and had the fastest or
+    tied discovery scan in all four implementations (one sample each); the
+    time-based layout was the slowest to look up in every implementation
+    (\cref{tab:datalake-lookup,tab:discovery}).
 \end{itemize}
 
-The choice is balanced: Rust leads write throughput (77.0--82.8 items/s),
-query latency and CPU efficiency, and the developer-productivity axis is a
-qualitative team score, not a measurement (\cref{sec:radar}). This is a
-choice \emph{for the Stage 2 workload}, not a claim that Go is universally
-faster or that MongoDB is the only scalable storage: at the measured scale
-the file-based structures were competitive, and behaviours that matter at
-larger scale --- sharding, replication, concurrency, multi-gigabyte indexes
---- were \emph{not measured here} (\cref{sec:limitations}).
+This is a choice \emph{for the Stage~2 workload}, not a claim that Go is
+universally faster or that MongoDB is the only scalable storage: at the
+measured scale the file-based structures were faster, and the behaviours that
+motivate a database server --- concurrent access, replication,
+multi-gigabyte indexes --- were \emph{not measured here}
+(\cref{sec:limitations}).
 
 \paragraph{Language-wide claims.}
 Nothing in this report supports a statement of the form ``language X is
 faster than language Y''. The measured objects are four implementations of
-one pipeline, by this team, on one corpus, one machine, one continuous run:
-``Go's allocator showed the lowest RSS growth in this workload'' is an
-observation, while ``Go uses less memory'' is a hypothesis this experiment
-cannot test. Ambiguous data is reported as such, not as a narrative.
+one pipeline, by this team, on one corpus, one machine, one continuous run.
+``The Go port built the 10{,}000-book JSON index in 71.4~s'' is an
+observation; ``Go builds indexes faster'' is a hypothesis this experiment
+cannot test, all the more because the Rust and Java ports use different
+postings data structures (\cref{sec:index-scalability}). Ambiguous data is
+reported as such, not as a narrative.
 
 \subsection{Future Improvements}
 \label{sec:future}
 
+Stage~2 turns this data layer into a set of services --- ingestion, indexing
+and search --- that communicate over the network. The Stage~1 snapshot is
+the single-core, single-client baseline for that work. The items below close
+the gaps it leaves and define what Stage~2 must measure.
+
+\paragraph{Measurement debt carried from Stage 1.}
 \begin{itemize}
-    \item Repeat the tournament on bare metal and Linux natively, to separate
-    runtime effects from WSL2's virtualisation.
-    \item Extend the corpus by an order of magnitude, to observe where the
-    measured curves bend (the current batch reuses a 100-book corpus,
+    \item Repeat the tournament at least three times and report the
+    run-to-run spread; report medians and 95th percentiles for lookup and
+    query latency, whose standard deviations are close to their means.
+    \item Fix the chart pipeline so that panel~(b) of \cref{fig:throughput}
+    and the radar's throughput axis use the five-round mean, label the
+    radar's productivity axis as qualitative, and title the update chart as
+    single-book additions.
+    \item Replace the resume-detection check with a crash test: kill the
+    ingestion process during a write, restart it from the control files, and
+    count duplicated, lost and truncated books.
+    \item Measure MongoDB's footprint after an explicit checkpoint, report
+    the data and index sizes (\texttt{dataSize}, \texttt{totalIndexSize})
+    next to \texttt{storageSize}, and record the server's resident memory
+    and CPU next to the client's.
+    \item Record allocated sizes next to apparent sizes, and either
+    synchronise the folder index's term files or report its updates as
+    non-durable.
+\end{itemize}
+
+\paragraph{Optimisations indicated by the bottleneck analysis.}
+\begin{itemize}
+    \item Port the Go postings strategy (append after a last-element check,
+    sort once) to Rust and Java, replace Java's boxed
+    \texttt{TreeSet<Integer>} with primitive arrays, and record a GC log
+    (\texttt{-Xlog:gc}) to test the collector hypothesis.
+    \item Evaluate a MongoDB update path whose cost does not grow with
+    postings length (for example, bucketing each term's postings into
+    fixed-size documents instead of re-sorting one array), and re-measure it
+    at 10{,}000 books with more than one sample.
+\end{itemize}
+
+\paragraph{What Stage 2 must measure.}
+\begin{itemize}
+    \item Concurrency, which Stage~1 does not contain at all: several clients
+    querying and updating the shared MongoDB index at once and, inside the Go
+    services, the synchronisation of any shared in-process state (for
+    example a \texttt{sync.RWMutex} around a cached term dictionary),
+    reported as throughput and tail latency against the number of concurrent
+    clients.
+    \item The cost the service boundary adds to each operation
+    (serialisation and one network round trip per request) relative to the
+    in-process figures of this report.
+    \item The same experiments on bare-metal Linux, to separate runtime
+    effects from WSL2's virtualisation, and on a corpus an order of magnitude
+    larger with real term diversity (the current batches repeat 100 books,
     \cref{sec:workload}).
-    \item Measure concurrency (multiple query clients) for the Stage 2
-    serving layer, where it will actually be used.
-    \item Add a memory-profiled MongoDB run that accounts the server's RSS
-    alongside the client's, for a true capacity figure.
 \end{itemize}

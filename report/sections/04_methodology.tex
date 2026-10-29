@@ -15,23 +15,24 @@ and a revision.
     \centering
     \small
     \caption{Host and runtime versions of the run that produced the committed
-    snapshot. The full record, including the filesystem and the MongoDB
-    build, is \texttt{benchmarks\_results/environment.txt}.}
+    snapshot. The full record, including the MongoDB build and the Git
+    revision, is \texttt{benchmarks\_results/environment.txt}.}
     \label{tab:host}
     \begin{tabular}{@{}lp{12cm}@{}}
         \toprule
         Component & Value \\
         \midrule
         CPU & Intel Core i7-10750H @ 2.60 GHz, 12 logical cores \\
-        RAM & 8 GB \\
+        RAM & 9.7~GiB visible to the WSL2 virtual machine
+        (\texttt{MemTotal} 10{,}183{,}304~kB) \\
         OS / kernel & WSL2 (Ubuntu userland), Linux 6.18.33.2-microsoft-standard-WSL2 \\
         Python & 3.14.4 (+ \texttt{psutil} for RSS/CPU) \\
         Go & 1.27.2 (\texttt{linux/amd64}) \\
-        Rust & 1.99.0 (\texttt{rustc}/\texttt{cargo}, stable) \\
-        Java (harness) & OpenJDK 21.0.12.1, executed via \texttt{mvn exec:java},
+        Rust & 1.99.1 (\texttt{rustc}/\texttt{cargo}, stable) \\
+        Java (harness) & OpenJDK 21.0.13, executed via \texttt{mvn exec:java},
         \texttt{MAVEN\_OPTS=-Xmx5g -XX:ActiveProcessorCount=1} (set by the
         tournament) \\
-        Java (JMH) & same OpenJDK 21.0.12.1, shaded jar \\
+        Java (JMH) & same OpenJDK 21.0.13, shaded jar \\
         Maven & 3.9.12 \\
         MongoDB & 7.0.45, \texttt{mongod} in the Docker container
         \texttt{stage1-mongodb} on \texttt{localhost:27017} \\
@@ -49,10 +50,12 @@ measurements (\cref{sec:index-memory}).
 Every timed language phase runs pinned to one logical core
 (\texttt{taskset -c 4}), with \texttt{GOMAXPROCS=1} for Go and
 \texttt{-XX:ActiveProcessorCount=1} for the Java harness, so each runtime sees
-the same single-core budget and \texttt{cpu\_percent} cannot exceed 100 by
-spawning scheduler or GC threads on other cores. The pinning covers the four
+the same single-core budget and no scheduler, GC or JIT thread can spread
+to another core. The pinning covers the four
 harness phases and the download rounds; JMH keeps its own standard setup and
-is reported separately (\cref{sec:jmh}).
+is reported separately (\cref{sec:jmh}). The MongoDB container is neither
+pinned nor CPU-limited, so server-side work runs outside this budget
+(\cref{sec:index-memory}).
 
 \subsection{Metric definitions}
 \label{sec:metric-definitions}
@@ -62,7 +65,7 @@ is reported separately (\cref{sec:jmh}).
     \small
     \caption{What each column of the result CSVs means. Identical in all four
     languages; the harness enforces the schema
-    (\texttt{scripts/verify\_format.py}).}
+    (\texttt{src/\allowbreak utils/\allowbreak benchmarks/\allowbreak verify\_format.py}).}
     \label{tab:metrics}
     \begin{tabularx}{\textwidth}{@{}lX@{}}
         \toprule
@@ -78,17 +81,20 @@ is reported separately (\cref{sec:jmh}).
         behind the row. \\
         \texttt{memory\_mb} & \textbf{RSS delta}: resident set size of the
         benchmark process \emph{after} minus \emph{before} the operation, in
-        MB, read from \texttt{/proc/self/status} (Go/Rust/Java) or
+        MiB ($2^{20}$ bytes, like every size in the CSVs), read from
+        \texttt{/proc/self/status} (Go/Rust/Java) or
         \texttt{psutil} (Python). It measures growth caused by the operation,
-        not the total footprint of the process. \\
+        not the total footprint of the process; negative deltas are
+        reported as 0. \\
         \texttt{peak\_rss\_mb} & largest resident set size of the benchmark
         process observed while the operation ran, sampled every
         \fixed{50} ms by a background thread plus one final sample; across
         repetitions the maximum is reported. \\
         \texttt{cpu\_percent} & process CPU time (user + system) divided by
         wall-clock time, $\times 100$; above 100 means more than one core was
-        saturated (the pinned harness phases cannot exceed 100,
-        \cref{sec:host}). \\
+        saturated; under the single-core pinning of \cref{sec:host},
+        values above 100 appear only for operations shorter than about
+        10~ms, as an accounting artefact. \\
         \bottomrule
     \end{tabularx}
 \end{table}
@@ -121,20 +127,28 @@ MongoDB structure, the server's own memory and disk are reported separately
         term yields an empty result. \\
         Query samples & \fixed{5} repetitions $\times$ \fixed{30} queries =
         \fixed{150} timed samples per structure per language. \\
-        Datalake lookup & \fixed{100} books located once per layout (header
-        and body read). \\
+        Datalake writes & one timed run per layout storing the \fixed{100}
+        books (each file written to a temporary sibling, synchronised and
+        renamed). \\
+        Datalake lookup & \fixed{100} books located once per layout
+        (directory resolved, existence of header and body checked; files not
+        read). \\
+        Discovery & one scan per layout with \fixed{50} of the \fixed{100}
+        stored IDs marked indexed in memory; one sample. \\
         Download probe & \fixed{10} books downloaded sequentially in each of
         \fixed{5} rounds; the rounds interleave the languages round-robin and
         every book reuses one pooled connection, so no concurrency anywhere in
         the pipeline. \\
-        Build batches & \fixed{25, 50, 250, 500, 1000, 5000, 10000} books;
+        Build batches & \fixed{25, 50, 100, 250, 500, 1000, 5000, 10000} books;
         5 repetitions up to 1000, 3 for 5000, 2 for 10000. \\
         Update batches & base indexes of \fixed{25, 50, 250, 500, 1000}
-        books, each extended with \fixed{5} new books, \fixed{5}
-        repetitions per base size (\cref{sec:index-updates}). \\
-        Recovery & interrupt after \fixed{50} of \fixed{100} books, then
-        resume; report processed, duplicated and lost IDs plus detection and
-        processing time. \\
+        books, each followed by \fixed{5} single-book additions timed one
+        by one (mean reported), plus one single-book addition on the
+        10{,}000-book index (\cref{sec:index-updates}). \\
+        Recovery & resume-detection check: \fixed{50} of \fixed{100} stored
+        books marked processed in memory, pending books detected and read
+        back; processed, duplicated and lost IDs plus detection and
+        processing time (\cref{sec:datalake-recovery}). \\
         \bottomrule
     \end{tabularx}
 \end{table}
@@ -170,9 +184,11 @@ separately; they are never mixed with the cross-language figures.
     within one phase may be served from RAM; this affects all languages
     equally within a phase and is listed as a limitation
     (\cref{sec:limitations}).
-    \item \textbf{Disk.} All artifacts live on the same filesystem as the
-    repository (WSL2 / NTFS-backed); \texttt{disk\_usage.csv} reports files,
-    directories and bytes per layout and per structure.
+    \item \textbf{Disk.} All artifacts live under
+    \texttt{\textasciitilde/.cache/\allowbreak stage\_1\_benchmarks} inside the
+    WSL2 virtual disk (filesystem type not recorded); \texttt{disk\_usage.csv}
+    reports files, directories and apparent bytes per layout and per
+    structure.
     \item \textbf{Network.} Only the download probe touches the network (ten
     sequential GETs per round over one pooled connection per language, five
     rounds interleaved round-robin across languages); every other phase is
@@ -183,20 +199,27 @@ separately; they are never mixed with the cross-language figures.
 \label{sec:timing-boundaries}
 
 \begin{itemize}
-    \item \textbf{Write throughput} times the storage call itself: split
-    header+body written to the layout (the download is timed separately), one
-    book per iteration, \fixed{100} iterations per layout.
+    \item \textbf{Write throughput} is one timed run per layout, from before
+    the first header and body are read from \texttt{data\_source/} until the
+    last of the \fixed{100} books is stored (each file written to a temporary
+    sibling, synchronised with \texttt{fsync} and renamed).
     \item \textbf{Download throughput} starts before the HTTP request and
     stops after the response body is fully read and written to disk.
-    \item \textbf{Lookup} starts before locating the book's files under the
-    layout and stops after both files are read into memory.
-    \item \textbf{Index build} starts before the first token is produced and
-    stops after the structure is fully written (JSON flushed, per-term files
-    closed, or MongoDB insert acknowledged).
+    \item \textbf{Lookup} starts before the book's directory is resolved and
+    stops once the existence of its header and body files is confirmed; the
+    files are not read.
+    \item \textbf{Index build} starts from books that are already tokenised
+    (tokenisation is timed on its own as \texttt{tokenize\_books}) and stops
+    after the structure is fully written (JSON flushed, synchronised and
+    renamed; per-term files closed; MongoDB insert acknowledged).
     \item \textbf{Query} starts before the postings lookup of the first term
     and stops after the intersection of all terms is computed.
-    \item \textbf{Incremental update} starts before the first of the five new
-    books is tokenized and stops after the structure is durably updated.
+    \item \textbf{Incremental update} starts with the added book's tokens
+    already computed and stops after the structure acknowledges the update;
+    each timed sample adds one book.
+    \item \textbf{Discovery and resume} time the scan for pending IDs and the
+    read-back of the pending books separately (\texttt{detection\_time},
+    \texttt{processing\_time}).
 \end{itemize}
 
 \subsection{Repetition and uncertainty}
@@ -215,26 +238,28 @@ snapshot is a single continuous tournament.
 
 \begin{table}[htbp]
     \centering
-    \caption{Language $\times$ structure coverage of the timed workload
-    (D=datalake layouts, J=JSON index, F=folder index, M=MongoDB index,
-    S=SQLite metadata).}
+    \caption{Language $\times$ component coverage of the timed workload
+    (D = three datalake layouts; J, F, M = JSON, folder and MongoDB indexes;
+    metadata stores: S = SQLite, P = PostgreSQL, M = MongoDB).}
     \label{tab:coverage}
-    \begin{tabular}{@{}lcccc@{}}
+    \begin{tabular}{@{}lccc@{}}
         \toprule
-        Language & Datalake & JSON & Folder & MongoDB \\
+        Language & Datalake & Inverted index & Metadata store \\
         \midrule
-        Python & D, S & J, F, M & & \\
-        Go & D, S & J, F, M & & \\
-        Rust & D, S & J, F, M & & \\
-        Java & D, S & J, F, M & & \\
+        Python & D & J, F, M & S, P, M \\
+        Go & D & J, F, M & --- \\
+        Rust & D & J, F, M & --- \\
+        Java & D & J, F, M & --- \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-Every language runs the full matrix: three datalake layouts plus the three
-index structures, with identical parameters. MongoDB is skipped consistently
-and identically by all four ports when the server is unreachable, so no
-figure silently compares a MongoDB-less run with a MongoDB run.
+Every language runs the three datalake layouts and the three index
+structures with identical parameters. The metadata-store comparison exists
+only in the Python baseline (one insert run per size) and enters no
+cross-language figure. MongoDB is skipped consistently and identically by all
+four ports when the server is unreachable, so no figure silently compares a
+MongoDB-less run with a MongoDB run.
 
 \subsection{Revisions and provenance}
 \label{sec:provenance}
@@ -242,5 +267,5 @@ figure silently compares a MongoDB-less run with a MongoDB run.
 Each chart in this report maps to (i) the script that produced it, (ii) the
 raw CSVs in \texttt{benchmarks\_\allowbreak results/}, (iii) the constants listed in
 \cref{tab:workload}, and (iv) the Git revision recorded in
-\texttt{benchmarks\_\allowbreak results\_\allowbreak environment.txt} at run time; the mapping is
+\texttt{benchmarks\_\allowbreak results/\allowbreak environment.txt} at run time; the mapping is
 tabulated in \cref{sec:reproducibility}.
