@@ -81,13 +81,12 @@ pinned nor CPU-limited, so server-side work runs outside this budget
         benchmark process \emph{after} minus \emph{before} the operation, in
         MiB ($2^{20}$ bytes, like every size in the CSVs), read from
         \texttt{/proc/self/status} (Go/Rust/Java) or
-        \texttt{psutil} (Python). It measures growth caused by the operation,
-        not the total footprint of the process; negative deltas are
-        reported as 0. \\
-        \texttt{peak\_rss\_mb} & largest resident set size of the benchmark
+        \texttt{psutil} (Python): growth caused by the operation, not the
+        process's total footprint; negative deltas are reported as 0. \\
+        \texttt{peak\_rss\_mb} & largest resident set of the benchmark
         process observed while the operation ran, sampled every
-        \fixed{50} ms by a background thread plus one final sample; across
-        repetitions the maximum is reported. \\
+        \fixed{50} ms by a background thread plus one final sample;
+        maximum across repetitions. \\
         \texttt{cpu\_percent} & process CPU time (user + system) divided by
         wall-clock time, $\times 100$; above 100 means more than one core was
         saturated; under the single-core pinning of \cref{sec:host}, only
@@ -116,14 +115,13 @@ MongoDB structure, the server's own memory and disk are reported separately
         \midrule
         Corpus & \fixed{100} Project Gutenberg books, tracked in
         \texttt{data\_source/} (bodies \fixed{61.4} MB total, headers
-        \fixed{81} KB); body sizes from \fixed{2} KB to \fixed{4{,}517} KB
-        (median \fixed{371} KB, mean \fixed{600} KB); book IDs listed in
-        \texttt{benchmarks\_results/equivalence\_report.json}. \\
+        \fixed{81} KB; body sizes \fixed{2}--\fixed{4{,}517} KB); book IDs
+        listed in \texttt{benchmarks\_results/equivalence\_report.json}. \\
         Query workload & \fixed{30} active queries from the shared file
         \texttt{src/utils/benchmarks/queries.txt} (one query per line,
-        terms separated by a single space; comments start with \texttt{\#}).
-        Semantics: a document matches when it contains every term; an unknown
-        term yields an empty result. \\
+        terms space-separated, \texttt{\#} comments). A document matches
+        when it contains every term; an unknown term yields an empty
+        result. \\
         Query samples & \fixed{5} repetitions $\times$ \fixed{30} queries =
         \fixed{150} timed samples per structure per language. \\
         Datalake writes & one timed run per layout storing the \fixed{100}
