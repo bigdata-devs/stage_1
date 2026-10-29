@@ -74,25 +74,23 @@ summary:
 
 \begin{figure}[htbp]
     \centering
-    \begin{minipage}[t]{0.48\textwidth}
-        \centering
-        \includegraphics[width=0.86\textwidth]{throughput/throughput.png}
-        \caption{Throughput per pipeline stage: (a) datalake writes, one
-        timed run of 100 books per layout; (b) download + write, 10 books
-        per round, showing the fifth of five rounds (five-round means in
-        \cref{tab:download}); (c) tokenisation of the corpus (not recorded
-        by the Python harness).}
-        \label{fig:throughput}
-    \end{minipage}\hfill
-    \begin{minipage}[t]{0.48\textwidth}
-        \centering
-        \includegraphics[width=0.86\textwidth]{latency/latency.png}
-        \caption{Lookup latency per datalake layout (100 samples) and query
-        latency per index structure (150 samples on the 10{,}000-book
-        index). Dot = mean; whiskers = $\pm 1$ SD, clipped at the
-        minimum.}
-        \label{fig:latency}
-    \end{minipage}
+    \includegraphics[width=0.92\textwidth]{throughput/throughput.png}
+    \caption{Throughput per pipeline stage: (a) datalake writes, one
+    timed run of 100 books per layout; (b) download + write, 10 books
+    per round, showing the fifth of five rounds (five-round means in
+    \cref{tab:download}); (c) tokenisation of the corpus (not recorded
+    by the Python harness).}
+    \label{fig:throughput}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.92\textwidth]{latency/latency.png}
+    \caption{Lookup latency per datalake layout (100 samples) and query
+    latency per index structure (150 samples on the 10{,}000-book
+    index). Dot = mean; whiskers = $\pm 1$ SD, clipped at the
+    minimum.}
+    \label{fig:latency}
 \end{figure}
 
 \Cref{fig:throughput,fig:latency} show the two extremes of the workload.

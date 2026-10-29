@@ -15,25 +15,23 @@ Two series are shown (\cref{fig:scalability-elapsed,fig:scalability-memory}).
 
 \begin{figure}[htbp]
     \centering
-    \begin{minipage}[t]{0.48\textwidth}
-        \centering
-        \includegraphics[width=0.85\textwidth]{scalability/scalability_elapsed.png}
-        \caption{Build elapsed time versus batch size (log--log), mean of
-        5 repetitions up to 1{,}000 books, 3 at 5{,}000 and 2 at 10{,}000
-        (\texttt{scalability.csv}).}
-        \label{fig:scalability-elapsed}
-    \end{minipage}\hfill
-    \begin{minipage}[t]{0.48\textwidth}
-        \centering
-        \includegraphics[width=0.85\textwidth]{scalability/scalability_memory.png}
-        \caption{Memory growth versus batch size: \textbf{memory\_mb is the
-        RSS delta per batch} in MiB, negative deltas reported as 0
-        (\cref{tab:metrics}); the callout ``Largest RSS delta'' is the
-        largest plotted delta, \emph{not} a process peak
-        (\texttt{peak\_rss\_mb}). The subtitle's ``reused after GC'' is one
-        possible reason for a zero, not a measured one.}
-        \label{fig:scalability-memory}
-    \end{minipage}
+    \includegraphics[width=0.92\textwidth]{scalability/scalability_elapsed.png}
+    \caption{Build elapsed time versus batch size (log--log), mean of
+    5 repetitions up to 1{,}000 books, 3 at 5{,}000 and 2 at 10{,}000
+    (\texttt{scalability.csv}).}
+    \label{fig:scalability-elapsed}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.92\textwidth]{scalability/scalability_memory.png}
+    \caption{Memory growth versus batch size: \textbf{memory\_mb is the
+    RSS delta per batch} in MiB, negative deltas reported as 0
+    (\cref{tab:metrics}); the callout ``Largest RSS delta'' is the
+    largest plotted delta, \emph{not} a process peak
+    (\texttt{peak\_rss\_mb}). The subtitle's ``reused after GC'' is one
+    possible reason for a zero, not a measured one.}
+    \label{fig:scalability-memory}
 \end{figure}
 
 \paragraph{Where the build time goes.}
