@@ -25,13 +25,59 @@
 % Numbers fixed by code or by a completed run.
 \newcommand{\fixed}[1]{\textcolor{black}{#1}}
 
-\title{Big Data Project --- Stage 1: Building the Data Layer\\
-\large Benchmarking report (resubmission)}
-\author{BigData-Devs}
-\date{October 2026}
-
 \begin{document}
-\maketitle
+
+\begin{titlepage}
+    \centering
+    \vspace*{1cm}
+
+    % Institution and Degree
+    {\scshape\Large Universidad de Las Palmas de Gran Canaria \par}
+    \vspace{0.5cm}
+    {\scshape\large Grado en Ciencia e Ingeniería de Datos \par}
+    \vspace{0.5cm}
+    {\large Academic Year: 2026/2027 \par}
+    \vspace{1cm}
+
+    % Project title
+    \IfFileExists{boogle-engine-logo.jpg}{%
+        \includegraphics[width=0.7\textwidth]{boogle-engine-logo.jpg} \par
+        \vspace{0.5cm}}{}
+    {\Large Big Data Project --- Stage 1: Building the Data Layer \par}
+    \vspace{0.3cm}
+    {\large Benchmarking report --- Resubmission \par}
+    \vspace{1cm}
+
+    % Group details
+    {\Large \textbf{Group Name:} BigData-Devs \par}
+    \vspace{0.8cm}
+
+    % Authors
+    {\large \textbf{Team Members:} \par}
+    \vspace{0.2cm}
+    \begin{tabular}{ll}
+        Tomás Santana Suárez & ID: 45376459N \\
+        Carlos Montesdeoca Vega & ID: 45368153D \\
+        Aythami Lorenzo Padilla & ID: 45618618G \\
+        Javier Ruano Hernández & ID: 78598634K \\
+        Alejandro Delgado Valera & ID: 46261876K \\
+    \end{tabular}
+    \vspace{1cm}
+
+    % Repository
+    {\large \textbf{GitHub Repository:} \par}
+    {\large \url{https://github.com/bigdata-devs/stage_1} \par}
+
+    \vfill
+
+    % Date
+    {\large \today \par}
+\end{titlepage}
+
+% The table of contents gets its own (second) page, with black links.
+{\hypersetup{linkcolor=black}%
+\tableofcontents}
+\clearpage
 
 \begin{abstract}
 We study the behaviour of several storage algorithms used for the Stage 1
@@ -53,8 +99,6 @@ structure and the batch-based datalake} for Stage~2, scoped to the tested
 corpus, host and workload; unmeasured behaviours are listed in
 \cref{sec:limitations}.
 \end{abstract}
-
-\tableofcontents
 
 \input{sections/01_introduction}
 \input{sections/02_architecture}
