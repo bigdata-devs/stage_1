@@ -1,12 +1,14 @@
 % Stage 1 report — compile with: tectonic main.tex (or any LaTeX distribution).
 % Figures resolve from the repository's charts/ directory; on Overleaf, upload
 % the charts/ tree next to main.tex (figures/ is also searched).
-\documentclass[11pt,a4paper]{article}
+\documentclass[10pt,a4paper]{article}
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
-\usepackage[margin=2.5cm]{geometry}
+\usepackage[margin=2cm]{geometry}
+% Allow slightly loose lines as a last resort instead of overflowing.
+\setlength{\emergencystretch}{1.5em}
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{tabularx}
@@ -32,20 +34,24 @@
 \maketitle
 
 \begin{abstract}
-This report documents the design and the controlled evaluation of the Stage 1
-data layer: a synchronous ingestion pipeline (datalake), metadata extraction,
-and three inverted-index structures, implemented in Python and ported to Go,
-Rust and Java. The evaluation answers one question: \emph{which language and
-storage combination behaves best for this corpus and this workload}, under a
-single measurement protocol. Before any timing is interpreted, the four
-implementations are shown to be behaviourally equivalent (byte-identical
-canonical outputs, SHA-256
-\fixed{cdaa9369cbd91c4f89550efdcdd7c5c21e61adc97bd49f6e415b8e57d65ce2e4}).
-All results come from one reproducible tournament
+We study the behaviour of several storage algorithms used for the Stage 1
+data layer: three datalake layouts and three inverted-index structures,
+implemented in Python and ported to Go, Rust and Java. We perform an
+analysis of the following elements: write and download throughput, lookup,
+discovery and query latency, incremental-update cost, build time and memory
+growth, CPU utilisation and on-disk footprint. Our experiments provide a
+reproducible benchmark of these algorithms across the four implementations
+and index sizes from \fixed{25} to \fixed{10{,}000} books, to guide future
+work on the Stage~2 search engine; every number comes from a single command
 (\texttt{scripts/run\_tournament.sh}) whose raw CSVs, environment record and
-revision identifier are committed next to this document. Claims are
-deliberately scoped to the tested corpus, host and workload; unmeasured
-behaviours are listed in \cref{sec:limitations}.
+revision identifier are committed next to this document. Before any timing
+is interpreted, the four implementations are shown to be behaviourally
+equivalent (byte-identical canonical outputs, SHA-256
+\fixed{cdaa9369cbd91c4f89550efdcdd7c5c21e61adc97bd49f6e415b8e57d65ce2e4}).
+Based on our experiments, we recommend \textbf{Go with the MongoDB index
+structure and the batch-based datalake} for Stage~2, scoped to the tested
+corpus, host and workload; unmeasured behaviours are listed in
+\cref{sec:limitations}.
 \end{abstract}
 
 \tableofcontents
