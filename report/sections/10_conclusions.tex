@@ -57,12 +57,12 @@ The three parts of the choice rest on different kinds of evidence:
     selected for requirements of the Stage~2 service-oriented architecture
     that this study did not measure. Several independent services
     (ingestion, indexing and search) will read and update one index over the
-    network; MongoDB applies each per-term upsert atomically and acknowledges
-    it from a server, whereas the folder index rewrites term files without
-    synchronisation and the JSON file must be rewritten whole on every
-    update; and an index held by a database server can be shared, replicated
-    and backed up without every service owning a copy of the files. These
-    are design requirements, not benchmark results, and Stage~2 must measure
+    network. MongoDB applies each per-term upsert atomically and
+    acknowledges it from a server, whereas the folder index rewrites term
+    files without synchronisation and the JSON file must be rewritten whole
+    on every update; an index held by a database server can also be shared,
+    replicated and backed up without every service owning a copy of the
+    files. These are design requirements, not benchmark results, and Stage~2 must measure
     MongoDB under concurrent access before the choice is confirmed.
     \item \textbf{The batch-based datalake} matched the book-based layout on
     lookup (minima of 5--32~$\mu$s for both in Python, Go and Rust) with 3
@@ -81,14 +81,12 @@ multi-gigabyte indexes --- were \emph{not measured here}
 (\cref{sec:limitations}).
 
 \paragraph{Language-wide claims.}
-Nothing in this report supports a statement of the form ``language X is
-faster than language Y''. The measured objects are four implementations of
-one pipeline, by this team, on one corpus, one machine, one continuous run.
-``The Go port built the 10{,}000-book JSON index in 71.4~s'' is an
-observation; ``Go builds indexes faster'' is a hypothesis this experiment
-cannot test, all the more because the Rust and Java ports use different
-postings data structures (\cref{sec:index-scalability}). Ambiguous data is
-reported as such, not as a narrative.
+Nothing here supports a statement of the form ``language X is faster than
+language Y''. The measured objects are four implementations of one pipeline,
+on one corpus, one machine, one run. ``The Go port built the 10{,}000-book
+JSON index in 71.4~s'' is an observation; ``Go builds indexes faster'' is a
+hypothesis this experiment cannot test, especially as Rust and Java use
+different postings data structures (\cref{sec:index-scalability}).
 
 \subsection{Future Improvements}
 \label{sec:future}

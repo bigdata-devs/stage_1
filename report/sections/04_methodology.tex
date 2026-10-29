@@ -4,9 +4,7 @@
 Every number in this report was produced by one command
 (\texttt{scripts/run\_tournament.sh}, \cref{sec:reproducibility}) on one
 host, in one continuous run, after the equivalence gate passed. This section
-documents the host, the runtimes, the metrics, the workload, and the timing
-boundaries, so that each figure can be traced to a script, a configuration
-and a revision.
+documents the host, the runtimes, the metrics and the workload.
 
 \subsection{Host and runtimes}
 \label{sec:host}
@@ -129,11 +127,8 @@ MongoDB structure, the server's own memory and disk are reported separately
         Query samples & \fixed{5} repetitions $\times$ \fixed{30} queries =
         \fixed{150} timed samples per structure per language. \\
         Datalake writes & one timed run per layout storing the \fixed{100}
-        books (each file written to a temporary sibling, synchronised and
-        renamed). \\
-        Datalake lookup & \fixed{100} books located once per layout
-        (directory resolved, existence of header and body checked; files not
-        read). \\
+        books. \\
+        Datalake lookup & \fixed{100} books located once per layout. \\
         Discovery & one scan per layout with \fixed{50} of the \fixed{100}
         stored IDs marked indexed in memory; one sample. \\
         Download probe & \fixed{10} books downloaded sequentially in each of
@@ -177,19 +172,13 @@ separately; they are never mixed with the cross-language figures.
 \label{sec:environment-state}
 
 \begin{itemize}
-    \item \textbf{Artifact directories.} Every timed phase starts from a
-    freshly cleaned artifact tree, so no phase reads a cache written by
-    another.
-    \item \textbf{OS page cache.} The tournament does not drop the system page
-    cache (that requires root and would perturb the host), so files read twice
-    within one phase may be served from RAM; this affects all languages
-    equally within a phase and is listed as a limitation
-    (\cref{sec:limitations}).
-    \item \textbf{Disk.} All artifacts live under
-    \texttt{\textasciitilde/.cache/\allowbreak stage\_1\_benchmarks} inside the
-    WSL2 virtual disk (filesystem type not recorded); \texttt{disk\_usage.csv}
-    reports files, directories and apparent bytes per layout and per
-    structure.
+    \item \textbf{Artifact directories and disk.} Every timed phase starts
+    from a freshly cleaned artifact tree under
+    \texttt{\textasciitilde/.cache/\allowbreak stage\_1\_benchmarks}, inside
+    the WSL2 virtual disk (filesystem type not recorded), so no phase reads a
+    cache written by another; \texttt{disk\_usage.csv} reports files,
+    directories and apparent bytes per layout and per structure. The OS page
+    cache is never dropped between phases (\cref{sec:limitations}).
     \item \textbf{Network.} Only the download probe touches the network (ten
     sequential GETs per round over one pooled connection per language, five
     rounds interleaved round-robin across languages); every other phase is
@@ -265,8 +254,7 @@ MongoDB-less run with a MongoDB run.
 \subsection{Revisions and provenance}
 \label{sec:provenance}
 
-Each chart in this report maps to (i) the script that produced it, (ii) the
-raw CSVs in \texttt{benchmarks\_\allowbreak results/}, (iii) the constants listed in
+Each chart maps to (i) the script that produced it, (ii) the raw CSVs in \texttt{benchmarks\_\allowbreak results/}, (iii) the constants listed in
 \cref{tab:workload}, and (iv) the Git revision recorded in
 \texttt{benchmarks\_\allowbreak results/\allowbreak environment.txt} at run time; the mapping is
 tabulated in \cref{sec:reproducibility}.

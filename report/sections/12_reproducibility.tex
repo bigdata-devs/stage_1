@@ -20,8 +20,8 @@ to time anything before equivalence passes:
     \texttt{benchmarks\_\allowbreak results/\allowbreak <language>/};
     \item \textbf{verify} --- schema check of every CSV
     (\texttt{src/\allowbreak utils/\allowbreak benchmarks/\allowbreak verify\_\allowbreak format.py});
-    \item \textbf{environment} --- host, runtimes and Git revision in
-    \texttt{benchmarks\_\allowbreak results/\allowbreak environment.txt};
+    \item \textbf{environment} --- \texttt{benchmarks\_\allowbreak results/\allowbreak environment.txt}
+    records the host, runtimes and Git revision;
     \item \textbf{charts} --- \texttt{src/\allowbreak visualizations/\allowbreak main.py} renders \texttt{charts/}.
 \end{enumerate}
 
@@ -54,7 +54,7 @@ configuration.
 \end{table}
 
 \paragraph{Revision.}
-The Git commit that produced the committed snapshot is recorded inside
+The commit that produced the snapshot is recorded in
 \texttt{benchmarks\_\allowbreak results/\allowbreak environment.txt} together with the host and
 runtime versions of \cref{tab:host}: \texttt{0482a5e} for the current
 snapshot, whose results were committed in \texttt{9e53348}; the previous

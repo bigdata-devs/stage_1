@@ -40,9 +40,9 @@ score} assigned by the team (Python 1.0, Go 0.8, Java 0.7, Rust 0.4) from
 the effort observed while porting the pipeline: lines of boilerplate,
 error-handling ceremony, iteration speed and tooling friction. It is not
 measured by any benchmark and no conclusion in \cref{sec:conclusions} rests
-on it; the rendered axis label does not yet carry the word
-``qualitative'', so this paragraph is the authoritative reading of that
-axis. Memory is intentionally absent from the radar: RSS deltas are too
+on it; this paragraph is the authoritative reading of that axis, whose
+rendered label does not yet say ``qualitative'' (\cref{sec:future}).
+Memory is intentionally absent from the radar: RSS deltas are too
 noisy to summarise in one number; they are shown in full in
 \cref{fig:scalability-memory}.
 
@@ -96,10 +96,10 @@ summary:
 \end{figure}
 
 \Cref{fig:throughput,fig:latency} show the two extremes of the workload.
-Both are produced from the same tournament run, so their relative ordering
-is meaningful; the absolute values are specific to the host of
-\cref{tab:host}. Per-language, per-structure numbers behind these figures
-are in \texttt{benchmarks\_\allowbreak results/\allowbreak \{python,\allowbreak go,\allowbreak rust,\allowbreak java\}/}.
+They come from the same tournament run, so their relative ordering is
+meaningful; the absolute values are specific to the host of
+\cref{tab:host}, and the raw rows sit next to them in
+\texttt{benchmarks\_\allowbreak results/}.
 
 The reading rule for this whole report: differences between the four
 implementations describe \emph{these implementations, on this corpus, under

@@ -13,17 +13,15 @@ overhead, and recovery after an interruption. All numbers come from
 \subsection{Write and download throughput}
 \label{sec:datalake-throughput}
 
-Write throughput is one timed run per layout that reads each of the
-\fixed{100} tracked headers and bodies from \texttt{data\_source/} and stores
-them through the layout's storage path. Since the current snapshot every
+Write throughput is one timed run per layout over the \fixed{100} tracked
+books in \texttt{data\_source/}; since the current snapshot every
 implementation writes each file to a temporary sibling, forces it to stable
 storage with \texttt{fsync} and renames it into place
-(\cref{sec:refactor-effect}). The download is a separate experiment:
-\fixed{10} books fetched sequentially in each of \fixed{5} rounds through one
-pooled connection per language, timed from before the HTTP request until the
-body is written to disk. The rounds interleave the languages round-robin, so
-no language downloads at a systematically different hour of the run. Both
-experiments operate on the same \fixed{100}-book corpus.
+(\cref{sec:refactor-effect}). The download is the separate probe of
+\cref{sec:workload}: \fixed{10} books per round, \fixed{5} rounds per
+language interleaved round-robin over one pooled connection, timed from
+before the HTTP request until the body is written to disk. Both experiments
+use the same corpus.
 
 \paragraph{Writes.}
 Go stored the corpus at 46.9--48.1 items/s, Rust at 38.3--39.0, Java at
@@ -72,11 +70,11 @@ a plausible cause, which we did not isolate. Panel~(b) of
 \subsection{Document lookup}
 \label{sec:datalake-lookup}
 
-\fixed{100} books are located once per layout: the harness resolves the
-book's directory and checks that both its header and its body exist; the
-files are not read. The book-based and batch-based layouts derive the
-directory arithmetically from the ID, whereas the time-based layout must list
-its hour directories, newest first, and probe each until it finds the book.
+Each of the \fixed{100} books is located once per layout without reading
+the files (\cref{sec:timing-boundaries}). The book-based and batch-based
+layouts derive the directory arithmetically from the ID, whereas the
+time-based layout must list its hour directories, newest first, and probe
+each until it finds the book.
 \Cref{tab:datalake-lookup} reports the mean and, because several series are
 right-skewed, the minimum.
 
@@ -140,12 +138,10 @@ The scan took 0.76--22.6~ms. The batch-based layout is the fastest or
 within 5\% of the fastest in all four implementations (in Python the
 time-based layout edges it by 5\%, within run-to-run noise), and the
 book-based layout, whose scan lists 100 directories instead of 2--3, is
-the slowest in Python, Go and Rust. With one
-sample per cell these are observations, not a ranking. The CPU figures
-recorded for these few-millisecond rows reach 489\% despite single-core
-pinning, which shows that process CPU time is accounted at a coarser
-resolution than the operation lasts; \texttt{cpu\_percent} is therefore not
-interpreted for operations shorter than about 10~ms.
+the slowest in Python, Go and Rust. With one sample per cell these are
+observations, not a ranking. The \texttt{cpu\_percent} of these
+few-millisecond rows reaches 489\% despite single-core pinning (accounting
+artefact, \cref{sec:metric-definitions}), so it is not interpreted here.
 
 \subsection{Storage overhead}
 \label{sec:datalake-storage}

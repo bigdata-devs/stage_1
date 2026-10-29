@@ -18,21 +18,21 @@ just wrote, synchronously, in a single process.
         label/.style={font=\footnotesize\itshape, text=black!70},
     ]
         % Layer 1: ingestion
-        \node[layer, fill=blue!8, minimum width=4.6cm] (lake) {
+        \node[layer, fill=blue!8, minimum width=4.3cm] (lake) {
             \textbf{Layer 1 --- Datalake}\\[2pt]
             download (sequential)\\
             header/body split\\
             layout: time / book / batch
         };
         % Layer 2: datamart
-        \node[layer, fill=green!8, minimum width=4.6cm, right=1.6cm of lake] (mart) {
+        \node[layer, fill=green!8, minimum width=4.3cm, right=1.1cm of lake] (mart) {
             \textbf{Layer 2 --- Datamart}\\[2pt]
             tokenize (shared rules)\\
             metadata (SQLite)\\
             inverted index builds
         };
         % Layer 3: serving
-        \node[layer, fill=orange!10, minimum width=4.6cm, right=1.6cm of mart] (serve) {
+        \node[layer, fill=orange!10, minimum width=4.3cm, right=1.1cm of mart] (serve) {
             \textbf{Layer 3 --- Querying}\\[2pt]
             term lookup\\
             postings intersection\\
