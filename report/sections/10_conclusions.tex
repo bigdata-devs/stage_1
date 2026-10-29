@@ -101,17 +101,16 @@ the gaps it leaves and define what Stage~2 must measure.
     \item Repeat the tournament at least three times and report the
     run-to-run spread; report medians and 95th percentiles for lookup and
     query latency, whose standard deviations are close to their means.
-    \item Fix the chart pipeline so that panel~(b) of \cref{fig:throughput}
-    and the radar's throughput axis use the five-round mean, label the
-    radar's productivity axis as qualitative, and title the update chart as
-    single-book additions.
+    \item Fix the chart pipeline: five-round mean in panel~(b) of
+    \cref{fig:throughput} and in the radar's throughput axis,
+    ``qualitative'' on the productivity axis, single-book additions in the
+    update chart title.
     \item Replace the resume-detection check with a crash test: kill the
-    ingestion process during a write, restart it from the control files, and
-    count duplicated, lost and truncated books.
+    ingestion process during a write, restart from the control files, count
+    duplicated, lost and truncated books.
     \item Measure MongoDB's footprint after an explicit checkpoint, report
-    the data and index sizes (\texttt{dataSize}, \texttt{totalIndexSize})
-    next to \texttt{storageSize}, and record the server's resident memory
-    and CPU next to the client's.
+    \texttt{dataSize} and \texttt{totalIndexSize} next to
+    \texttt{storageSize}, and record the server's memory and CPU.
     \item Record allocated sizes next to apparent sizes, and either
     synchronise the folder index's term files or report its updates as
     non-durable.
@@ -119,27 +118,25 @@ the gaps it leaves and define what Stage~2 must measure.
 
 \paragraph{Optimisations indicated by the bottleneck analysis.}
 \begin{itemize}
-    \item Port the Go postings strategy (append after a last-element check,
-    sort once) to Rust and Java, replace Java's boxed
-    \texttt{TreeSet<Integer>} with primitive arrays, and record a GC log
-    (\texttt{-Xlog:gc}) to test the collector hypothesis.
+    \item Port the Go postings strategy to Rust and Java, replace Java's
+    boxed \texttt{TreeSet<Integer>} with primitive arrays, and record a GC
+    log (\texttt{-Xlog:gc}) to test the collector hypothesis.
     \item Evaluate a MongoDB update path whose cost does not grow with
     postings length (for example, bucketing each term's postings into
-    fixed-size documents instead of re-sorting one array), and re-measure it
-    at 10{,}000 books with more than one sample.
+    fixed-size documents), re-measured at 10{,}000 books with more than one
+    sample.
 \end{itemize}
 
 \paragraph{What Stage 2 must measure.}
 \begin{itemize}
-    \item Concurrency, which Stage~1 does not contain at all: several clients
-    querying and updating the shared MongoDB index at once and, inside the Go
-    services, the synchronisation of any shared in-process state (for
-    example a \texttt{sync.RWMutex} around a cached term dictionary),
-    reported as throughput and tail latency against the number of concurrent
-    clients.
-    \item The cost the service boundary adds to each operation
-    (serialisation and one network round trip per request) relative to the
-    in-process figures of this report.
+    \item Concurrency: several clients querying and updating the shared
+    MongoDB index at once, plus the synchronisation of shared in-process
+    state inside the Go services (for example a \texttt{sync.RWMutex}
+    around a cached term dictionary), as throughput and tail latency against
+    the number of concurrent clients.
+    \item The cost the service boundary adds (serialisation plus one network
+    round trip per request) relative to the in-process figures of this
+    report.
     \item The same experiments on bare-metal Linux, to separate runtime
     effects from WSL2's virtualisation, and on a corpus an order of magnitude
     larger with real term diversity (the current batches repeat 100 books,
