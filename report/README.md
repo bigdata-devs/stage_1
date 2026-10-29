@@ -15,8 +15,8 @@ Figures resolve from two paths, in this order:
 
 1. `../charts/` --- the figures rendered by the benchmark tournament
    (`src/visualizations/main.py`); regenerate them with
-   `./scripts/run_tournament.sh` (phase 4) or by running the visualizations
-   module directly.
+   `./scripts/run_tournament.sh` (phase 6, `charts`) or by running the
+   visualizations module directly.
 2. `figures/` --- optional local copies (used on Overleaf).
 
 The interactive Sankey diagram (`charts/sankey/storage_sankey.html`) is
@@ -30,9 +30,8 @@ referenced as a repository artifact, not embedded in the PDF.
 2. create an Overleaf project, upload `main.tex` and `sections/`, then drag
    the files of `charts/` into a `charts/` folder in the project tree.
 
-`main.tex` is the compile root. Numbers still to be filled from the final
-tournament run are printed in red as `[TODO: ...]` by the `\pending{}`
-macro, so an unfinished figure cannot ship unnoticed.
+`main.tex` is the compile root. Final numbers are wrapped in the
+`\fixed{}` macro, which keeps them black in the PDF.
 
 ## Files
 
