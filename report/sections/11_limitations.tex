@@ -63,8 +63,10 @@ its memory is not. The download probe is ten sequential requests per round
 over one pooled connection, repeated in five interleaved rounds, so its
 rate reflects latency more than bandwidth. CPU percentage is process CPU
 over wall clock; with one pinned core it should not exceed 100, yet
-operations shorter than about 10~ms report up to 489\%, an accounting
-artefact, and those values are not interpreted. The MongoDB server's
+millisecond-scale operations report up to 489\% (an accounting artefact)
+and folder-index updates of the compiled ports report 100--103\% over tens
+to hundreds of ms (noise on a saturated core); the excess is not
+interpreted. The MongoDB server's
 container is neither pinned nor CPU-limited. Durability differs across index
 structures: datalake files and the JSON index are synchronised, folder term
 files are not, and MongoDB uses its default write concern

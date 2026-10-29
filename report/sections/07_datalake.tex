@@ -136,9 +136,11 @@ state is identical across layouts and languages; the control files of
     \end{tabular}
 \end{table}
 
-The scan took 0.76--22.6~ms. The batch-based layout is the fastest or tied
-in all four implementations, and the book-based layout, whose scan lists 100
-directories instead of 2--3, is the slowest in Python, Go and Rust. With one
+The scan took 0.76--22.6~ms. The batch-based layout is the fastest or
+within 5\% of the fastest in all four implementations (in Python the
+time-based layout edges it by 5\%, within run-to-run noise), and the
+book-based layout, whose scan lists 100 directories instead of 2--3, is
+the slowest in Python, Go and Rust. With one
 sample per cell these are observations, not a ranking. The CPU figures
 recorded for these few-millisecond rows reach 489\% despite single-core
 pinning, which shows that process CPU time is accounted at a coarser

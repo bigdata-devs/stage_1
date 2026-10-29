@@ -66,8 +66,9 @@ The three parts of the choice rest on different kinds of evidence:
     MongoDB under concurrent access before the choice is confirmed.
     \item \textbf{The batch-based datalake} matched the book-based layout on
     lookup (minima of 5--32~$\mu$s for both in Python, Go and Rust) with 3
-    directories instead of 100 for the same bytes, and had the fastest or
-    tied discovery scan in all four implementations (one sample each); the
+    directories instead of 100 for the same bytes, and its discovery scan
+    was the fastest or within 5\% of the fastest in all four
+    implementations (one sample each); the
     time-based layout was the slowest to look up in every implementation
     (\cref{tab:datalake-lookup,tab:discovery}).
 \end{itemize}

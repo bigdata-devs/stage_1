@@ -92,9 +92,10 @@ pinned nor CPU-limited, so server-side work runs outside this budget
         repetitions the maximum is reported. \\
         \texttt{cpu\_percent} & process CPU time (user + system) divided by
         wall-clock time, $\times 100$; above 100 means more than one core was
-        saturated; under the single-core pinning of \cref{sec:host},
-        values above 100 appear only for operations shorter than about
-        10~ms, as an accounting artefact. \\
+        saturated; under the single-core pinning of \cref{sec:host}, only
+        millisecond-scale operations exceed it clearly (up to 489\%, an
+        accounting artefact); longer operations stay within 100--103\%,
+        noise on a saturated core. \\
         \bottomrule
     \end{tabularx}
 \end{table}
