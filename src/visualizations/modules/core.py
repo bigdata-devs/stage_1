@@ -15,7 +15,7 @@ from typing import Iterable, Mapping, Sequence
 import pandas as pd
 
 LANGUAGE_ORDER = ("python", "java", "go", "rust")
-CORE_METRICS = ("benchmarks", "disk_usage", "recovery", "scalability", "statistics", "throughput")
+CORE_METRICS = ("benchmarks", "disk_usage", "recovery", "scalability", "statistics", "throughput", "updates")
 MIN_LANGUAGES_PER_TEST = 2  # a "comparison" with one language is not a comparison
 
 

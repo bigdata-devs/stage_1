@@ -77,20 +77,44 @@ func (suite Suite) runStructureExperiments(structure indexStructure, books []dat
 	if err := suite.measureStructureUpdate(structure, books); err != nil {
 		return err
 	}
+	if err := suite.measureStructureUpdateScaling(structure, books); err != nil {
+		return err
+	}
 	return suite.measureStructureStorage(structure)
 }
 
 // measureBuildBatch stores one scalability.csv row per batch size, the only
-// output of measure_build() in the Python suite.
+// output of measure_build() in the Python suite: the build is repeated
+// buildRepetitions() times and the row reports mean, deviation and peak.
 func (suite Suite) measureBuildBatch(structure indexStructure, batch []datamarts.TokenizedBook, batchSize int) error {
-	measurement, err := Measure("build_"+structure.name(), func() error {
-		return structure.build(batch)
-	})
-	if err != nil {
-		return err
+	samples := make([]Measurement, 0, buildRepetitions(batchSize))
+	for repetition := 0; repetition < buildRepetitions(batchSize); repetition++ {
+		measurement, err := Measure("build_"+structure.name(), func() error {
+			return structure.build(batch)
+		})
+		if err != nil {
+			return err
+		}
+		samples = append(samples, measurement)
 	}
-	log.Printf("[build_%s] batch %d: %.4fs", structure.name(), batchSize, measurement.Elapsed.Seconds())
-	return suite.results.SaveScalability("build_"+structure.name(), batchSize, measurement)
+	aggregate := aggregateBuild(samples)
+	log.Printf("[build_%s] batch %d: %.4fs mean over %d repetitions (stdev %.4fs, peak RSS %.1f MB)",
+		structure.name(), batchSize, aggregate.ElapsedSeconds, aggregate.Repetitions,
+		aggregate.StdevSeconds, aggregate.PeakRSSMB)
+	return suite.results.SaveScalability("build_"+structure.name(), batchSize, aggregate)
+}
+
+// buildRepetitions bounds the runtime of the scalability sweep: small
+// batches are repeated five times, the two largest ones only twice.
+func buildRepetitions(batchSize int) int {
+	switch {
+	case batchSize <= 1000:
+		return 5
+	case batchSize <= 5000:
+		return 3
+	default:
+		return 2
+	}
 }
 
 // measureStructureQuery times the shared workload against one structure.
@@ -110,6 +134,44 @@ func (suite Suite) measureStructureUpdate(structure indexStructure, books []data
 		return structure.addBook(newBookID, books[0].Tokens)
 	})
 	return err
+}
+
+// updateBaseSizes sweeps the base index size of the isolated update
+// experiment, mirroring UPDATE_BASE_SIZES in the Python suite.
+var updateBaseSizes = []int{25, 50, 250, 500, 1000}
+
+// updateRepetitions bounds the runtime of the isolated update experiment.
+const updateRepetitions = 5
+
+// measureStructureUpdateScaling isolates the incremental update cost: it
+// builds a base index of a given size (untimed), then times repeated
+// single-book additions on top of it, mirroring measure_update_scaling().
+func (suite Suite) measureStructureUpdateScaling(structure indexStructure, books []datamarts.TokenizedBook) error {
+	tokens := books[0].Tokens
+	for _, baseSize := range updateBaseSizes {
+		if err := structure.build(buildSubset(books, baseSize)); err != nil {
+			return err
+		}
+		samples := make([]Measurement, 0, updateRepetitions)
+		for offset := 0; offset < updateRepetitions; offset++ {
+			bookID := syntheticBookIDBase + baseSize*100 + offset
+			measurement, err := Measure("update_"+structure.name(), func() error {
+				return structure.addBook(bookID, tokens)
+			})
+			if err != nil {
+				return err
+			}
+			samples = append(samples, measurement)
+		}
+		aggregate := aggregateBuild(samples)
+		log.Printf("[update_%s] base %d books: %.4fs mean over %d repetitions (stdev %.4fs)",
+			structure.name(), baseSize, aggregate.ElapsedSeconds, aggregate.Repetitions,
+			aggregate.StdevSeconds)
+		if err := suite.results.SaveUpdates("update_"+structure.name(), baseSize, aggregate); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // measureStructureStorage writes the disk_usage.csv row of one structure.

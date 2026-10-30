@@ -21,6 +21,7 @@ class MeasureTest {
         assertEquals("demo", measurement.name());
         assertTrue(measurement.seconds() >= 0);
         assertTrue(measurement.memoryMb() >= 0);
+        assertTrue(measurement.peakRssMb() >= 0);
         assertTrue(measurement.cpuPercent() >= 0);
     }
 

@@ -3,8 +3,8 @@
 
 Run from anywhere:
 
-    python3 src/utils/benchmarks/verify_format.py docs/results/2026-10-02/rust
-    python3 src/utils/benchmarks/verify_format.py docs/results/2026-10-02/python --format-only
+    python3 src/utils/benchmarks/verify_format.py benchmarks_results/rust
+    python3 src/utils/benchmarks/verify_format.py benchmarks_results/python --format-only
 
 Full mode checks header/column parity, labels and batch sizes against the Go
 snapshot. `--format-only` (used for the Python baseline, whose label sets
@@ -18,8 +18,11 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-REFERENCE_DIR = REPO_ROOT / "docs/results/2026-10-02/go"
+REFERENCE_DIR = REPO_ROOT / "benchmarks_results/go"
 FILES = ["benchmarks", "statistics", "scalability", "recovery", "throughput", "disk_usage"]
+# updates.csv joins the required set once the reference snapshot carries it:
+# the re-executed benchmarks write it, the pre-rework snapshots do not.
+UPDATES_FILE = "updates"
 TIMESTAMP = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}$")
 DECIMALS = {
     ("benchmarks", "elapsed_seconds"): 6,
@@ -30,8 +33,15 @@ DECIMALS = {
     ("statistics", "min_seconds"): 6,
     ("statistics", "max_seconds"): 6,
     ("scalability", "elapsed_seconds"): 6,
+    ("scalability", "stdev_seconds"): 6,
     ("scalability", "memory_mb"): 4,
     ("scalability", "cpu_percent"): 2,
+    ("scalability", "peak_rss_mb"): 4,
+    ("updates", "elapsed_seconds"): 6,
+    ("updates", "stdev_seconds"): 6,
+    ("updates", "memory_mb"): 4,
+    ("updates", "cpu_percent"): 2,
+    ("updates", "peak_rss_mb"): 4,
     ("recovery", "detection_time"): 6,
     ("recovery", "processing_time"): 6,
     ("recovery", "elapsed_seconds"): 6,
@@ -42,6 +52,9 @@ DECIMALS = {
 INTEGERS = {
     ("statistics", "iterations"),
     ("scalability", "batch_size"),
+    ("scalability", "repetitions"),
+    ("updates", "base_size"),
+    ("updates", "repetitions"),
     ("throughput", "item_count"),
     ("recovery", "total_books"),
     ("recovery", "processed_before_interruption"),
@@ -52,8 +65,15 @@ INTEGERS = {
     ("disk_usage", "dir_count"),
 }
 LABEL_COLUMNS = {"benchmarks": "function_name", "statistics": "test_name",
-                 "scalability": "test_name", "recovery": "test_name",
-                 "throughput": "test_name"}
+                 "scalability": "test_name", "updates": "test_name",
+                 "recovery": "test_name", "throughput": "test_name"}
+
+
+def required_files():
+    files = list(FILES)
+    if (REFERENCE_DIR / f"{UPDATES_FILE}.csv").exists():
+        files.append(UPDATES_FILE)
+    return files
 
 
 def read_rows(path):
@@ -102,6 +122,11 @@ def check_parity(name, header, data, reference_header, reference_data, issues):
         want = [(row[0], row[1]) for row in reference_data]
         if got != want:
             issues.append("scalability.csv: (test_name, batch_size) pairs differ from reference")
+    if name == "updates":
+        got = [(row[0], row[1]) for row in data]
+        want = [(row[0], row[1]) for row in reference_data]
+        if got != want:
+            issues.append("updates.csv: (test_name, base_size) pairs differ from reference")
     if name == "recovery":
         for row in data:
             if row[header.index("duplicated")] != "0" or row[header.index("lost")] != "0":
@@ -110,7 +135,7 @@ def check_parity(name, header, data, reference_header, reference_data, issues):
 
 def check_snapshot(target_dir, format_only):
     issues = []
-    for name in FILES:
+    for name in required_files():
         target = target_dir / f"{name}.csv"
         if not target.exists():
             issues.append(f"{name}.csv: missing")

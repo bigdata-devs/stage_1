@@ -14,38 +14,34 @@ impl Statistics {
         if durations.is_empty() {
             return Err("durations must not be empty".into());
         }
-        let mut min = f64::MAX;
-        let mut max = f64::MIN;
-        let mut sum = 0.0;
-        for duration in durations {
-            let seconds = duration.as_secs_f64();
-            min = min.min(seconds);
-            max = max.max(seconds);
-            sum += seconds;
-        }
-        let mean = sum / durations.len() as f64;
+        let seconds: Vec<f64> = durations.iter().map(Duration::as_secs_f64).collect();
+        let mean = mean(&seconds);
         Ok(Self {
-            iterations: durations.len(),
+            iterations: seconds.len(),
             mean_seconds: mean,
-            stdev_seconds: sample_standard_deviation(durations, mean),
-            min_seconds: min,
-            max_seconds: max,
+            stdev_seconds: sample_stdev(&seconds, mean),
+            min_seconds: seconds.iter().copied().fold(f64::MAX, f64::min),
+            max_seconds: seconds.iter().copied().fold(f64::MIN, f64::max),
         })
     }
 }
 
-fn sample_standard_deviation(durations: &[Duration], mean: f64) -> f64 {
-    if durations.len() < 2 {
+pub(crate) fn mean(values: &[f64]) -> f64 {
+    values.iter().sum::<f64>() / values.len() as f64
+}
+
+pub(crate) fn sample_stdev(values: &[f64], mean: f64) -> f64 {
+    if values.len() < 2 {
         return 0.0;
     }
-    let squared_deviations: f64 = durations
+    let squared_deviations: f64 = values
         .iter()
-        .map(|duration| {
-            let deviation = duration.as_secs_f64() - mean;
+        .map(|value| {
+            let deviation = value - mean;
             deviation * deviation
         })
         .sum();
-    (squared_deviations / (durations.len() - 1) as f64).sqrt()
+    (squared_deviations / (values.len() - 1) as f64).sqrt()
 }
 
 #[cfg(test)]

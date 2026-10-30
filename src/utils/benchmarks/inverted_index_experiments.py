@@ -5,10 +5,12 @@ from pathlib import Path
 
 from src.utils.benchmarks import (
     BYTES_PER_MB,
+    aggregate_scalability,
     measure_operation,
     measure_disk_usage,
     calculate_statistics,
     save_scalability,
+    save_updates,
     save_result,
     save_statistics,
     save_disk_usage,
@@ -16,6 +18,7 @@ from src.utils.benchmarks import (
 from src.utils.benchmarks import data_source
 from src.utils.benchmarks.artifacts import ARTIFACT_ROOT, BENCHMARK_MONGO_DATABASE
 from src.utils.benchmarks.logging_setup import configure_logging
+from src.utils.benchmarks.queries import load_queries
 from src.utils.body_files import read_book_body
 from src.utils.text_processor import process_text
 from src.datamarts.inverted_index import json_index, folder_index
@@ -25,8 +28,12 @@ JSON_INDEX_PATH = INDEX_OUTPUT_DIRECTORY / "inverted_index.json"
 FOLDER_INDEX_PATH = INDEX_OUTPUT_DIRECTORY / "inverted_index"
 QUERIES_PATH = Path(__file__).with_name("queries.txt")
 BUILD_BATCH_SIZES = (25, 50, 250, 500, 1000, 5000, 10000)
-QUERY_SAMPLE_TARGET = 100
+BUILD_REPETITIONS_SCHEDULE = ((1000, 5), (5000, 3))
+DEFAULT_BUILD_REPETITIONS = 2
+QUERY_REPETITIONS = 5
 SYNTHETIC_BOOK_ID_BASE = 900000
+UPDATE_BASE_SIZES = (25, 50, 250, 500, 1000)
+UPDATE_REPETITIONS = 5
 
 def run():
     books = load_tokenized_books()
@@ -51,18 +58,26 @@ def run_structure_experiments(structure, books, queries):
     structure.prepare_query()
     measure_query_performance(structure, queries)
     measure_update(structure, books)
+    measure_update_scaling(structure, books)
     measure_storage_overhead(structure)
 
 def measure_build(structure, books, batch_size):
     subset = build_subset(books, batch_size)
-    measurement = measure_operation(lambda: structure.build_and_save(subset))
+    samples = [
+        measure_operation(lambda: structure.build_and_save(subset))
+        for _ in range(build_repetitions(batch_size))
+    ]
     save_scalability({
         "test_name": f"build_{structure.name}",
         "batch_size": batch_size,
-        "elapsed_seconds": measurement.elapsed_seconds,
-        "memory_mb": measurement.memory_mb,
-        "cpu_percent": measurement.cpu_percent,
+        **aggregate_scalability(samples),
     })
+
+def build_repetitions(batch_size):
+    for threshold, repetitions in BUILD_REPETITIONS_SCHEDULE:
+        if batch_size <= threshold:
+            return repetitions
+    return DEFAULT_BUILD_REPETITIONS
 
 def build_subset(books, batch_size):
     subset = dict(list(books.items())[:batch_size])
@@ -78,7 +93,7 @@ def synthetic_books(books, count):
 
 def measure_query_performance(structure, queries):
     durations = []
-    for _ in range(query_rounds(queries)):
+    for _ in range(QUERY_REPETITIONS):
         for terms in queries:
             start_time = time.perf_counter()
             matching_documents(structure, terms)
@@ -86,9 +101,6 @@ def measure_query_performance(structure, queries):
     stats = calculate_statistics(durations)
     stats["test_name"] = f"query_{structure.name}"
     save_statistics(stats)
-
-def query_rounds(queries):
-    return max(1, QUERY_SAMPLE_TARGET // len(queries))
 
 def matching_documents(structure, terms):
     matched = set(structure.query_postings(terms[0]))
@@ -99,14 +111,7 @@ def matching_documents(structure, terms):
     return sorted(matched)
 
 def load_shared_queries():
-    queries = []
-    for line in QUERIES_PATH.read_text(encoding="utf-8").splitlines():
-        terms = line.partition("#")[0].split()
-        if terms:
-            queries.append(terms)
-    if not queries:
-        raise RuntimeError(f"{QUERIES_PATH} must define at least one query")
-    return queries
+    return load_queries(QUERIES_PATH)
 
 def measure_update(structure, books):
     new_book_id = max(books) + 1
@@ -118,6 +123,25 @@ def measure_update(structure, books):
         "memory_mb": measurement.memory_mb,
         "cpu_percent": measurement.cpu_percent,
     })
+
+def measure_update_scaling(structure, books):
+    """Isolates the incremental update cost: builds a base index of a given
+    size (untimed), then times repeated single-book additions on top of it, so
+    the report can show how each structure scales as the index grows."""
+    tokens = next(iter(books.values()))
+    for base_size in UPDATE_BASE_SIZES:
+        structure.build_and_save(build_subset(books, base_size))
+        samples = [
+            measure_operation(
+                lambda offset=offset: structure.add_book(
+                    SYNTHETIC_BOOK_ID_BASE + base_size * 100 + offset, tokens))
+            for offset in range(UPDATE_REPETITIONS)
+        ]
+        save_updates({
+            "test_name": f"update_{structure.name}",
+            "base_size": base_size,
+            **aggregate_scalability(samples),
+        })
 
 def measure_storage_overhead(structure):
     save_disk_usage(structure.storage_usage())
@@ -189,7 +213,7 @@ class MongoIndexStructure:
         self.collection = backend.get_collection(database_name=BENCHMARK_MONGO_DATABASE)
 
     def reset(self):
-        self.collection.delete_many({})
+        self.backend.clear(self.collection)
 
     def build_and_save(self, books):
         self.backend.save_index(self.backend.build_index(books), self.collection)

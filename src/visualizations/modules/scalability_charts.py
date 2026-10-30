@@ -26,23 +26,24 @@ MEMORY_AXIS_MIN_SPAN_MB = 10.0  # keeps KB-level allocator noise from looking li
 CALLOUT_FONT_SIZE = 7.2
 
 
-def annotate_speed_spread(axis: plt.Axes, test_rows: pd.DataFrame) -> None:
-    """Lower-right callout: fastest vs slowest language at the largest batch every language ran."""
-    coverage = test_rows.groupby("batch_size")["language"].nunique()
-    largest_shared_batch = coverage[coverage == test_rows["language"].nunique()].index.max()
-    final = test_rows[test_rows["batch_size"] == largest_shared_batch].set_index("language")["elapsed_seconds"]
+def annotate_speed_spread(axis: plt.Axes, test_rows: pd.DataFrame, x_column: str) -> None:
+    """Lower-right callout: fastest vs slowest language at the largest x value every language ran."""
+    coverage = test_rows.groupby(x_column)["language"].nunique()
+    largest_shared_size = coverage[coverage == test_rows["language"].nunique()].index.max()
+    final = test_rows[test_rows[x_column] == largest_shared_size].set_index("language")["elapsed_seconds"]
     fastest, slowest = final.idxmin(), final.idxmax()
-    text = (f"At {format_count(largest_shared_batch)} books\n"
+    text = (f"At {format_count(largest_shared_size)} books\n"
             f"{language_label(fastest)} {format_duration(final[fastest])} · "
             f"{language_label(slowest)} {final[slowest] / final[fastest]:.1f}× slower")
     axis.text(0.97, 0.05, text, transform=axis.transAxes, ha="right", va="bottom", fontsize=CALLOUT_FONT_SIZE,
               color=INK, bbox=note_box(), zorder=6)
 
 
-def annotate_peak_memory(axis: plt.Axes, test_rows: pd.DataFrame) -> None:
-    """Upper-left callout: which language peaked, how high, at which batch size."""
+def annotate_peak_memory(axis: plt.Axes, test_rows: pd.DataFrame, x_column: str) -> None:
+    """Upper-left callout: which language grew the most (RSS delta), how high, at which size."""
     peak = test_rows.loc[test_rows["memory_mb"].idxmax()]
-    text = f"Peak: {language_label(peak['language'])} {peak['memory_mb']:,.0f} MB\nat {format_count(peak['batch_size'])} books"
+    text = (f"Largest RSS delta: {language_label(peak['language'])} {peak['memory_mb']:,.0f} MB\n"
+            f"at {format_count(peak[x_column])} books")
     axis.text(0.04, 0.95, text, transform=axis.transAxes, ha="left", va="top", fontsize=CALLOUT_FONT_SIZE,
               color=INK, bbox=note_box(), zorder=6)
 
@@ -55,7 +56,7 @@ class ScalabilityMeasure:
     subtitle: str
     file_stem: str
     y_scale: str
-    annotate: Callable[[plt.Axes, pd.DataFrame], None]
+    annotate: Callable[[plt.Axes, pd.DataFrame, str], None]
 
 
 ELAPSED_TIME = ScalabilityMeasure(
@@ -76,14 +77,36 @@ MEMORY_GROWTH = ScalabilityMeasure(
     y_scale="linear",
     annotate=annotate_peak_memory,
 )
+UPDATE_TIME = ScalabilityMeasure(
+    column="elapsed_seconds",
+    axis_label="Update time (log scale)",
+    title="Incremental updates: adding 5 books to an existing index",
+    subtitle="Isolated from construction: the base index is built untimed; only the 5 added books are measured.",
+    file_stem="scalability_updates",
+    y_scale="log",
+    annotate=annotate_speed_spread,
+)
 
 
+@dataclass(frozen=True)
 class ScalabilityCharts(BenchmarkChart):
-    subdirectory = "scalability"
+    """Line-per-language panels over a size axis: the build scalability figures, and by
+    default also the incremental-update figure (updates.csv, base size on the x axis)."""
+
+    metric: str = "scalability"
+    x_column: str = "batch_size"
+    x_label: str = "Batch size (books, log scale)"
+    measures: tuple[ScalabilityMeasure, ...] = (ELAPSED_TIME, MEMORY_GROWTH)
+    subdirectory: str = "scalability"
+
+    @classmethod
+    def for_updates(cls) -> "ScalabilityCharts":
+        return cls(metric="updates", x_column="base_size",
+                   x_label="Existing index size (books, log scale)", measures=(UPDATE_TIME,))
 
     def render(self, results: BenchmarkResults, output_dir: Path) -> None:
-        frame = results.comparable_metric("scalability")
-        for measure in (ELAPSED_TIME, MEMORY_GROWTH):
+        frame = results.comparable_metric(self.metric)
+        for measure in self.measures:
             save_figure(self._draw_measure(frame, measure), output_dir, measure.file_stem)
 
     def _draw_measure(self, frame: pd.DataFrame, measure: ScalabilityMeasure) -> Figure:
@@ -94,7 +117,7 @@ class ScalabilityCharts(BenchmarkChart):
             add_panel_title(axis, panel_index, full_test_label(test_name))
         for unused_axis in axes[len(tests):]:
             unused_axis.set_visible(False)
-        figure.supxlabel("Batch size (books, log scale)", fontsize=9)
+        figure.supxlabel(self.x_label, fontsize=9)
         figure.supylabel(measure.axis_label, fontsize=9)
         add_figure_header(figure, measure.title, measure.subtitle, language_legend_handles(languages_in(frame), "line"))
         return figure
@@ -111,14 +134,13 @@ class ScalabilityCharts(BenchmarkChart):
     def _draw_test_panel(self, axis: plt.Axes, test_rows: pd.DataFrame, measure: ScalabilityMeasure) -> None:
         for language in languages_in(test_rows):
             series = self._plottable_series(test_rows[test_rows["language"] == language], measure)
-            axis.plot(series["batch_size"], series[measure.column], **line_style(language))
+            axis.plot(series[self.x_column], series[measure.column], **line_style(language))
         self._style_axis(axis, measure)
-        measure.annotate(axis, test_rows)
+        measure.annotate(axis, test_rows, self.x_column)
 
-    @staticmethod
-    def _plottable_series(language_rows: pd.DataFrame, measure: ScalabilityMeasure) -> pd.DataFrame:
-        """Sorted by batch size; non-positive values are dropped on log axes (log(0) is undefined)."""
-        ordered = language_rows.sort_values("batch_size")
+    def _plottable_series(self, language_rows: pd.DataFrame, measure: ScalabilityMeasure) -> pd.DataFrame:
+        """Sorted by size; non-positive values are dropped on log axes (log(0) is undefined)."""
+        ordered = language_rows.sort_values(self.x_column)
         return ordered[ordered[measure.column] > 0] if measure.y_scale == "log" else ordered
 
     @staticmethod

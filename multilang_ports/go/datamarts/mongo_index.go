@@ -49,15 +49,23 @@ func ConnectMongoIndex(ctx context.Context, uri, databaseName, collectionName st
 		return nil, fmt.Errorf("connect to MongoDB: %w", err)
 	}
 	collection := client.Database(databaseName).Collection(collectionName)
+	if err := ensureTermIndex(ctx, collection); err != nil {
+		client.Disconnect(ctx)
+		return nil, err
+	}
+	return &MongoIndex{client: client, collection: collection}, nil
+}
+
+// ensureTermIndex mirrors get_collection(): a unique ascending index on "term".
+func ensureTermIndex(ctx context.Context, collection *mongo.Collection) error {
 	uniqueTerm := mongo.IndexModel{
 		Keys:    bson.D{{Key: "term", Value: 1}},
 		Options: options.Index().SetUnique(true),
 	}
 	if _, err := collection.Indexes().CreateOne(ctx, uniqueTerm); err != nil {
-		client.Disconnect(ctx)
-		return nil, fmt.Errorf("create term index: %w", err)
+		return fmt.Errorf("create term index: %w", err)
 	}
-	return &MongoIndex{client: client, collection: collection}, nil
+	return nil
 }
 
 // IsMongoAvailable mirrors is_available(): a ping with the same timeout.
@@ -74,12 +82,15 @@ func clientOptions(uri string) *options.ClientOptions {
 	return options.Client().ApplyURI(uri).SetServerSelectionTimeout(connectionTimeout)
 }
 
-// Clear removes every term document, the reset phase of the Python suite.
+// Clear drops and re-creates the collection, the reset phase of the Python
+// suite. Dropping (instead of delete_many) gives every build the same fresh
+// collection, so collStats storageSize is measured on an identical state in
+// all four languages rather than on the free space a wipe leaves behind.
 func (index *MongoIndex) Clear(ctx context.Context) error {
-	if _, err := index.collection.DeleteMany(ctx, bson.D{}); err != nil {
-		return fmt.Errorf("clear collection: %w", err)
+	if err := index.collection.Drop(ctx); err != nil {
+		return fmt.Errorf("drop collection: %w", err)
 	}
-	return nil
+	return ensureTermIndex(ctx, index.collection)
 }
 
 // Save mirrors save_index(): wipe the collection, then one insert_many call

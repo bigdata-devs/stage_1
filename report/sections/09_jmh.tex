@@ -1,0 +1,63 @@
+\section{JMH Micro-Benchmarks (Java only)}
+\label{sec:jmh}
+
+The end-to-end harness measures whole operations. To see where the Java
+implementation spends its time inside those operations, the port carries
+four JMH micro-benchmark classes (six measurements) over its hot paths
+(\texttt{multilang\_ports/java/src/main/java/microbench/}).
+
+\paragraph{Configuration.}
+JMH 1.37 on OpenJDK 21.0.13, average-time mode, 1 thread, 1 fork, 5+5
+iterations of 1~s (warm-up and measurement), GC profiler enabled. Unlike the
+harness phases, JMH is \emph{not} pinned: \texttt{run\_jmh.sh} starts the
+shaded jar without \texttt{taskset} and without JVM flags, so it runs with
+the JVM's default ergonomics on all logical cores, and its absolute numbers
+are not comparable with the pinned end-to-end Java figures. Raw JSON:
+\texttt{benchmarks\_\allowbreak results/java/\allowbreak jmh\_\allowbreak results.json},
+produced by \texttt{multilang\_\allowbreak ports/java/\allowbreak run\_\allowbreak jmh.sh}.
+
+\begin{table}[htbp]
+    \centering
+    \footnotesize
+    \caption{JMH results (average time per operation $\pm$ the 99.9\%
+    confidence half-width reported by JMH; 1 fork, 5+5 iterations of 1~s).
+    ``Previous'' is the snapshot of \cref{sec:refactor-effect}; allocation
+    is JMH's normalised allocation per operation, in MB ($10^6$ bytes).}
+    \label{tab:jmh}
+    \begin{tabular}{@{}llrrr@{}}
+        \toprule
+        Micro-benchmark & Workload & Score & Previous & Alloc./op \\
+        \midrule
+        \texttt{TokenizeBenchmark.tokenizeBook} & one sample book & 593.3 $\pm$ 8.2 $\mu$s & 580.6 $\mu$s & 0.3 \\
+        \texttt{PostingsBenchmark.buildPostings} & 10 books & 143.0 $\pm$ 17.0 ms & 133.5 ms & 12.4 \\
+        \texttt{PostingsBenchmark.buildPostings} & 100 books & 2484.8 $\pm$ 2564.5 ms & 1852.6 ms & 59.7 \\
+        \texttt{JsonIndexBenchmark.serializeIndex} & 50-book index & 577.2 $\pm$ 70.1 ms & 500.6 ms & 155.5 \\
+        \texttt{JsonIndexBenchmark.parseIndex} & 50-book index & 104.6 $\pm$ 10.1 ms & 114.3 ms & 41.7 \\
+        \texttt{QueryBenchmark.intersectQuery} & two-term query & 2.85 $\pm$ 0.06 $\mu$s & 2.75 $\mu$s & 0.0 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\paragraph{What changed and what it shows.}
+Serialising the JSON index now costs $5.5\times$ parsing it ($4.4\times$
+before): since the current snapshot \texttt{saveIndex} writes through the
+temporary-file, \texttt{fsync} and rename path, so the benchmark includes
+that synchronisation, its time rose 15\% and its allocation per operation
+rose from 19.2 to 155.5~MB. \texttt{buildPostings} over 100 books has a
+confidence half-width larger than its score (2484.8 $\pm$ 2564.5~ms): with
+five measured iterations in one fork, individual iterations differ by
+seconds, consistent with collection pauses in the \texttt{TreeSet}-based
+builder identified in \cref{sec:index-scalability}; a reliable figure needs
+more forks and iterations. The other four scores moved by 2--9\%, within what
+one fork on an unpinned host can resolve.
+
+\paragraph{How these numbers may be used.}
+They explain the \emph{internal} split of one Java operation, which helps
+attribute the end-to-end Java bars of \cref{sec:index}: postings
+construction, not serialisation or querying, is the Java hot path that grows
+with the input. They are \textbf{evidence about the Java port only}: JMH's
+forked-JVM warm-up protocol is deliberately \emph{not} applied to the other
+languages, so no JMH number is ever placed next to a Python, Go or Rust
+measurement in this report. The cross-language figures of
+\cref{sec:language-performance} all come from the common harness of
+\cref{sec:methodology}.

@@ -3,6 +3,7 @@ package benchmark;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -41,5 +42,62 @@ class IndexBenchmarkTest {
 
         assertEquals(1, IndexBenchmark.buildSubset(books, 1).size());
         assertTrue(IndexBenchmark.buildSubset(books, 1).get(0).id() == 1);
+    }
+
+    @Test
+    void repetitionsShrinkForLargeBatches() {
+        assertEquals(5, IndexBenchmark.buildRepetitions(25));
+        assertEquals(5, IndexBenchmark.buildRepetitions(1000));
+        assertEquals(3, IndexBenchmark.buildRepetitions(5000));
+        assertEquals(2, IndexBenchmark.buildRepetitions(10000));
+    }
+
+    @Test
+    void warmUpBuildsTheSmallestBatchOnce() throws IOException {
+        RecordingStructure structure = new RecordingStructure();
+
+        IndexBenchmark.warmUpStructure(structure, List.of(new TokenizedBook(1, List.of("x"))));
+
+        assertEquals(1, structure.buildCalls);
+        assertEquals(1, structure.lastBatchSize);
+    }
+
+    private static final class RecordingStructure implements IndexStructure {
+
+        int buildCalls;
+        int lastBatchSize;
+
+        @Override
+        public String name() {
+            return "recording";
+        }
+
+        @Override
+        public void reset() {
+        }
+
+        @Override
+        public void build(List<TokenizedBook> books) {
+            buildCalls++;
+            lastBatchSize = books.size();
+        }
+
+        @Override
+        public void prepareQuery() {
+        }
+
+        @Override
+        public List<Integer> queryPostings(String term) {
+            return List.of();
+        }
+
+        @Override
+        public void addBook(int bookId, List<String> tokens) {
+        }
+
+        @Override
+        public DiskUsage storageUsage() {
+            return new DiskUsage("nowhere", 0, 0, 0);
+        }
     }
 }

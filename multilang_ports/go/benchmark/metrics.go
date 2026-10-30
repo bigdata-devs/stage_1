@@ -16,10 +16,17 @@ const bytesPerMB = 1024 * 1024
 type Measurement struct {
 	Name    string
 	Elapsed time.Duration
-	// MemoryMB is the growth of memory obtained from the OS (MemStats.Sys),
-	// clamped at zero. It is the closest analogue of the RSS delta that
-	// psutil reports in measure_memory() for Python.
+	// MemoryMB is the growth of the resident set size (VmRSS from
+	// /proc/self/status), clamped at zero: the same RSS delta that
+	// psutil reports in measure_memory() for Python and that rss_bytes()
+	// reports for Rust and Java. It is 0 when procfs is unavailable.
 	MemoryMB float64
+	// PeakRSSMB is the largest resident set size sampled every 50 ms
+	// while the operation ran: the absolute footprint of the process.
+	PeakRSSMB float64
+	// SysDeltaMB is the growth of runtime.MemStats.Sys, the Go-specific
+	// view of memory obtained from the OS (it feeds memstats.csv only).
+	SysDeltaMB float64
 	// HeapAllocDeltaMB is the change in live heap bytes (may be negative).
 	HeapAllocDeltaMB float64
 	// TotalAllocMB is the volume of heap memory allocated during the run,
@@ -36,8 +43,10 @@ type Measurement struct {
 
 // Measure runs operation once and records time, memory and CPU usage.
 func Measure(name string, operation func() error) (Measurement, error) {
-	var memoryBefore, memoryAfter runtime.MemStats
-	runtime.ReadMemStats(&memoryBefore)
+	memoryBefore := rssBytes()
+	stopPeakSampler := startPeakRssSampler(memoryBefore)
+	var statsBefore, statsAfter runtime.MemStats
+	runtime.ReadMemStats(&statsBefore)
 	cpuBefore := processCPUTime()
 	start := time.Now()
 
@@ -45,15 +54,19 @@ func Measure(name string, operation func() error) (Measurement, error) {
 
 	elapsed := time.Since(start)
 	cpuUsed := processCPUTime() - cpuBefore
-	runtime.ReadMemStats(&memoryAfter)
+	memoryAfter := rssBytes()
+	peakRSSBytes := stopPeakSampler(memoryAfter)
+	runtime.ReadMemStats(&statsAfter)
 	return Measurement{
 		Name:             name,
 		Elapsed:          elapsed,
-		MemoryMB:         math.Max(toMB(int64(memoryAfter.Sys)-int64(memoryBefore.Sys)), 0),
-		HeapAllocDeltaMB: toMB(int64(memoryAfter.HeapAlloc) - int64(memoryBefore.HeapAlloc)),
-		TotalAllocMB:     toMB(int64(memoryAfter.TotalAlloc - memoryBefore.TotalAlloc)),
-		HeapInUseMB:      toMB(int64(memoryAfter.HeapInuse)),
-		GCCycles:         memoryAfter.NumGC - memoryBefore.NumGC,
+		MemoryMB:         math.Max(toMB(int64(memoryAfter)-int64(memoryBefore)), 0),
+		PeakRSSMB:        toMB(int64(peakRSSBytes)),
+		SysDeltaMB:       toMB(int64(statsAfter.Sys) - int64(statsBefore.Sys)),
+		HeapAllocDeltaMB: toMB(int64(statsAfter.HeapAlloc) - int64(statsBefore.HeapAlloc)),
+		TotalAllocMB:     toMB(int64(statsAfter.TotalAlloc - statsBefore.TotalAlloc)),
+		HeapInUseMB:      toMB(int64(statsAfter.HeapInuse)),
+		GCCycles:         statsAfter.NumGC - statsBefore.NumGC,
 		CPUPercent:       cpuPercent(cpuUsed, elapsed),
 	}, err
 }
@@ -95,27 +108,34 @@ func CalculateStatistics(durations []time.Duration) (Statistics, error) {
 	if len(durations) == 0 {
 		return Statistics{}, errors.New("durations must not be empty")
 	}
-	stats := Statistics{Iterations: len(durations), MinSeconds: math.Inf(1), MaxSeconds: math.Inf(-1)}
-	sum := 0.0
-	for _, duration := range durations {
-		seconds := duration.Seconds()
-		sum += seconds
-		stats.MinSeconds = math.Min(stats.MinSeconds, seconds)
-		stats.MaxSeconds = math.Max(stats.MaxSeconds, seconds)
+	seconds := make([]float64, len(durations))
+	stats := Statistics{Iterations: len(seconds), MinSeconds: math.Inf(1), MaxSeconds: math.Inf(-1)}
+	for index, duration := range durations {
+		seconds[index] = duration.Seconds()
+		stats.MinSeconds = math.Min(stats.MinSeconds, seconds[index])
+		stats.MaxSeconds = math.Max(stats.MaxSeconds, seconds[index])
 	}
-	stats.MeanSeconds = sum / float64(len(durations))
-	stats.StdevSeconds = sampleStandardDeviation(durations, stats.MeanSeconds)
+	stats.MeanSeconds = meanSeconds(seconds)
+	stats.StdevSeconds = sampleStdevSeconds(seconds, stats.MeanSeconds)
 	return stats, nil
 }
 
-func sampleStandardDeviation(durations []time.Duration, mean float64) float64 {
-	if len(durations) < 2 {
+func meanSeconds(seconds []float64) float64 {
+	sum := 0.0
+	for _, value := range seconds {
+		sum += value
+	}
+	return sum / float64(len(seconds))
+}
+
+func sampleStdevSeconds(seconds []float64, mean float64) float64 {
+	if len(seconds) < 2 {
 		return 0
 	}
 	squaredDeviations := 0.0
-	for _, duration := range durations {
-		deviation := duration.Seconds() - mean
+	for _, value := range seconds {
+		deviation := value - mean
 		squaredDeviations += deviation * deviation
 	}
-	return math.Sqrt(squaredDeviations / float64(len(durations)-1))
+	return math.Sqrt(squaredDeviations / float64(len(seconds)-1))
 }

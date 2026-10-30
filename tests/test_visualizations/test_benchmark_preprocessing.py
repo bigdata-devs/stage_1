@@ -10,7 +10,7 @@ from src.visualizations.modules.radar_chart import build_radar_table
 
 THROUGHPUT_HEADER = "test_name,item_count,elapsed_seconds,items_per_second,timestamp\n"
 STATISTICS_HEADER = "test_name,iterations,mean_seconds,stdev_seconds,min_seconds,max_seconds,timestamp\n"
-SCALABILITY_HEADER = "test_name,batch_size,elapsed_seconds,memory_mb,cpu_percent,timestamp\n"
+SCALABILITY_HEADER = "test_name,batch_size,elapsed_seconds,stdev_seconds,repetitions,memory_mb,cpu_percent,peak_rss_mb,timestamp\n"
 RECOVERY_HEADER = ("test_name,total_books,processed_before_interruption,processed_after_resume,duplicated,lost,"
                    "detection_time,processing_time,elapsed_seconds,timestamp\n")
 
@@ -29,7 +29,7 @@ def results_dir(tmp_path: Path) -> Path:
         write_csv(language_dir, "statistics.csv", STATISTICS_HEADER
                   + f"lookup_time_based,100,{1 / rate},0.00001,0.00001,0.001,2026-10-02T10:00:00\n")
         write_csv(language_dir, "scalability.csv", SCALABILITY_HEADER
-                  + f"build_json_index,25,1.0,{rate},{rate + 40},2026-10-02T10:00:00\n")
+                  + f"build_json_index,25,1.0,0.05,5,{rate},{rate + 40},{rate + 60},2026-10-02T10:00:00\n")
         write_csv(language_dir, "recovery.csv", RECOVERY_HEADER
                   + f"recovery_time_based,100,50,{50 if language == 'go' else 48},0,"
                   + f"{0 if language == 'go' else 2},0.1,0.1,0.2,2026-10-02T10:00:00\n")

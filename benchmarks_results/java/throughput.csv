@@ -1,6 +1,10 @@
 test_name,item_count,elapsed_seconds,items_per_second,timestamp
-write_throughput_time_based,100,1.852296,53.9870,2026-10-02T14:08:49.604542
-write_throughput_book_based,100,1.781707,56.1260,2026-10-02T14:08:51.668205
-write_throughput_batch_based,100,1.666571,60.0034,2026-10-02T14:08:53.512312
-download_write_throughput,10,3.512002,2.8474,2026-10-02T14:08:57.575444
-tokenize_books,100,3.938474,25.3905,2026-10-02T14:09:01.544632
+download_write_throughput,10,11.180684,0.8944,2026-10-28T09:32:33.816456
+download_write_throughput,10,4.500592,2.2219,2026-10-28T09:32:57.383773
+download_write_throughput,10,5.021880,1.9913,2026-10-28T09:33:21.320360
+download_write_throughput,10,4.687008,2.1336,2026-10-28T09:33:44.858195
+download_write_throughput,10,4.674172,2.1394,2026-10-28T09:34:08.430497
+write_throughput_time_based,100,3.283492,30.4554,2026-10-28T10:45:53.799880
+write_throughput_book_based,100,2.871214,34.8285,2026-10-28T10:45:57.010659
+write_throughput_batch_based,100,2.850075,35.0868,2026-10-28T10:46:00.087884
+tokenize_books,100,5.504768,18.1661,2026-10-28T10:46:05.782363

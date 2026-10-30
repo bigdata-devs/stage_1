@@ -54,11 +54,10 @@ impl InvertedIndex {
             .map(|entry| (entry.term.as_str(), &entry.postings))
     }
 
+    /// Writes the monolithic index file through a temporary sibling that is
+    /// fsync-ed and renamed, the counterpart of Python's atomic JSON save.
     pub fn save(&self, path: &Path) -> io::Result<()> {
-        if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent)?;
-        }
-        fs::write(path, self.serialize())
+        crate::utils::atomic_file::write_text(path, &self.serialize())
     }
 
     fn serialize(&self) -> String {

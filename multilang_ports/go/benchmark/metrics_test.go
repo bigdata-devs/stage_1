@@ -32,6 +32,26 @@ func TestMeasurePropagatesOperationErrors(t *testing.T) {
 	}
 }
 
+func TestMeasureReportsNonNegativeRssDelta(t *testing.T) {
+	measurement, err := Measure("noop", func() error { return nil })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if measurement.MemoryMB < 0 {
+		t.Fatalf("expected a non-negative RSS delta, got %v", measurement.MemoryMB)
+	}
+}
+
+func TestResidentSetBytesParsesVmRSS(t *testing.T) {
+	status := "Name:\tgo\nVmRSS:\t  123456 kB\nVmHWM:\t234567 kB\n"
+	if bytes := residentSetBytes(status); bytes != 123456*1024 {
+		t.Fatalf("unexpected resident set size %d", bytes)
+	}
+	if bytes := residentSetBytes("Name:\tgo\n"); bytes != 0 {
+		t.Fatalf("expected 0 without VmRSS, got %d", bytes)
+	}
+}
+
 func TestThroughputValidatesInput(t *testing.T) {
 	if value, err := Throughput(10, 2*time.Second); err != nil || value != 5 {
 		t.Fatalf("unexpected throughput %v (err %v)", value, err)

@@ -76,9 +76,8 @@ func PendingBookIDs(root string, known []int) ([]int, error) {
 	return pending, nil
 }
 
+// writeTextFile stores a header or a body durably: temp file, fsync, rename,
+// exactly like write_text_atomically() in the Python baseline.
 func writeTextFile(path string, content string) error {
-	if err := os.WriteFile(path, []byte(content), filePermissions); err != nil {
-		return fmt.Errorf("write %s: %w", path, err)
-	}
-	return nil
+	return utils.WriteTextAtomically(path, content)
 }

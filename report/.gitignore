@@ -1,0 +1,8 @@
+# LaTeX build artifacts
+main.pdf
+main.xdv
+*.log
+*.aux
+*.out
+*.toc
+figures/

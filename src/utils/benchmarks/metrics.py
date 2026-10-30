@@ -1,20 +1,24 @@
 import time
 import logging
 import statistics
+import threading
 import psutil
 from pathlib import Path
 from functools import wraps
 from typing import NamedTuple
 
 BYTES_PER_MB = 1024 * 1024
+PEAK_RSS_SAMPLE_INTERVAL_SECONDS = 0.05
 
 class Measurement(NamedTuple):
     result: object
     elapsed_seconds: float
     memory_mb: float
     cpu_percent: float
+    peak_rss_mb: float
 
 def measure_operation(operation):
+    sampler = PeakRssSampler.start()
     time_func = measure_time(operation)
     memory_func = measure_memory(time_func)
     cpu_func = measure_cpu_usage(memory_func)
@@ -24,7 +28,44 @@ def measure_operation(operation):
         time_func.last_elapsed,
         memory_func.last_memory_mb,
         cpu_func.last_cpu_percent,
+        sampler.stop(),
     )
+
+def aggregate_scalability(measurements):
+    elapsed = [measurement.elapsed_seconds for measurement in measurements]
+    return {
+        "elapsed_seconds": statistics.mean(elapsed),
+        "stdev_seconds": statistics.stdev(elapsed) if len(elapsed) > 1 else 0.0,
+        "repetitions": len(measurements),
+        "memory_mb": statistics.mean(measurement.memory_mb for measurement in measurements),
+        "cpu_percent": statistics.mean(measurement.cpu_percent for measurement in measurements),
+        "peak_rss_mb": max(measurement.peak_rss_mb for measurement in measurements),
+    }
+
+class PeakRssSampler:
+    """Samples this process's resident set size while an operation runs."""
+
+    def __init__(self):
+        self._process = psutil.Process()
+        self._peak_bytes = self._process.memory_info().rss
+        self._stop_event = threading.Event()
+        self._thread = threading.Thread(target=self._sample_until_stopped, daemon=True)
+
+    @classmethod
+    def start(cls):
+        sampler = cls()
+        sampler._thread.start()
+        return sampler
+
+    def stop(self):
+        self._stop_event.set()
+        self._thread.join()
+        self._peak_bytes = max(self._peak_bytes, self._process.memory_info().rss)
+        return self._peak_bytes / BYTES_PER_MB
+
+    def _sample_until_stopped(self):
+        while not self._stop_event.wait(PEAK_RSS_SAMPLE_INTERVAL_SECONDS):
+            self._peak_bytes = max(self._peak_bytes, self._process.memory_info().rss)
 
 def measure_time(func):
     @wraps(func)
@@ -53,14 +94,20 @@ def measure_memory(func):
 def measure_cpu_usage(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        process = psutil.Process()
-        process.cpu_percent()
+        cpu_before = time.process_time()
+        wall_before = time.perf_counter()
         result = func(*args, **kwargs)
-        cpu_percent = process.cpu_percent()
+        cpu_used = time.process_time() - cpu_before
+        cpu_percent = process_cpu_percent(cpu_used, time.perf_counter() - wall_before)
         logging.info("[%s] used %.2f%% CPU", func.__name__, cpu_percent)
         wrapper.last_cpu_percent = cpu_percent
         return result
     return wrapper
+
+def process_cpu_percent(cpu_seconds, wall_seconds):
+    if wall_seconds <= 0:
+        return 0.0
+    return cpu_seconds / wall_seconds * 100.0
 
 def measure_disk_usage(path):
     root = Path(path)

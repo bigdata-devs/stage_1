@@ -1,0 +1,118 @@
+% Stage 1 report — compile with: tectonic main.tex (or any LaTeX distribution).
+% Figures resolve from the repository's charts/ directory; on Overleaf, upload
+% the charts/ tree next to main.tex (figures/ is also searched).
+\documentclass[10pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=2cm]{geometry}
+% Allow slightly loose lines as a last resort instead of overflowing.
+\setlength{\emergencystretch}{1.5em}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
+\usepackage{cleveref}
+
+\graphicspath{{../charts/}{figures/}}
+
+% Numbers fixed by code or by a completed run.
+\newcommand{\fixed}[1]{\textcolor{black}{#1}}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    \vspace*{1cm}
+
+    % Institution and Degree
+    {\scshape\Large Universidad de Las Palmas de Gran Canaria \par}
+    \vspace{0.5cm}
+    {\scshape\large Grado en Ciencia e Ingeniería de Datos \par}
+    \vspace{0.5cm}
+    {\large Academic Year: 2026/2027 \par}
+    \vspace{1cm}
+
+    % Project title
+    \IfFileExists{boogle-engine-logo.jpg}{%
+        \includegraphics[width=0.7\textwidth]{boogle-engine-logo.jpg} \par
+        \vspace{0.5cm}}{}
+    {\Large Big Data Project --- Stage 1: Building the Data Layer \par}
+    \vspace{0.3cm}
+    {\large Benchmarking report --- Resubmission \par}
+    \vspace{1cm}
+
+    % Group details
+    {\Large \textbf{Group Name:} BigData-Devs \par}
+    \vspace{0.8cm}
+
+    % Authors
+    {\large \textbf{Team Members:} \par}
+    \vspace{0.2cm}
+    \begin{tabular}{ll}
+        Tomás Santana Suárez & ID: 45376459N \\
+        Carlos Montesdeoca Vega & ID: 45368153D \\
+        Aythami Lorenzo Padilla & ID: 45618618G \\
+        Javier Ruano Hernández & ID: 78598634K \\
+        Alejandro Delgado Valera & ID: 46261876K \\
+    \end{tabular}
+    \vspace{1cm}
+
+    % Repository
+    {\large \textbf{GitHub Repository:} \par}
+    {\large \url{https://github.com/bigdata-devs/stage_1} \par}
+
+    \vfill
+
+    % Date
+    {\large \today \par}
+\end{titlepage}
+
+% The table of contents gets its own (second) page, with black links.
+{\hypersetup{linkcolor=black}%
+\tableofcontents}
+\clearpage
+
+\begin{abstract}
+We study the behaviour of several storage algorithms used for the Stage 1
+data layer: three datalake layouts and three inverted-index structures,
+implemented in Python and ported to Go, Rust and Java. We perform an
+analysis of the following elements: write and download throughput, lookup,
+discovery and query latency, incremental-update cost, build time and memory
+growth, CPU utilisation and on-disk footprint. Our experiments provide a
+reproducible benchmark of these algorithms across the four implementations
+and index sizes from \fixed{25} to \fixed{10{,}000} books, to guide future
+work on the Stage~2 search engine; every number comes from a single command
+(\texttt{scripts/run\_tournament.sh}) whose raw CSVs, environment record and
+revision identifier are committed next to this document. Before any timing
+is interpreted, the four implementations are shown to be behaviourally
+equivalent (byte-identical canonical outputs, SHA-256
+\fixed{cdaa9369cbd91c4f89550efdcdd7c5c21e61adc97bd49f6e415b8e57d65ce2e4}).
+Based on our experiments, we recommend \textbf{Go with the MongoDB index
+structure and the batch-based datalake} for Stage~2, scoped to the tested
+corpus, host and workload; unmeasured behaviours are listed in
+\cref{sec:limitations}.
+\end{abstract}
+
+\input{sections/01_introduction}
+\input{sections/02_architecture}
+\input{sections/03_design_decisions}
+\input{sections/04_methodology}
+\input{sections/05_equivalence}
+\input{sections/06_language_performance}
+\input{sections/07_datalake}
+\input{sections/08_inverted_index}
+\input{sections/09_jmh}
+\input{sections/10_conclusions}
+\input{sections/11_limitations}
+\input{sections/12_reproducibility}
+\input{sections/13_comment_matrix}
+
+\end{document}

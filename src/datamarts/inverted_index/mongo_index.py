@@ -34,8 +34,19 @@ def build_index(books: dict[int, list[str]]) -> dict[str, list[int]]:
     return build_postings(books)
 
 
+def clear(collection: Collection) -> None:
+    """Drops and re-creates the collection, the reset phase of every build.
+
+    Dropping instead of deleting the documents gives each build the same fresh
+    collection, so ``collStats storageSize`` is measured on an identical state
+    in all four languages rather than on the free space a wipe leaves behind.
+    """
+    collection.drop()
+    collection.create_index([("term", ASCENDING)], unique=True)
+
+
 def save_index(index: dict[str, list[int]], collection: Collection) -> None:
-    collection.delete_many({})
+    clear(collection)
     documents = [
         {"term": term, "postings": book_ids} for term, book_ids in index.items()
     ]

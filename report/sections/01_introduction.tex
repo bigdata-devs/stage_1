@@ -1,0 +1,33 @@
+\section{Introduction and Objectives}
+\label{sec:introduction}
+
+Stage 1 asks for a data layer that ingests raw books from Project Gutenberg,
+extracts their metadata, and indexes their text so that later stages can serve
+search queries. The group built that pipeline once in Python (the reference
+implementation) and ported it to Go, Rust and Java, producing four runnable
+implementations of the same behaviour.
+
+The port exists for one reason: the assignment requires choosing a language
+and a storage technology for Stage 2, and a choice backed by measurements is
+stronger than a preference. The objective of this report is therefore narrow
+and explicit:
+
+\begin{itemize}
+    \item prove that the four implementations compute the same result on the
+    same corpus (\cref{sec:equivalence});
+    \item measure them under one shared protocol, on one host, with one
+    workload (\cref{sec:methodology});
+    \item compare three storage layouts for the datalake and three structures
+    for the inverted index (\cref{sec:datalake,sec:index});
+    \item recommend a combination for Stage 2, scoped to what was actually
+    tested, and list what remains unmeasured (\cref{sec:conclusions,sec:limitations}).
+\end{itemize}
+
+Every performance statement in this report refers to the corpus of
+\fixed{100} Project Gutenberg books (\fixed{61.4} MB of body text, book
+IDs listed in \texttt{benchmarks\_\allowbreak results/\allowbreak equivalence\_\allowbreak report.json}), the
+query workload of \fixed{30} shared queries, and the host described in
+\cref{tab:host}. Statements about language efficiency in general, or about
+scale far beyond the measured batches, are not made: within this workload the
+differences we report are properties of these implementations under this
+protocol, not of the languages themselves.

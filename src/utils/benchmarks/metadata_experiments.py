@@ -9,6 +9,7 @@ from src.datamarts.metadata.book_processor import build_book_metadata
 from src.datamarts.metadata.storage import MongoStorage, PostgresStorage, SearchableMetadataStorage, SQLiteStorage
 from src.utils.benchmarks import (
     BYTES_PER_MB,
+    aggregate_scalability,
     measure_operation,
     calculate_throughput,
     calculate_statistics,
@@ -140,15 +141,16 @@ def measure_query_performance(test_name, query):
     save_statistics(stats)
 
 def measure_insert_scalability(storage, template, name):
+    """Times each batch size once: repeating the insert would rewrite the
+    same primary keys instead of measuring a fresh load, so the row follows
+    the n=1 convention (stdev 0.0)."""
     for batch_size in SCALABILITY_BATCH_SIZES:
         rows = synthetic_metadata_rows(batch_size, template)
-        measurement = measure_operation(lambda: storage.save_many(rows))
+        samples = [measure_operation(lambda: storage.save_many(rows))]
         save_scalability({
             "test_name": f"insert_{name}",
             "batch_size": batch_size,
-            "elapsed_seconds": measurement.elapsed_seconds,
-            "memory_mb": measurement.memory_mb,
-            "cpu_percent": measurement.cpu_percent,
+            **aggregate_scalability(samples),
         })
 
 def synthetic_metadata_rows(count, template):

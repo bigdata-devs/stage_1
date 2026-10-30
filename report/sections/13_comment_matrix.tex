@@ -1,0 +1,87 @@
+\section{Correction Comment Matrix}
+\label{sec:comment-matrix}
+
+\begin{center}
+\footnotesize
+\renewcommand{\arraystretch}{0.80}
+\begin{longtable}{@{}lp{4.2cm}p{11.2cm}@{}}
+    \caption{Correction comments mapped to the place that answers each one.}\label{tab:comment-matrix}\\
+    \toprule
+    \# & Topic & Where it is addressed \\
+    \midrule
+    \endfirsthead
+    \toprule
+    \# & Topic & Where it is addressed \\
+    \midrule
+    \endhead
+    1 & Scope language/storage claims to the workload &
+    \cref{sec:introduction,sec:conclusions}: scoped to corpus, host, workload. \\
+    2 & Host, runtimes, parameters, download concurrency &
+    \cref{tab:host,tab:workload,sec:environment-state}: downloads sequential. \\
+    3 & RSS-delta definition, 1{,}601 MB, O(1) MongoDB &
+    \cref{sec:index-scalability}: delta vs peak (846.5/1{,}463.8~MiB);
+    \cref{sec:index-updates}: O(1) replaced. \\
+    4 & Pipeline diagram of the three layers &
+    \cref{fig:pipeline}: TikZ, layers, data movement, durable writes. \\
+    5 & Radar productivity axis, ``Peak'' callout &
+    \cref{sec:radar,fig:scalability-memory}: qualitative score stated; callout renamed. \\
+    6 & Discovery, storage overhead, recovery observations &
+    \cref{sec:datalake-discovery,sec:datalake-storage,sec:datalake-recovery}: CSVs. \\
+    7 & Normalisation/metadata rules, postings examples, all languages &
+    \cref{sec:normalisation,sec:metadata-contract,sec:equivalence-languages}: rules and example. \\
+    8 & Link charts to script, config, raw results, revision &
+    \cref{tab:chart-map,sec:provenance}; \texttt{environment.txt}. \\
+    9 & Limitations section & \cref{sec:limitations}. \\
+    10 & Do not call MongoDB ``the only scalable choice'' &
+    \cref{sec:conclusions}: selection scoped to Stage~2. \\
+    11 & Delta vs peak RSS, RAM-spike/GC evidence, O(1) variable &
+    \cref{sec:index-scalability}: peak sampling, Go \texttt{memstats};
+    \cref{sec:index-updates}. \\
+    12 & Compare metadata, terms, postings, answers; equivalence first &
+    \cref{sec:equivalence}: gates before timing, byte-identical. \\
+    13 & Record host, runtimes and concurrency per language, align or restrict &
+    \cref{tab:host,tab:workload,tab:coverage,sec:warmup}: identical parameters. \\
+    14 & Corpus, operation and timing boundaries behind plots &
+    \cref{sec:workload,sec:timing-boundaries,sec:coverage}. \\
+    15 & Reinterpret RAM/timing; language explanations as hypotheses &
+    \cref{sec:conclusions,sec:throughput-latency}: reading rule. \\
+    16 & Book counts, sizes, timing start/stop for write and download &
+    \cref{sec:timing-boundaries,sec:datalake-throughput}. \\
+    17 & Discovery of downloaded-but-not-indexed books, same state &
+    \cref{sec:datalake-discovery,tab:discovery}: identical state, one sample. \\
+    18 & Files, directories, auxiliary state, bytes per layout &
+    \cref{sec:datalake-storage,tab:datalake-storage}; \texttt{disk\_usage.csv}. \\
+    19 & Directory counts before choosing batches; complement lookup &
+    \cref{sec:datalake-storage,sec:index-structures}: counts tie to lookup. \\
+    20 & Isolated incremental-update experiment &
+    \cref{sec:index-updates,fig:updates}: bases 25--1000, five additions each, one at 10{,}000. \\
+    21 & Publish workload and expected answers; cross-structure check &
+    \texttt{queries.txt} with \cref{tab:workload}; \cref{sec:equivalence-structures}. \\
+    22 & Sampling procedure, processes included, peak RSS, MongoDB server &
+    \cref{tab:metrics,sec:index-memory}: 50~ms sampling; server via \texttt{collStats}. \\
+    23 & Support MongoDB with measured updates/space; drop O(1) &
+    \cref{sec:index-updates,sec:index-memory,fig:updates}; selection on Stage~2
+    requirements (\cref{sec:conclusions}). \\
+    24 & Demonstrated interruption and resumption with counts &
+    \cref{sec:datalake-recovery,tab:recovery}; kill-and-restart in \cref{sec:future}. \\
+    25 & Compare IDs, metadata, postings, answers; also after updates &
+    \cref{sec:equivalence-structures}: repeated after an update. \\
+    26 & Limit Java/MongoDB conclusions; state unmeasured behaviours &
+    \cref{sec:conclusions,sec:limitations}. \\
+    27 & CPU, RAM, storage, OS, exact runtime versions &
+    \cref{tab:host}; \texttt{environment.txt}. \\
+    28 & Corpus IDs/sizes, queries, update batch, coverage &
+    \cref{tab:workload,tab:coverage}; \texttt{equivalence\_report.json}. \\
+    29 & Output preparation, cache state, network, warm-up &
+    \cref{sec:environment-state,sec:warmup}: fresh tree, Java-only warm-up. \\
+    30 & Sample count, clock, timing boundaries, repetition procedure &
+    \cref{tab:metrics,tab:workload,sec:timing-boundaries,sec:uncertainty}. \\
+    31 & Exact commands and raw-result locations per chart, revision &
+    \cref{sec:reproducibility,tab:chart-map}; \texttt{environment.txt}. \\
+    32 & Pipeline quality; Stage 2 search not required &
+    No change: search belongs to Stage~2 (\cref{sec:architecture}). \\
+    33 & Code quality; no deduction for Stage 2 or optional packages &
+    No change: optional dependencies in \texttt{REPRODUCING.md}. \\
+    \bottomrule
+\end{longtable}
+\end{center}

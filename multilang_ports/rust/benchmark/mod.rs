@@ -1,6 +1,7 @@
 mod config;
 mod datalake_bench;
 mod disk;
+pub mod equivalence;
 mod index_bench;
 mod log;
 mod measure;

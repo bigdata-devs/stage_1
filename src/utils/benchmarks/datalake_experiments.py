@@ -3,7 +3,6 @@ import shutil
 import time
 from pathlib import Path
 
-from src.datalake.errors import BookUnavailableError, TransientDownloadError
 from src.utils.benchmarks import (
     measure_operation,
     measure_disk_usage,
@@ -19,10 +18,8 @@ from src.utils.benchmarks import data_source
 from src.utils.benchmarks.artifacts import ARTIFACT_ROOT
 from src.utils.benchmarks.datalake_layouts import TimeBasedLayout, BookBasedLayout, BatchBasedLayout
 from src.utils.benchmarks.logging_setup import configure_logging
-from src.datalake.datalake_engine import download_time_based
 
 BENCHMARK_DATA_DIRECTORY = ARTIFACT_ROOT / "datalake"
-DOWNLOAD_PROBE_COUNT = 10
 LAYOUTS = [TimeBasedLayout(), BookBasedLayout(), BatchBasedLayout()]
 
 def run():
@@ -31,11 +28,6 @@ def run():
     skipped = []
     for layout in LAYOUTS:
         run_layout_experiments(layout, book_ids)
-    try:
-        measure_download_throughput(book_ids)
-    except (BookUnavailableError, TransientDownloadError):
-        logging.warning("SKIP download_write_throughput: network unavailable")
-        skipped.append("download_write_throughput")
     return skipped
 
 def run_layout_experiments(layout, book_ids):
@@ -86,20 +78,6 @@ def measure_recovery(layout, book_ids):
     stats["test_name"] = f"recovery_{layout.name}"
     save_recovery(stats)
 
-def measure_download_throughput(book_ids):
-    probe_ids = book_ids[:DOWNLOAD_PROBE_COUNT]
-    probe_directory = BENCHMARK_DATA_DIRECTORY / "download_probe"
-    if probe_directory.exists():
-        shutil.rmtree(probe_directory)
-    measurement = measure_operation(lambda: download_probe_books(probe_ids, probe_directory))
-    stored = measurement.result
-    save_throughput({
-        "test_name": "download_write_throughput",
-        "item_count": stored,
-        "elapsed_seconds": measurement.elapsed_seconds,
-        "items_per_second": calculate_throughput(stored, measurement.elapsed_seconds),
-    })
-
 def resume_after_interruption(layout, book_ids):
     base = structure_base(layout)
     processed = set(book_ids[: len(book_ids) // 2])
@@ -137,11 +115,6 @@ def verify_resume(book_ids, processed, resumed):
     duplicated = len(set(resumed) & processed)
     lost = len(set(book_ids) - processed - set(resumed))
     return duplicated, lost
-
-def download_probe_books(probe_ids, probe_directory):
-    for book_id in probe_ids:
-        download_time_based(book_id, probe_directory)
-    return len(probe_ids)
 
 def populate_structure(layout, book_ids):
     for book_id in book_ids:

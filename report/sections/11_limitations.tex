@@ -1,0 +1,79 @@
+\section{Limitations}
+\label{sec:limitations}
+
+Every observed difference could partly be an artefact of the following
+factors. They are listed so readers can weigh the results accordingly.
+
+\paragraph{Machine.}
+One laptop-class host (i7-10750H; 9.7~GiB of memory visible to the WSL2
+virtual machine in the current run, 7.7~GiB in the previous one), under WSL2
+virtualisation; the benchmark artefacts live inside the virtual machine's own
+disk, whose filesystem type was not recorded. CPU frequency scaling, thermal
+throttling and the
+hypervisor layer affect all languages, but not necessarily equally. Every
+timed harness phase is pinned to a single logical core with \texttt{taskset}
+(\cref{sec:host}), which bounds the CPU budget but is no performance governor
+and no bare metal: neighbouring work still shares that core.
+
+\paragraph{Runtime.}
+The Java harness and JMH both run on OpenJDK 21 (the harness through
+\texttt{mvn exec:java}, whose own JVM overhead is outside the timed regions
+but shares the machine; JMH in a shaded jar). Python runs on 3.14, Go 1.27,
+Rust 1.99: these are current
+versions, not long-term-stability comparisons. Only Java receives warm-up
+(\cref{sec:warmup}); the other languages are measured from cold start, which
+is the honest default for them but is itself a protocol choice.
+
+\paragraph{Cache state.}
+The OS page cache is never dropped between phases, so a file read twice in
+one phase may be served from RAM. All languages in a phase share the same
+state, but phases are not independent of the ones before them. MongoDB's
+internal cache (WiredTiger) is likewise warm after the first build.
+
+\paragraph{Workload.}
+The corpus is \fixed{100} books (\fixed{61.4} MB); the scalability
+builds reach 10{,}000 ``books'' by repeating that corpus, so index size
+grows but term diversity does not. The datalake experiments stay at the same \fixed{100} books: they compare
+directory structures on identical work, and growing them would mean
+downloading thousands more books (breaking the frozen artifact) or
+duplicating files (measuring nothing new) --- no datalake scaling curve was
+measured. Queries are \fixed{30} fixed lines; they are
+representative of the assignment but not sampled from a query log.
+Results may reorder on corpora with different term distributions.
+
+\paragraph{Timing and statistics.}
+Elapsed times are wall-clock on a shared host where only the CPU budget is
+pinned (\cref{sec:host}): neighbouring
+processes (including \texttt{mongod} and the sampling threads) inject
+jitter, visible as non-zero \texttt{stdev\_seconds}. One tournament run
+produces the committed snapshot; there is no second run to quantify
+run-to-run variance. No outliers are trimmed and no phase is repeated for a
+better result. Several results rest on one sample per cell: discovery, the
+resume check, the base-10{,}000 updates and the Python metadata inserts; the
+datalake write phase is one timed run of 100 books per layout. The
+comparison between snapshots (\cref{sec:refactor-effect}) is one run against
+one run, with host and toolchain changes in between. Query and lookup
+latencies are right-skewed, with standard deviations close to their means,
+so the means used here summarise mixed workloads.
+
+\paragraph{Measurement boundaries.}
+Client RSS excludes the MongoDB server by construction
+(\cref{sec:index-memory}); its storage is measured via \texttt{collStats},
+its memory is not. The download probe is ten sequential requests per round
+over one pooled connection, repeated in five interleaved rounds, so its
+rate reflects latency more than bandwidth. CPU percentage is process CPU
+over wall clock; with one pinned core it should not exceed 100, yet
+millisecond-scale operations report up to 489\% (an accounting artefact)
+and folder-index updates of the compiled ports report 100--103\% over tens
+to hundreds of ms (noise on a saturated core); the excess is not
+interpreted. The MongoDB server's
+container is neither pinned nor CPU-limited. Durability differs across index
+structures: datalake files and the JSON index are synchronised, folder term
+files are not, and MongoDB uses its default write concern
+(\cref{sec:index-updates}). Disk sizes are apparent, not allocated.
+
+\paragraph{Unmeasured behaviours.}
+Not exercised at all: concurrent readers and writers, indexes far beyond the
+measured batches, MongoDB replication/sharding, crash recovery of the
+database itself, and the Stage 2 serving path. Conclusions in
+\cref{sec:conclusions} do not extend to them.

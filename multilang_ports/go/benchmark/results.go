@@ -52,7 +52,7 @@ func (writer ResultsWriter) SaveMemStats(measurement Measurement) error {
 		[]string{"function_name", "sys_delta_mb", "heap_alloc_delta_mb", "total_alloc_mb", "heap_inuse_mb", "gc_cycles"},
 		[]string{
 			measurement.Name,
-			formatFloat(measurement.MemoryMB, 4),
+			formatFloat(measurement.SysDeltaMB, 4),
 			formatFloat(measurement.HeapAllocDeltaMB, 4),
 			formatFloat(measurement.TotalAllocMB, 4),
 			formatFloat(measurement.HeapInUseMB, 4),
@@ -89,15 +89,37 @@ func (writer ResultsWriter) SaveStatistics(testName string, stats Statistics) er
 }
 
 // SaveScalability mirrors save_scalability() -> scalability.csv.
-func (writer ResultsWriter) SaveScalability(testName string, batchSize int, measurement Measurement) error {
+func (writer ResultsWriter) SaveScalability(testName string, batchSize int, aggregate BuildAggregate) error {
 	return writer.appendTimestampedRow("scalability.csv",
-		[]string{"test_name", "batch_size", "elapsed_seconds", "memory_mb", "cpu_percent"},
+		[]string{"test_name", "batch_size", "elapsed_seconds", "stdev_seconds", "repetitions",
+			"memory_mb", "cpu_percent", "peak_rss_mb"},
 		[]string{
 			testName,
 			strconv.Itoa(batchSize),
-			formatFloat(measurement.Elapsed.Seconds(), 6),
-			formatFloat(measurement.MemoryMB, 4),
-			formatFloat(measurement.CPUPercent, 2),
+			formatFloat(aggregate.ElapsedSeconds, 6),
+			formatFloat(aggregate.StdevSeconds, 6),
+			strconv.Itoa(aggregate.Repetitions),
+			formatFloat(aggregate.MemoryMB, 4),
+			formatFloat(aggregate.CPUPercent, 2),
+			formatFloat(aggregate.PeakRSSMB, 4),
+		})
+}
+
+// SaveUpdates mirrors save_updates() -> updates.csv: the isolated incremental
+// update cost measured on top of a base index of baseSize books.
+func (writer ResultsWriter) SaveUpdates(testName string, baseSize int, aggregate BuildAggregate) error {
+	return writer.appendTimestampedRow("updates.csv",
+		[]string{"test_name", "base_size", "elapsed_seconds", "stdev_seconds", "repetitions",
+			"memory_mb", "cpu_percent", "peak_rss_mb"},
+		[]string{
+			testName,
+			strconv.Itoa(baseSize),
+			formatFloat(aggregate.ElapsedSeconds, 6),
+			formatFloat(aggregate.StdevSeconds, 6),
+			strconv.Itoa(aggregate.Repetitions),
+			formatFloat(aggregate.MemoryMB, 4),
+			formatFloat(aggregate.CPUPercent, 2),
+			formatFloat(aggregate.PeakRSSMB, 4),
 		})
 }
 
